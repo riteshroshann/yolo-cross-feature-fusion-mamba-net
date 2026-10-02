@@ -1,0 +1,42 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    pn/.style={base, text width=2.2cm, minimum height=1.35cm, font=\scriptsize},
+    cam/.style={base, rgb, text width=1.85cm, minimum height=0.95cm, font=\scriptsize},
+  ]
+  % cameras, each running phase 3
+  \foreach \i/\y in {1/1.35, 2/0, 3/-1.35}
+    \node[cam] (c\i) at (0,\y) {camera \i\\ Phase 3 pipeline};
+  \node[font=\scriptsize, text=muted] at (0,-2.2) {$\vdots$};
+
+  \node[pn, alert] (blur) at (2.75,0) {\textbf{ingest guard}\\ faces blurred,\\ no identity kept};
+  \foreach \i in {1,2,3} \draw[arr] (c\i.east) -- (blur.west);
+
+  \node[pn, n]    (gp)  at (5.45,0) {\textbf{ground plane}\\ camera-to-ground\\ homographies};
+  \node[pn, tim]  (as)  at (8.15,0) {\textbf{association}\\ position, time,\\ motion; vehicle\\ appearance only};
+  \node[pn, fuse] (an)  at (10.85,0) {\textbf{analytics}\\ zones, lines,\\ dwell, heat maps};
+  \draw[arr] (blur) -- (gp); \draw[arr] (gp) -- (as); \draw[arr] (as) -- (an);
+
+  \node[pn, fuse] (ev)  at (10.85,-2.45) {\textbf{events}\\ intrusion,\\ wrong-way travel};
+  \node[pn, n]    (st)  at (8.15,-2.45) {\textbf{storage}\\ aggregates only;\\ raw video expires};
+  \node[pn, dat]  (db)  at (5.45,-2.45) {\textbf{dashboard}\\ counts and alerts\\ for operators};
+  \draw[arr] (an) -- (ev);
+  \draw[arr] (ev) -- (st);
+  \draw[arr] (st) -- (db);
+
+  \node[pn, alert, text width=2.6cm] (pol) at (8.15,2.15) {\textbf{privacy rules}\\ no watch-lists, no face\\ embeddings, retention timer};
+  \draw[darr, draw=cAlert] (pol.west) -| (blur.north);
+  \draw[darr, draw=cAlert] (pol.south) -- (as.north);
+  \draw[darr, draw=cAlert] (pol.east) -- (12.55,2.15) -- (12.55,-3.6) -| (st.south);
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Phase 4 anonymous multi-camera analytics]{Phase 4 anonymous
+multi-camera analytics. Every camera runs the Phase 3 pipeline. An ingest
+guard blurs faces and discards identity before anything is stored. Tracks
+are associated across cameras on a shared ground plane by position, time and
+motion. Appearance cues are used only for vehicles. The outputs are
+aggregates and rule-based events. The privacy rules (red, dashed) constrain
+ingest, association and storage.}
+\label{fig:phase4}
+\end{figure}

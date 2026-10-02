@@ -1,0 +1,48 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    dn/.style={base, text width=2.25cm, minimum height=1.55cm, font=\scriptsize},
+    sd/.style={base, n, fill=cNeutral!6, text width=2.25cm, minimum height=0.95cm, font=\scriptsize},
+  ]
+  \def\dx{2.85}
+  \def\ya{0}\def\yb{-2.85}
+
+  % row 1, left to right
+  \node[dn, dat]  (d0) at (0*\dx,\ya) {\textbf{sources}\\ official sites,\\ request forms,\\ Hugging Face};
+  \node[dn, n]    (d1) at (1*\dx,\ya) {\textbf{raw store}\\ archives as\\ downloaded,\\ checksums};
+  \node[dn, n]    (d2) at (2*\dx,\ya) {\textbf{conversion}\\ paired folders,\\ YOLO labels,\\ COCO JSON};
+  \node[dn, alert](d3) at (3*\dx,\ya) {\textbf{audit}\\ alignment offsets,\\ size histograms,\\ duplicates};
+  \node[dn, n]    (d4) at (4*\dx,\ya) {\textbf{splits}\\ official or\\ sequence-level,\\ no leakage};
+
+  % row 2, right to left
+  \node[dn, n]    (d5) at (4*\dx,\yb) {\textbf{packaging}\\ private Kaggle\\ datasets,\\ versioned};
+  \node[dn, tim]  (d7) at (3*\dx,\yb) {\textbf{clip loader}\\ sequences,\\ stride, carry-over};
+  \node[dn, alert](d8) at (2*\dx,\yb) {\textbf{corruption}\\ simulator,\\ training only};
+  \node[dn, fuse] (d9) at (1*\dx,\yb) {\textbf{model}\\ Stage A\\ or Stage B};
+  \node[dn, fuse, minimum height=1.2cm] (d6) at (2.5*\dx,{\yb-2.15}) {\textbf{image loader}\\ paired frames,\\ shared geometry};
+
+  \foreach \i/\j in {0/1,1/2,2/3,3/4} \draw[arr] (d\i) -- (d\j);
+  \draw[arr] (d4) -- (d5);
+  \draw[arr] (d5) -- (d7);
+  \draw[arr] (d7) -- (d8);
+  \draw[arr] (d8) -- (d9);
+  \draw[arr] (d5.south) |- (d6.east);
+  \draw[arr] (d6.west) -| (d9.south);
+
+  % side artefacts
+  \node[sd] (c1) at (1*\dx,{\ya+1.6}) {dataset card:\\ version, licence};
+  \node[sd] (c3) at (3*\dx,{\ya+1.6}) {EDA report,\\ Notebook 03};
+  \draw[darr] (d1) -- (c1);
+  \draw[darr] (d3) -- (c3);
+  \node[lbl, anchor=north] at (2.5*\dx,{\yb-2.85}) {still images for Stage A and Phase 1};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[The data engineering pipeline]{The data engineering pipeline. Raw
+archives are never modified. Every derived artefact is produced by a script
+and recorded in a dataset card. The audit measures the real alignment of
+each visible--thermal benchmark before any training. Converted data is
+packaged once as private Kaggle datasets and consumed by the image and clip
+loaders.}
+\label{fig:datapipe}
+\end{figure}

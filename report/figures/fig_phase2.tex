@@ -1,0 +1,34 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    pn/.style={base, text width=2.05cm, minimum height=1.4cm, font=\scriptsize},
+  ]
+  \def\dx{2.62}
+  \def\ya{0}\def\yb{-2.35}
+
+  \node[pn, dat]  (a) at (0*\dx,\ya) {\textbf{upload}\\ one video or a\\ visible--thermal pair};
+  \node[pn, n]    (b) at (1*\dx,\ya) {\textbf{decoder}\\ PyAV or OpenCV,\\ timestamps kept};
+  \node[pn, n]    (c) at (2*\dx,\ya) {\textbf{pairing}\\ nearest frame\\ within $\tfrac12$ interval};
+  \node[pn, dat]  (d) at (3*\dx,\ya) {\textbf{stream monitor}\\ $\tau_t$, dropout\\ flags, cuts};
+  \node[pn, tim]  (e) at (4*\dx,\ya) {\textbf{\methodS}\\ clip mode, state\\ carried forward};
+
+  \node[pn, n]    (f) at (4*\dx,\yb) {\textbf{tracker}\\ BoT-SORT with\\ motion compensation};
+  \node[pn, fuse] (g) at (3*\dx,\yb) {\textbf{writers}\\ annotated MP4,\\ MOT tracks, CSV};
+  \node[pn, alert](h) at (2*\dx,\yb) {\textbf{evaluation}\\ TrackEval: HOTA,\\ IDF1, flicker};
+  \node[pn, fuse] (i) at (1*\dx,\yb) {\textbf{Gradio app}\\ result beside\\ frame latency};
+  \node[pn, n]    (j) at (0*\dx,\yb) {\textbf{comparison}\\ same video in\\ image mode};
+
+  \draw[arr] (a) -- (b); \draw[arr] (b) -- (c); \draw[arr] (c) -- (d); \draw[arr] (d) -- (e);
+  \draw[arr] (e) -- (f); \draw[arr] (f) -- (g); \draw[arr] (g) -- (h); \draw[arr] (h) -- (i);
+  \draw[darr] (i) -- (j);
+  \draw[darr, draw=cAlert] (c.south) -- node[lbl, right=1pt, pos=0.45, text=cAlert] {unmatched frames become dropouts} ++(0,-0.62);
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Phase 2 pipeline for uploaded video]{Phase 2 pipeline for uploaded
+video. Decoding keeps timestamps so that visible and thermal frames can be
+paired and the true interval measured. Unmatched frames are recorded as
+dropouts, not discarded. The streaming model runs causally from the first
+frame. The same video is re-run in image mode to show what the memory adds.}
+\label{fig:phase2}
+\end{figure}

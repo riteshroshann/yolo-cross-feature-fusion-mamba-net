@@ -1,0 +1,61 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    s/.style={base, minimum height=0.8cm, text width=1.45cm},
+    w/.style={base, minimum height=0.8cm, text width=1.35cm},
+  ]
+  \def\ra{0}\def\rb{-2.75}\def\rc{-5.5}
+  \def\xs{0}\def\xn{7.3}\def\xh{9.15}\def\xo{11.0}
+
+  % ---------- early fusion ----------
+  \node[grp, anchor=west] at (-0.75,{\ra+1.1}) {Early fusion};
+  \node[s, rgb] (ev) at (\xs,{\ra+0.45}) {visible};
+  \node[s, ir]  (et) at (\xs,{\ra-0.45}) {thermal};
+  \node[op] (ec) at (1.45,\ra) {$\oplus$};
+  \node[base, n, text width=3.4cm, minimum height=0.8cm] (eb) at (4.1,\ra) {one backbone, 4 or 6 input channels};
+  \node[w, n] (en) at (\xn,\ra) {neck};
+  \node[w, n] (eh) at (\xh,\ra) {head};
+  \node[s, fuse] (eo) at (\xo,\ra) {boxes};
+  \draw[arr] (ev) -- (ec); \draw[arr] (et) -- (ec);
+  \draw[arr] (ec) -- (eb); \draw[arr] (eb) -- (en); \draw[arr] (en) -- (eh); \draw[arr] (eh) -- (eo);
+  \node[lbl, anchor=north] at (5.6,{\ra-0.6}) {cheapest; needs pixel alignment; weak interaction between modalities};
+
+  % ---------- middle fusion ----------
+  \node[grp, anchor=west] at (-0.75,{\rb+1.1}) {Middle fusion};
+  \node[s, rgb] (mv) at (\xs,{\rb+0.45}) {visible};
+  \node[s, ir]  (mt) at (\xs,{\rb-0.45}) {thermal};
+  \node[base, rgb, text width=1.9cm, minimum height=0.8cm] (mbv) at (2.35,{\rb+0.45}) {backbone};
+  \node[base, ir,  text width=1.9cm, minimum height=0.8cm] (mbt) at (2.35,{\rb-0.45}) {backbone};
+  \node[base, fuse, text width=2.3cm, minimum height=1.7cm] (mf) at (5.05,\rb)
+       {fusion blocks\\ at $P_3$, $P_4$, $P_5$,\\ attention or\\ state space};
+  \node[w, n] (mn) at (\xn,\rb) {neck};
+  \node[w, n] (mh) at (\xh,\rb) {head};
+  \node[s, fuse] (mo) at (\xo,\rb) {boxes};
+  \draw[arr] (mv) -- (mbv); \draw[arr] (mt) -- (mbt);
+  \draw[arr] (mbv) -- (mbv -| mf.west); \draw[arr] (mbt) -- (mbt -| mf.west);
+  \draw[arr] (mf) -- (mn); \draw[arr] (mn) -- (mh); \draw[arr] (mh) -- (mo);
+  \node[lbl, anchor=north] at (5.6,{\rb-1.0}) {dominant design: CFT, ICAFusion, CFMW, Fusion-Mamba, COMO, WaveMamba and \method};
+
+  % ---------- late fusion ----------
+  \node[grp, anchor=west] at (-0.75,{\rc+1.1}) {Late fusion};
+  \node[s, rgb] (lv) at (\xs,{\rc+0.45}) {visible};
+  \node[s, ir]  (lt) at (\xs,{\rc-0.45}) {thermal};
+  \node[base, rgb, text width=4.6cm, minimum height=0.8cm] (ldv) at (3.95,{\rc+0.45}) {complete detector};
+  \node[base, ir,  text width=4.6cm, minimum height=0.8cm] (ldt) at (3.95,{\rc-0.45}) {complete detector};
+  \node[base, fuse, text width=2.3cm, minimum height=1.7cm] (lf) at (8.25,\rc)
+       {box fusion,\\ weighted or\\ probabilistic};
+  \node[s, fuse] (lo) at (\xo,\rc) {boxes};
+  \draw[arr] (lv) -- (ldv); \draw[arr] (lt) -- (ldt);
+  \draw[arr] (ldv) -- (ldv -| lf.west); \draw[arr] (ldt) -- (ldt -| lf.west);
+  \draw[arr] (lf) -- (lo);
+  \node[lbl, anchor=north] at (5.6,{\rc-1.0}) {robust to misalignment; twice the cost; no shared features, as in ProbEn};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Three places where visible and thermal streams can meet]{Three
+places where visible and thermal streams can meet. Middle fusion exchanges
+information between feature maps at several scales and dominates current
+work. \method{} is a middle-fusion design whose fusion blocks are
+state-space models with reliability-gated steps (Chapter~\ref{ch:method}).}
+\label{fig:fusionlevels}
+\end{figure}

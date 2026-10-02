@@ -1,0 +1,403 @@
+\chapter{The Proposed Method: \method}
+\label{ch:method}
+
+This chapter specifies \method{}, the Cross-Feature Fusion Mamba Network, and
+its streaming variant \methodS{}. The still-image network fulfils the
+supervised topic directly. It is a YOLO detector whose visible and thermal
+features are fused by state-space blocks. The streaming variant adds the
+contribution identified in Chapter~\ref{ch:novelty}: a causal state carried
+from frame to frame. Every component has an ablation in
+Chapter~\ref{ch:protocol}, and every claim is stated as a hypothesis in
+Section~\ref{sec:hypotheses}.
+
+\section{Design principles}
+\label{sec:principles}
+
+Five principles follow from the evidence of Chapters~\ref{ch:sources}
+and~\ref{ch:sota}.
+
+\begin{enumerate}[label=\textsc{p}\arabic*., leftmargin=2.6em]
+  \item \emph{Keep what is known to work.} The base is YOLO26, with its
+        small-target-aware assignment. A stride-4 head and stronger early
+        stages are added, because those components produced the largest and
+        cheapest gains in the source papers (Figure~\ref{fig:gains}).
+  \item \emph{Spend state-space computation where sequences are long.} Within
+        a frame, scans are applied at $P_3$ to $P_5$, where interleaving the
+        two modalities doubles the sequence length. Across frames, the
+        sequence is the stream itself and has no fixed length.
+  \item \emph{Use time.} Memory carried across frames is the capability that
+        none of the source papers, and none of the static fusion papers,
+        provide.
+  \item \emph{One control for three problems.} The discretisation step
+        $\Delta$ is modulated by sensor reliability, by the true frame
+        interval and by scene changes. In each case it decides how much the
+        state should hold and how much it should write
+        (Section~\ref{sec:delta}).
+  \item \emph{Deployable by construction.} Every block has a pure-PyTorch
+        path and a single-step form that updates the state once per frame,
+        so that the streaming model can be exported and run on live
+        cameras.
+\end{enumerate}
+
+\section{Architecture overview}
+\label{sec:arch}
+
+Figure~\ref{fig:arch} shows the full network for one frame $t$. Visible and
+thermal frames enter two YOLO26 backbones. The backbones have separate
+weights, because the two sensors have different statistics; sharing the
+later stages is an ablation. Each produces features
+$F^{v,l}_t$ and $F^{\theta,l}_t$ at levels $l\in\{2,3,4,5\}$. Here $v$ denotes
+visible and $\theta$ thermal.
+
+At $P_2$, fusion is a reliability-weighted sum, which is cheap enough for
+160$\times$160 maps. At $P_3$ to $P_5$, the Cross-Modal Fusion Mamba (CMFM)
+block of Section~\ref{sec:cmfm} produces fused features $Z^l_t$ and
+reliability maps $\rho^l_t$. In the streaming variant, the Temporal State
+Memory (TSM) of Section~\ref{sec:tsm} combines $Z^l_t$ with the state carried
+from frame $t-1$. Before use, that state is warped by the estimated camera
+motion $H_{t-1\to t}$. The fused, temporally enriched features enter a
+YOLO26 path-aggregation neck extended to $P_2$. Heads at $P_2$, $P_3$ and
+$P_4$ follow, with the $P_5$ head optional. Two side modules supply the
+signals that control $\Delta$.
+\begin{itemize}
+  \item The \emph{stream monitor} reports the true interval $\tau_t$ since
+        the last processed frame, sensor availability flags and a scene-cut
+        test.
+  \item The \emph{ego-motion estimator} computes $H_{t-1\to t}$.
+\end{itemize}
+
+\input{figures/fig_arch}
+
+\section{The small-object pathway}
+\label{sec:smallpath}
+
+Four measures protect small objects before any state-space block is
+involved.
+\begin{itemize}
+  \item \emph{Stride-4 head.} The $P_2$ head is added and the neck carries
+        $P_2$ through both its paths. In UAVDet and HPS-DETR this was the
+        largest single source of small-object gain.
+  \item \emph{Early capacity.} Channels and blocks are moved towards the
+        first two stages, following UAVDet's ablation. The backbone
+        configuration is a hyperparameter with three settings in the
+        ablation.
+  \item \emph{Native resolution.} RGBT-Tiny frames are $640\times512$ and
+        are processed at native resolution with letterbox padding, so no
+        downscaling destroys tiny objects. For larger inputs, sliced
+        inference with SAHI~\citep{akyon2022sahi} is an inference option,
+        not a training change.
+  \item \emph{Assignment.} YOLO26's small-target-aware label assignment is
+        retained~\citep{yolo26_2026}. The scale-adaptive SAFit measure
+        proposed with RGBT-Tiny is used in evaluation~\citep{ying2025rgbttiny}.
+\end{itemize}
+
+\section{Cross-Modal Fusion Mamba with reliability-gated steps}
+\label{sec:cmfm}
+
+The CMFM block fuses $F^v, F^\theta \in \R^{C\times H\times W}$ at one pyramid
+level. Superscript $l$ and subscript $t$ are dropped for clarity.
+Figure~\ref{fig:cmfm} shows its structure. It has five steps.
+
+\paragraph{Reliability estimation}
+A small convolutional head $g$ estimates, at every location, how far each
+modality can be trusted:
+\begin{equation}
+  \bigl(r^v,\, r^\theta\bigr) = \sigma\Bigl(g\bigl([\,F^v,\; F^\theta,\; |F^v-F^\theta|\,]\bigr)\Bigr)
+  \odot \bigl(s^v,\, s^\theta\bigr),
+  \qquad r^v, r^\theta \in (0,1)^{H\times W}.
+  \label{eq:rel}
+\end{equation}
+Here $g$ is a depthwise $3\times3$ convolution followed by a $1\times1$
+convolution with two outputs. The flags $s^v, s^\theta\in\{0,1\}$ come from
+the stream monitor. They are zero when a sensor delivers no frame, so that a
+known outage needs no learning. The absolute difference is included because
+disagreement between modalities is the most direct evidence that one of
+them is degraded.
+
+\paragraph{Offset-guided alignment}
+A second head predicts a displacement field $o \in \R^{2\times H\times W}$ from
+$[F^v, F^\theta]$. The thermal features are resampled onto the visible grid,
+$\tilde F^\theta = \mathcal{S}(F^\theta, o)$, with bilinear sampling. This follows
+the offset guidance of COMO~\citep{como2024}. The field is initialised to
+zero, so the block starts as an aligned fusion. Its effect is measured under
+synthetic misalignment (Section~\ref{sec:robustness}).
+
+\paragraph{Token interleaving}
+Both streams are projected to $C'$ channels by $1\times1$ convolutions
+$\phi_v$ and $\phi_\theta$. They are flattened along the scan order and
+interleaved, so that the two modalities at each location are adjacent in
+the sequence:
+\begin{equation}
+  X = \bigl(x^v_1,\; x^\theta_1,\; x^v_2,\; x^\theta_2,\; \dots,\; x^v_{HW},\; x^\theta_{HW}\bigr)
+  \in \R^{2HW \times C'} .
+  \label{eq:interleave}
+\end{equation}
+The hidden state therefore passes from one modality to the other at every
+location. Fusion happens inside the state, not after it.
+
+\paragraph{Reliability-gated selective scan}
+The interleaved sequence is processed by a selective scan in the SS2D
+pattern~\citep{liu2024vmamba}, with one change. The step of each token is
+scaled by the reliability of its modality at its location:
+\begin{equation}
+  \Delta_k = \softplus\bigl(w_\Delta^{\top} x_k + b_\Delta\bigr)\cdot r^{m(k)}_{p(k)},
+  \label{eq:gated-delta}
+\end{equation}
+where $m(k)\in\{v,\theta\}$ and $p(k)$ are the modality and location of token
+$k$. By the argument of Section~\ref{sec:delta}, a token judged unreliable
+receives $\Delta_k\to0$. It neither writes into the state nor erases it.
+
+This differs in kind from the output gating of
+Fusion-Mamba and CFMW~\citep{dong2025fusionmamba,li2025cfmw}. Output gating
+suppresses a modality's contribution after it has already updated the state.
+Gating the step prevents a corrupted token from contaminating the state in
+the first place. The difference is small on still images. It becomes
+decisive once the same state persists across frames.
+
+\paragraph{Merge}
+The scan output is de-interleaved into $Y^v$ and $Y^\theta$. A local branch,
+a depthwise $3\times3$ convolution on $[\phi_v(F^v), \phi_\theta(\tilde F^\theta)]$,
+runs alongside. This follows MambaVision's finding that a non-SSM branch
+beside the scan helps~\citep{hatamizadeh2025mambavision}. The fused output
+is
+\begin{equation}
+  Z = \hat r^v \odot F^v + \hat r^\theta \odot \tilde F^\theta
+      + W_o\bigl[\,Y^v;\; Y^\theta;\; \text{local}\,\bigr],
+  \qquad
+  \hat r^m = \frac{r^m}{r^v + r^\theta + \epsilon},
+  \label{eq:merge}
+\end{equation}
+which reduces to a reliability-weighted average when the scan contributes
+nothing. The block also outputs the combined reliability
+$\rho = \max(r^v, r^\theta)$, which the TSM uses.
+
+\paragraph{Cost}
+With $d$ scan directions and state size $N$, the scan costs
+$\mathcal{O}(d\cdot 2HW\cdot C' N)$. At $P_3$ for a $640\times512$ input,
+$2HW = 10\,240$ tokens, which is well inside the regime where a linear scan
+is cheaper than attention. The number of directions ($d\in\{2,4\}$) is an
+ablation.
+
+\input{figures/fig_cmfm}
+
+\section{Temporal State Memory}
+\label{sec:tsm}
+
+The TSM gives each location of each fused level a small state that persists
+across frames. For level $l$ with resolution $H\times W$, the state is
+$S_t \in \R^{H\times W\times C_s\times N}$, with $C_s=C/2$ and $N=8$ by
+default.
+
+\paragraph{Input}
+The fused features are projected, $u_t = W_{\text{in}} Z_t \in \R^{H\times W\times C_s}$.
+The input-dependent projections $B_t = W_B u_t$ and $C_t = W_C u_t$ are formed
+as in Equation~\eqref{eq:selective}.
+
+\paragraph{Motion compensation}
+The previous state is warped into the current frame,
+\begin{equation}
+  \hat S_{t-1} = \mathcal{W}\bigl(S_{t-1};\, H_{t-1\to t}\bigr),
+  \label{eq:warp}
+\end{equation}
+by bilinear sampling at the level's resolution. Locations that enter the
+view have no history and receive a zero state.
+
+\paragraph{Gated step}
+The temporal step combines the learned selection with the three control
+signals:
+\begin{equation}
+  \Delta_t(p) = \softplus\bigl(w^{\top} u_t(p) + b\bigr)\cdot
+  \frac{\tau_t}{\tau_0}\cdot \rho_t(p).
+  \label{eq:tsm-delta}
+\end{equation}
+Here $\tau_t$ is the measured interval since the previous processed frame
+and $\tau_0$ the nominal interval seen in training. The factor $\tau_t/\tau_0$
+keeps the discrete update faithful to the same continuous dynamics when
+frames are dropped or arrive irregularly. This is the property Zubi\'c and
+colleagues exploited for event cameras~\citep{zubic2024ssmevent}. The factor
+$\rho_t$ holds the state where neither sensor can be trusted, so the memory
+of an object survives a gap in the feed.
+
+\paragraph{Update and readout}
+For each location $p$,
+\begin{align}
+  S_t(p) &= \exp\bigl(\Delta_t(p)\,A\bigr)\odot \hat S_{t-1}(p)
+            + \Delta_t(p)\; u_t(p)\, B_t(p)^{\top}, \label{eq:tsm-update}\\
+  y_t(p) &= S_t(p)\, C_t(p) + D\odot u_t(p), \label{eq:tsm-read}\\
+  \tilde Z_t &= Z_t + W_{\text{out}}\bigl(\mathrm{DWConv}_{3\times3}(y_t)\bigr).
+  \label{eq:tsm-out}
+\end{align}
+The depthwise convolution in Equation~\eqref{eq:tsm-out} spreads temporal
+evidence to neighbouring locations. That compensates for small errors in
+the warp. Because the TSM is residual and the state starts at zero,
+image mode is the special case of a single step from an empty state.
+\method{} and \methodS{} therefore share one set of weights.
+
+\paragraph{Reset}
+The state is cleared in three cases:
+\begin{itemize}
+  \item the stream monitor detects a scene cut;
+  \item motion estimation fails its inlier test;
+  \item the gap $\tau_t$ exceeds a maximum $\tau_{\max}$.
+\end{itemize}
+A soft reset, which sets $\Delta$ large, is an alternative evaluated in the
+ablation.
+
+\paragraph{Cost}
+Memory and computation per frame are $\mathcal{O}(HW\,C_s N)$ and do not depend
+on how many frames have been seen. At $P_3$ for a $640\times512$ input with
+$C_s=64$ and $N=8$, the state holds $80\times64\times64\times8 \approx 2.6$
+million values, about 10\,MB in 32-bit floats. All three levels together
+need about 14\,MB. Figure~\ref{fig:tsm} shows the memory unrolled over three
+frames, including a thermal dropout and a frame gap.
+
+\input{figures/fig_tsm}
+
+\section{Ego-motion compensation and scene changes}
+\label{sec:egomotion}
+
+Drone and handheld footage moves. Without compensation, the state at a
+location would describe whatever was there before the camera moved.
+\begin{itemize}
+  \item The default estimator is classical. ORB features are matched between
+        consecutive frames at half resolution, and a homography is fitted
+        with RANSAC. The thermal frame is used at night and the visible frame
+        by day, chosen by the stream monitor from the global reliability. The
+        result is scaled to each pyramid level.
+  \item For static cameras the estimator is bypassed and $H$ is the
+        identity.
+  \item A learned alternative regresses the eight homography parameters
+        from the $P_5$ features of frames $t-1$ and $t$. It is cheaper on an
+        embedded device and is compared in the ablation.
+\end{itemize}
+A homography models only a planar or distant scene. Parallax and
+independently moving objects are left to the learned update, the
+depthwise spreading in Equation~\eqref{eq:tsm-out} and the tracker.
+
+\section{Training}
+\label{sec:training}
+
+Training proceeds in two stages (Figure~\ref{fig:training}).
+
+\paragraph{Stage A, still images}
+\begin{itemize}
+  \item Both backbones start from COCO-pretrained YOLO26 weights. The first
+        convolution of the thermal backbone is initialised by averaging the
+        pretrained filters over the colour channels.
+  \item The CMFM blocks, neck and heads are trained on single frames from
+        the visible--thermal datasets of Chapter~\ref{ch:data}.
+  \item The result is the still-image \method{}, which is also the Phase~1
+        deliverable.
+\end{itemize}
+
+\paragraph{Stage B, clips}
+\begin{itemize}
+  \item Training continues on clips of $L$ consecutive frames, with $L=8$
+        and later $L=16$.
+  \item Each clip uses a random frame stride $s\in\{1,2,3\}$, so that the
+        model sees varied intervals $\tau_t$.
+  \item The first two frames of each clip are a burn-in without loss.
+        Gradients flow through the clip and are truncated at its boundary
+        (truncated back-propagation through time~\citep{williams1990tbptt}).
+  \item With probability 0.5, the final state of one clip initialises the
+        next clip of the same sequence. The model therefore experiences
+        states that are much older than $L$ frames.
+\end{itemize}
+
+\paragraph{Augmentation and corruption}
+Geometric augmentation is identical for both modalities and for every frame
+of a clip. Mosaic is disabled in Stage B because it breaks temporal
+continuity. Photometric jitter is applied to the visible stream only.
+Thermal frames receive gain and offset drift and sensor noise. A corruption
+simulator then applies five perturbations per clip.
+\begin{itemize}
+  \item Bursty dropout of each modality is drawn from a two-state Markov
+        chain, with probability 0.02 of failing and 0.2 of recovering per
+        frame. Outages therefore last five frames on average.
+  \item Rare total blackouts remove both sensors at once.
+  \item Thermal misalignment is a random affine offset, up to 16 pixels of
+        translation, $\pm3^\circ$ of rotation and $\pm5\%$ of scale. It
+        drifts slowly within the clip.
+  \item Desynchronisation delays the thermal stream by zero to two frames.
+  \item Random frame drops make the intervals irregular.
+\end{itemize}
+Because the simulator knows what it corrupted, it also provides targets for
+the reliability heads.
+
+\paragraph{Objective}
+The loss averages the YOLO26 detection loss over the supervised frames of a
+clip, $\mathcal{T}$, and adds a weak reliability term:
+\begin{equation}
+  \mathcal{L} = \frac{1}{|\mathcal{T}|}\sum_{t\in\mathcal{T}} \mathcal{L}_{\text{det}}(t)
+  \;+\; \lambda_{\text{rel}}\,\frac{1}{|\mathcal{T}|}\sum_{t\in\mathcal{T}}\;\sum_{m\in\{v,\theta\}}
+  \mathrm{BCE}\bigl(\bar r^m_t,\; q^m_t\bigr),
+  \qquad \lambda_{\text{rel}} = 0.1 .
+  \label{eq:loss}
+\end{equation}
+Here $\bar r^m_t$ is the spatial mean of a modality's reliability map and
+$q^m_t\in\{0,1\}$ is the simulator's target. Optimisation uses the YOLO26
+defaults with mixed precision. The selective scan and the TSM state are kept
+in 32-bit precision, because T4 GPUs lack bfloat16 and the scan is sensitive
+to half-precision rounding. An exponential moving average of the weights is
+kept for evaluation.
+
+\input{figures/fig_training}
+
+\section{Inference modes and complexity}
+\label{sec:modes}
+
+The same weights run in three modes.
+\begin{itemize}
+  \item \emph{Image mode} uses an empty state for each frame. It is used in
+        Phase~1 and as an internal baseline.
+  \item \emph{Clip mode} processes a stored video causally from its first
+        frame. It is used in Phase~2. A bidirectional variant can be run
+        offline as an upper bound.
+  \item \emph{Stream mode} keeps the state between calls and advances it by
+        one step per arriving frame. It is used in Phases~3 and~4.
+\end{itemize}
+Table~\ref{tab:complexity} compares the per-frame cost of the temporal
+options that the ablation will test.
+
+\begin{table}[htbp]
+\centering
+\caption[Per-frame cost of temporal designs]{Per-frame cost of temporal designs
+as a function of the number of frames already seen, $T$, and the window
+length, $k$. $M$ is the number of feature locations.}
+\label{tab:complexity}
+\small
+\begin{tabularx}{\textwidth}{@{}P{3.4cm}P{2.3cm}P{2.3cm}L@{}}
+\hd{Design} & \hd{Compute} & \hd{Memory} & \hd{Behaviour} \\ \gap
+per-frame detector        & $\mathcal{O}(1)$   & none               & no temporal context \\
+sliding window of $k$ frames & $\mathcal{O}(k)$ & $\mathcal{O}(kM)$ & context limited to $k$ frames \\
+temporal attention over $k$ & $\mathcal{O}(k M)$ & $\mathcal{O}(kM)$ & quadratic in $k$ if all pairs attend \\
+convolutional GRU          & $\mathcal{O}(M)$   & $\mathcal{O}(M)$  & unbounded memory; gates not tied to time \\
+Temporal State Memory      & $\mathcal{O}(M N)$ & $\mathcal{O}(MN)$ & unbounded memory; step tied to reliability and true interval \\
+\end{tabularx}
+\end{table}
+
+\section{Hypotheses and how they could fail}
+\label{sec:hypotheses}
+
+Each hypothesis is paired with the comparison that tests it and the outcome
+that would refute it (Table~\ref{tab:hypotheses}). The targets are
+deliberately modest. A refuted hypothesis is a publishable finding if the
+experiment is sound, so the protocol of Chapter~\ref{ch:protocol} is designed
+to make every outcome interpretable.
+
+\begin{table}[htbp]
+\centering
+\caption[Hypotheses, tests and refutation criteria]{Hypotheses, the tests that
+address them and the outcomes that would refute them. ``Seed spread'' is the
+standard deviation over three training seeds.}
+\label{tab:hypotheses}
+\small
+\begin{tabularx}{\textwidth}{@{}P{0.8cm}P{3.6cm}P{3.9cm}L@{}}
+\hd{} & \hd{Hypothesis} & \hd{Test} & \hd{Refuted if} \\ \gap
+H1 & Temporal memory improves tiny-object detection. & \methodS{} against image-mode \method{} on RGBT-Tiny, AP for objects under 16\,px and SAFit. & The gain is below twice the seed spread. \\ \sgap
+H2 & The selective state is the right memory. & TSM against convolutional GRU, a sliding window and windowed temporal attention at matched GFLOPs. & Any alternative matches TSM's accuracy at lower per-frame latency. \\ \sgap
+H3 & Gating the step by reliability gives graceful degradation. & Bursty thermal dropout and misalignment, against output gating, COMO-style fusion and concatenation. & Area under the degradation curve is not better, or recovery after an outage is not faster. \\ \sgap
+H4 & Scaling the step by the true interval generalises across frame rates. & Train at 15\,FPS without stride augmentation; test at 7.5 and 3.75\,FPS and with random drops, with and without the factor $\tau_t/\tau_0$. & Accuracy loss under rate shift is not reduced. \\ \sgap
+H5 & The streaming model is deployable. & TensorRT FP16 export, desktop GPU and Jetson Orin, end-to-end latency including NMS and motion estimation. & Under 30\,FPS on the desktop GPU or under 15\,FPS on Orin at $640\times512$, or more than 1 AP\textsubscript{50} lost in export. \\
+\end{tabularx}
+\end{table}

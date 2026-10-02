@@ -1,0 +1,142 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{The question behind the project}
+
+In the television series \emph{Person of Interest}~\citep{poi2011}, a system
+called the Machine watches the cameras of a city. It recognises people,
+follows them from one camera to the next and predicts which of them will be
+involved in violence. As fiction it combines several technologies that are
+real today and several that are not. Its lowest layer is the one this
+project is about: a perception system that looks at camera feeds and says,
+reliably and in real time, what objects are present and where they are.
+
+The supervised project topic, \emph{YOLO-Based Cross Feature Fusion Mamba
+Net for Object Detection}, names three ingredients of such a layer. YOLO is
+the family of single-stage detectors that made real-time detection practical
+on ordinary hardware~\citep{yolo26_2026,wang2024yolov10,tian2025yolov12}.
+Cross-feature fusion is the combination of information from different
+sources, such as a visible-light camera and a thermal camera, or features
+taken at different image scales. Mamba is a selective state-space model,
+a sequence model whose cost grows linearly with sequence length and which
+summarises everything it has seen in a fixed-size hidden
+state~\citep{gu2023mamba}.
+
+This dossier sets out how these ingredients can be combined into work that is
+new, measurable and publishable, and how the result can be built in phases
+that end with a system running on live cameras.
+
+\section{From a fictional Machine to a defensible research problem}
+
+A research contribution needs a precise problem, a measurable claim and an
+honest account of prior work. The Machine is none of these things. Three
+choices narrow it into something that can be studied.
+
+The first choice is the scene. Objects that occupy few pixels are the hard
+case for every detector. A person 200 metres from a camera or a car seen from
+a drone may cover fewer than $16\times16$ pixels. Small-object detection
+remains the weakest part of the COCO benchmark~\citep{lin2014coco}. It has
+dedicated benchmarks, including VisDrone~\citep{zhu2021visdrone},
+AI-TOD~\citep{xu2022aitodv2}, SODA~\citep{cheng2023soda} and
+RGBT-Tiny~\citep{ying2025rgbttiny}.
+
+The second choice is the sensor. Visible cameras fail at night, in glare
+and in fog. Thermal cameras see heat regardless of light but lose colour
+and texture. A detector that fuses both is useful exactly when a single
+sensor is not~\citep{li2025cfmw,dong2025fusionmamba}.
+
+The third choice is time. A camera does not produce isolated photographs.
+It produces a stream in which a faint object seen in one frame is usually
+still there in the next. Most published detectors, including all four
+source papers studied here, process each image independently. State-space
+models were designed for sequences, so carrying their memory across frames
+is a natural use of them. As Chapter~\ref{ch:novelty} shows, it is also the
+least explored one.
+
+\section{Data in, detections out}
+\label{sec:datain}
+
+A common early question is whether the system works only on a dataset that is
+handed to it, or whether it can also watch a live camera. It can do both,
+and the distinction is worth stating precisely because it organises the
+whole plan.
+
+\emph{Training} always uses curated datasets. These are collections of images
+or video frames in which every object of interest has been labelled with a
+box and a class. The model learns from these labels, and its accuracy is
+measured on a held-out portion of the same datasets. This part of the work is
+the same whatever the final application.
+
+\emph{Inference}, the use of the trained model, can draw on any source of
+images. The same weights can read a folder of test images, an uploaded video
+file or a live stream from a webcam, an IP camera or a thermal camera. The
+detector itself does not change. What changes is the work around it. Video
+must be decoded and its frames kept in order. A live stream must be read
+fast enough to keep up, so stale frames must be dropped. A streaming model
+must also keep its memory from one frame to the next.
+Figure~\ref{fig:glance} shows the four phases that follow from this.
+
+\input{figures/fig_glance}
+
+\section{Research questions}
+
+The plan is organised around four questions. Each can be answered by
+experiment.
+
+\begin{enumerate}[label=\textsc{rq}\arabic*., leftmargin=3.2em]
+  \item Does a state-space memory carried causally across frames improve the
+        detection of very small objects in visible--thermal video, compared
+        with the same detector applied frame by frame?
+  \item Is the selective state-space formulation the right form for that
+        memory? Specifically, does it beat a convolutional recurrent cell
+        and windowed temporal attention at matched computation?
+  \item Can the discretisation step of the state-space model act as a learned
+        reliability gate? If so, the detector should degrade gracefully when
+        one sensor drops out, drifts out of alignment or delivers frames
+        irregularly.
+  \item Can the resulting detector run on live streams within a real-time
+        budget, on a desktop GPU and on an embedded Jetson module, without
+        losing the accuracy measured offline?
+\end{enumerate}
+
+\section{What this dossier contributes}
+
+The dossier is a planning document, not a results paper. It contributes the
+following.
+
+\begin{itemize}
+  \item A critical reading of the four source papers. The reading
+        reconstructs their tables from the original PDFs and identifies
+        where their gains come from (Chapter~\ref{ch:sources}).
+  \item A survey of the state of the art as of October 2026, newest first,
+        in six areas. These are real-time detectors, vision state-space
+        models, small objects, visible--thermal fusion, video and tracking,
+        and foundation models (Chapter~\ref{ch:sota}).
+  \item A novelty analysis of 64 closely related papers. It shows which
+        directions are saturated and which remain open
+        (Chapter~\ref{ch:novelty}).
+  \item The design of \method{} and \methodS{}, with equations, complexity
+        analysis and falsifiable hypotheses (Chapter~\ref{ch:method}).
+  \item A dataset stack, an experimental protocol that meets the standards
+        of the target journals, a four-phase roadmap and a notebook workflow
+        (Chapters~\ref{ch:data} to~\ref{ch:notebooks}).
+  \item An account of the legal and ethical limits that separate this
+        system from the fictional Machine (Chapter~\ref{ch:ethics}).
+\end{itemize}
+
+\section{How the programme fits together}
+
+Figure~\ref{fig:programme} shows the order of work and how later stages feed
+back into earlier ones. It also serves as a reading guide.
+
+\input{figures/fig_programme}
+
+\section{Conventions}
+
+Numbers quoted from other work are taken from the cited paper or its official
+repository. The dagger (\unv) marks figures that could only be confirmed from
+a secondary source. Dates in tables are the month a work first appeared,
+usually as an arXiv preprint. Mean average precision at an IoU threshold of
+0.5 is written AP\textsubscript{50}. The COCO average over thresholds 0.5 to
+0.95 is written AP or mAP\textsubscript{50:95}. Small-object metrics follow
+the definitions in Section~\ref{sec:small}.

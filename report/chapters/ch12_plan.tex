@@ -1,0 +1,147 @@
+\chapter{Risks, Timeline and Publication Strategy}
+\label{ch:plan}
+
+This chapter turns the plan into a schedule. It lists the risks and how each
+will be handled. It then sets the timeline and chooses target journals,
+anticipates what reviewers will ask, and outlines the manuscript.
+
+\section{Risk register}
+
+Table~\ref{tab:risks} lists the ten risks most likely to delay or weaken the
+work, with the response planned for each.
+
+\begin{table}[htbp]
+\centering
+\caption[Risk register]{Risk register. Likelihood and impact are rated low,
+medium or high.}
+\label{tab:risks}
+\small
+\begin{tabularx}{\textwidth}{@{}P{3.6cm}P{1.25cm}P{1.15cm}L@{}}
+\hd{Risk} & \hd{Likelihood} & \hd{Impact} & \hd{Mitigation} \\ \gap
+RGBT-Tiny access is delayed & medium & high & request on day one; begin Stage B on VT-VOD50 and UVT-VOD2024 \\
+\texttt{mamba\_ssm} fails on T4 & medium & medium & pure-PyTorch scan; sequences here are short enough \\
+Kaggle quota is insufficient & medium & medium & two T4s per session; university cluster or Colab as contingency; fewer single-seed ablations \\
+H1 is refuted & medium & medium & report it; the robustness protocol and H3 still stand as contributions \\
+a competing paper appears & medium & high & monthly prior-art check; sharpen the claim toward robustness and deployment \\
+motion estimation fails on thermal & medium & low & learned estimator; state reset on failure \\
+scan does not export to TensorRT & high & medium & single-step state update as plain operations; plugin as last resort \\
+label noise in benchmarks & medium & low & audit in Notebook~03; report on corrected labels where available \\
+overfitting to one benchmark & medium & medium & cross-dataset evaluation on four further datasets \\
+schedule slip & high & medium & each phase is a usable deliverable; Phase~4 can be dropped \\
+\end{tabularx}
+\end{table}
+
+\section{Timeline}
+
+The schedule assumes work begins in October 2026 and targets submission in
+July 2027 (Figure~\ref{fig:gantt}). Five milestones mark the exit tests of
+the phases.
+
+\input{figures/fig_gantt}
+
+\section{Target journals}
+\label{sec:journals}
+
+Table~\ref{tab:journals} lists suitable journals with their latest
+reported impact factors, which must be confirmed in Journal Citation Reports
+before submission. The work can support up to three papers:
+\begin{itemize}
+  \item \emph{Paper A}, the method and the robustness protocol. It is the
+        main paper and suits IEEE TCSVT, Pattern Recognition or Information
+        Fusion.
+  \item \emph{Paper B}, the deployed real-time system with edge
+        measurements. It suits the Journal of Real-Time Image Processing
+        (Springer) or Engineering Applications of Artificial Intelligence.
+  \item \emph{Paper C}, an extended version for remote sensing, if the
+        drone results are strong. It suits IEEE TGRS or the International
+        Journal of Remote Sensing (Taylor \& Francis).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption[Candidate journals]{Candidate journals. Impact factors are as
+reported by secondary sources for the 2025 release and are marked
+unverified.}
+\label{tab:journals}
+\small
+\begin{tabularx}{\textwidth}{@{}LP{2.1cm}R{1.35cm}P{4.2cm}@{}}
+\hd{Journal} & \hd{Publisher} & \hd{JIF\unv} & \hd{Fit} \\ \gap
+Information Fusion & Elsevier & 15.5 & Paper A if framed around fusion robustness \\
+IEEE Trans.\ Image Processing & IEEE & 13.7 & Paper A with strong analysis; demanding \\
+IEEE Trans.\ Circuits Syst.\ Video Technol. & IEEE & 11.1 & \textbf{Paper A, best fit}: video and streaming \\
+IEEE Trans.\ Multimedia & IEEE & 9.7 & Paper A; published Fusion-Mamba \\
+IEEE Trans.\ Geosci.\ Remote Sensing & IEEE & 8.6 & Paper C \\
+Eng.\ Appl.\ of Artificial Intelligence & Elsevier & 8.0 & Paper B \\
+Pattern Recognition & Elsevier & 7.6 & Paper A \\
+Neural Networks & Elsevier & 6.3 & state-space analysis \\
+Neural Computing and Applications & Springer & 4.5--6 & fallback for A \\
+Computer Vision and Image Understanding & Elsevier & 3.6 & published UAVDet \\
+J.\ Real-Time Image Processing & Springer & 3.0 & \textbf{Paper B, best fit} \\
+The Visual Computer & Springer & 2.9 & fallback \\
+Int.\ J.\ Remote Sensing & Taylor \& Francis & 2.6 & Paper C \\
+Machine Vision and Applications & Springer & 2.3 & fallback \\
+\end{tabularx}
+\end{table}
+
+\section{What reviewers will ask}
+\label{sec:reviewers}
+
+Reviewers at these journals ask for the same things repeatedly. The protocol
+of Chapter~\ref{ch:protocol} answers each in advance.
+\begin{itemize}
+  \item At least three datasets, including a video dataset and a dataset
+        with real misalignment.
+  \item Comparisons against 2025--2026 methods, not only against YOLOv8:
+        WaveMamba, COMO, MambaST and the alignment-free video detectors.
+  \item Parameters, GFLOPs and latency for every method, measured on the
+        same GPU at batch one, end to end. Jetson numbers are needed if
+        real time is claimed.
+  \item Mean and standard deviation over at least three seeds, with
+        confidence intervals that respect the correlation of frames within
+        sequences.
+  \item An ablation for every component, failure cases and visualisations
+        of what the state holds.
+  \item Code, weights and a data-availability statement.
+\end{itemize}
+
+\section{Manuscript outline}
+
+Table~\ref{tab:outline} gives the planned structure of Paper~A. The method
+and experiments sections take most of the space, as reviewers expect.
+
+\begin{table}[htbp]
+\centering
+\caption[Outline of the main manuscript]{Outline of the main manuscript
+(Paper A), with approximate lengths for a journal of the IEEE Transactions
+format.}
+\label{tab:outline}
+\small
+\begin{tabularx}{\textwidth}{@{}P{3.7cm}LR{1.4cm}@{}}
+\hd{Section} & \hd{Content} & \hd{Pages} \\ \gap
+Introduction & problem, gap, contributions, figure of the streaming setting & 1.25 \\
+Related work & YOLO and SSM detectors; RGB--T fusion; temporal and streaming detection & 1.25 \\
+Method & CMFM with gated step; TSM; motion compensation; training & 3.0 \\
+Robustness protocol & perturbations, severities, event metrics & 0.75 \\
+Experiments & datasets, baselines, main results, ablations, robustness, efficiency & 4.0 \\
+Analysis & what the state holds, failure cases, limitations & 1.0 \\
+Conclusion and statements & conclusion, ethics, data and code availability & 0.5 \\
+\end{tabularx}
+\end{table}
+
+\section{Before submission}
+\label{sec:submission}
+
+Five checks come immediately before submission.
+\begin{enumerate}
+  \item Prior art is searched again on arXiv and in the target journals
+        across the four lanes of Figure~\ref{fig:timeline}. The claims are
+        adjusted to whatever has appeared.
+  \item The code is released under the AGPL-3.0 licence that Ultralytics
+        requires, with configurations and the run logs behind every table.
+  \item Weights and the robustness protocol's corruption seeds are released,
+        so that others can evaluate on identical streams.
+  \item The ethics and data statements of Chapter~\ref{ch:ethics} are
+        completed.
+  \item A colleague who has not seen the project reproduces one main table
+        from the released material.
+\end{enumerate}

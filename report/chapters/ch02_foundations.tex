@@ -1,0 +1,266 @@
+\chapter{Technical Foundations}
+\label{ch:foundations}
+
+This chapter introduces the ideas the rest of the dossier depends on. It
+covers how a YOLO detector is organised and why small objects strain it. It
+then derives the selective state-space model behind Mamba and shows how such
+models have been adapted to images. It ends with visible--thermal fusion and
+the step from images to video. Readers familiar with any section can skip
+it. Section~\ref{sec:delta} is the exception, because it contains the
+observation on which the proposed method is built.
+
+\section{Real-time detection and the YOLO family}
+\label{sec:yolo}
+
+A single-stage detector predicts object boxes and classes in one pass over
+the image, with no separate proposal stage. The YOLO family has three
+parts~\citep{wang2024yolov10,tian2025yolov12,yolo26_2026}. A
+\emph{backbone} turns the image into feature maps at progressively coarser
+resolution. A \emph{neck} mixes information between those resolutions. A
+\emph{head} predicts, for each location of each output map, whether an
+object is centred there, its box and its class.
+
+The resolution of a feature map is described by its \emph{stride}, the
+number of input pixels per feature cell. Following common notation, the map
+at stride $2^k$ is called $P_k$. For a $640\times640$ input, $P_3$ has
+$80\times80$ cells at stride~8, $P_4$ has $40\times40$ at stride~16 and $P_5$
+has $20\times20$ at stride~32. Standard YOLO models predict from $P_3$, $P_4$
+and $P_5$. Small-object variants add a $P_2$ head at stride~4, with
+$160\times160$ cells~\citep{zhu2021tph,yang2026uavdet}.
+
+The neck follows the feature pyramid network~\citep{lin2017fpn} and its
+path-aggregation extension~\citep{liu2018panet}. A top-down path carries
+semantic information from coarse maps to fine ones. A bottom-up path then
+returns localisation detail to the coarse maps.
+
+Two further design choices matter for this project. The first is
+\emph{label assignment}, the rule that decides which predictions are trained
+to match which ground-truth objects. Tiny objects cover so few cells that a
+poor rule may give them no positive samples at all. YOLO26 introduces a
+small-target-aware assignment for this reason~\citep{yolo26_2026}. The second
+is \emph{non-maximum suppression} (NMS), which removes duplicate boxes after
+prediction. NMS costs time that papers often leave out of latency
+figures~\citep{robinson2025rfdetr}. YOLOv10 and YOLO26 offer heads trained
+with one-to-one matching that need no NMS~\citep{wang2024yolov10,yolo26_2026}.
+Figure~\ref{fig:yolo} summarises the layout and the numbers that recur in
+later chapters.
+
+\input{figures/fig_yolo}
+
+\section{What makes an object small}
+\label{sec:small}
+
+Size can be defined in absolute terms, by the number of pixels a box covers,
+or relative to the image. Absolute definitions dominate, but the thresholds
+differ between benchmarks (Table~\ref{tab:smalldefs}). The COCO thresholds
+are the most widely reported. They are too coarse for aerial and long-range
+imagery, which is why AI-TOD and SODA subdivide the range below 32 pixels.
+
+\begin{table}[htbp]
+\centering
+\caption[Definitions of small and tiny objects]{Definitions of small and tiny
+objects used by the benchmarks in this dossier. Sizes refer to the square
+root of box area in pixels unless stated otherwise.}
+\label{tab:smalldefs}
+\small
+\begin{tabularx}{\textwidth}{@{}P{3.0cm}LP{4.2cm}@{}}
+\hd{Benchmark} & \hd{Size bands} & \hd{Notes} \\ \gap
+COCO~\citep{lin2014coco} & small ${<}\,32$; medium 32--96; large ${>}\,96$ & AP\textsubscript{S}, AP\textsubscript{M}, AP\textsubscript{L} \\ \sgap
+AI-TOD~\citep{wang2020aitod,xu2022aitodv2} & very tiny 2--8; tiny 8--16; small 16--32; medium 32--64 & mean object size about 12.8\,px \\ \sgap
+SODA-D, SODA-A~\citep{cheng2023soda} & extremely small ${\le}\,12$; relatively small ${\le}\,20$; generally small ${\le}\,32$\unv & driving and aerial scenes \\ \sgap
+TinyPerson~\citep{yu2020tinyperson} & persons averaging about 18\,px & ignore regions are common \\ \sgap
+RGBT-Tiny~\citep{ying2025rgbttiny} & 81\% of objects below $16\times16$ & proposes the SAFit matching measure \\ \sgap
+CFMW (SWVI)~\citep{li2025cfmw} & small if area ${<}\,2500$\,px\textsuperscript{2} at $1280\times1024$ & 26.2\% of objects are small \\
+\end{tabularx}
+\end{table}
+
+Three mechanisms make small objects hard. The first is \emph{sampling}. A
+16-pixel object covers half a cell of $P_5$ and four cells of $P_3$. Each
+stride-2 downsampling step discards information that later layers cannot
+recover. The second is \emph{matching}. Intersection over union (IoU) is
+unforgiving at small scales. A box offset by four pixels can drop a 16-pixel
+object from IoU 1.0 to below 0.5. The normalised Wasserstein distance was
+proposed to soften this~\citep{wang2021nwd}. The third is \emph{context}. A
+faint blob may be a pedestrian or noise, and the surrounding scene often
+decides which. Global context helps here, and so does temporal context: the
+same blob seen moving consistently over several frames. Temporal context is
+the lever that Chapter~\ref{ch:method} pulls.
+
+\section{State-space models, from S4 to Mamba}
+\label{sec:ssm}
+
+A linear state-space model maps an input signal $x(t)$ to an output $y(t)$
+through a hidden state $h(t)\in\R^{N}$:
+\begin{equation}
+  h'(t) = A\,h(t) + B\,x(t), \qquad y(t) = C\,h(t) + D\,x(t).
+  \label{eq:ssm-cont}
+\end{equation}
+To apply it to a sequence $x_1,\dots,x_L$ sampled with step $\Delta$, the
+system is discretised. Under the zero-order hold,
+\begin{equation}
+  \bar A = \exp(\Delta A), \qquad
+  \bar B = (\Delta A)^{-1}\bigl(\exp(\Delta A) - I\bigr)\,\Delta B \;\approx\; \Delta B,
+  \label{eq:zoh}
+\end{equation}
+which gives the recurrence
+\begin{equation}
+  h_k = \bar A\, h_{k-1} + \bar B\, x_k, \qquad y_k = C\, h_k + D\, x_k .
+  \label{eq:ssm-rec}
+\end{equation}
+When $A$, $B$, $C$ and $\Delta$ do not depend on the input, the output equals
+a convolution of the input with the kernel
+$\bar K = (C\bar B,\; C\bar A\bar B,\; \dots,\; C\bar A^{L-1}\bar B)$. Structured
+state-space models such as S4 exploit this to train in parallel and run
+recurrently~\citep{gu2022s4,smith2023s5}.
+
+Mamba makes $B$, $C$ and $\Delta$ functions of the current input,
+\begin{equation}
+  B_k = W_B\,x_k, \qquad C_k = W_C\,x_k, \qquad
+  \Delta_k = \softplus\bigl(w_\Delta^{\top} x_k + b_\Delta\bigr),
+  \label{eq:selective}
+\end{equation}
+so that the model can choose, token by token, what to store and what to
+ignore~\citep{gu2023mamba}. The convolutional view is lost. A
+hardware-aware parallel scan recovers training speed, and inference
+remains a recurrence with a fixed-size state. Cost is linear in sequence
+length, against the quadratic cost of self-attention. Mamba-2 later recast
+the model as a structured form of linear attention~\citep{dao2024mamba2}. An
+independent analysis reached the same view and found that Mamba's forget
+gate and block design account for most of its advantage~\citep{han2024mlla}.
+
+\subsection{The discretisation step as a gate}
+\label{sec:delta}
+
+In Mamba, $A$ is diagonal with negative real entries. For each channel the
+transition $\bar A_k = \exp(\Delta_k A)$ therefore lies between 0 and 1, and
+$\Delta_k$ behaves like a gate.
+\begin{itemize}
+  \item As $\Delta_k \to 0$, $\bar A_k \to I$ and $\bar B_k \to 0$. The state
+        is kept unchanged and the input is ignored.
+  \item As $\Delta_k \to \infty$, $\bar A_k \to 0$. The past is forgotten and
+        the state is rebuilt from the current input.
+\end{itemize}
+Gu and Dao make the link precise. With a one-dimensional state, $A=-1$ and
+$B=1$, the selective recurrence reduces to the gated update
+$h_k = (1-g_k)\,h_{k-1} + g_k\,x_k$ with $g_k=\sigma(\text{Linear}(x_k))$
+(Theorem~1 of~\citep{gu2023mamba}). Figure~\ref{fig:ssm} shows the recurrence
+and the two regimes.
+
+This reading has a second consequence. Equation~\eqref{eq:ssm-cont} is a
+continuous-time system, and $\Delta$ is literally a time step. If samples
+arrive at irregular intervals, scaling $\Delta$ by the true interval keeps
+the discrete model faithful to the same continuous dynamics. Zubi\'c and
+colleagues used this property to make event-camera detectors generalise
+across sampling frequencies~\citep{zubic2024ssmevent}. The proposed method
+uses one control, $\Delta$, for three jobs: weighting sensor reliability,
+bridging gaps in a stream and adjusting for frame timing.
+
+\input{figures/fig_ssm}
+
+\section{State-space models for images}
+\label{sec:vssm}
+
+An image is not a sequence, so an SSM must be given an order in which to
+read it. The order matters, because a one-dimensional causal scan places
+pixels that are adjacent in two dimensions far apart in time. Vision Mamba
+(Vim) scans the patch sequence forwards and backwards~\citep{zhu2024vim}.
+VMamba's SS2D unrolls the feature map in four directions and merges the
+results~\citep{liu2024vmamba}. LocalMamba scans within windows~\citep{huang2024localmamba}.
+In 2025 and 2026, Spatial-Mamba~\citep{xiao2025spatialmamba},
+DAMamba~\citep{damamba2025}, PRISMamba~\citep{prismamba2026}, VNCT~\citep{vnct2026}
+and GraphScan~\citep{graphscan2026} added adaptive and non-directional
+alternatives. VNCT goes so far as to argue that directional scanning is
+unnecessary. Figure~\ref{fig:scans} shows the main families.
+
+MambaVision is one of the source papers, analysed in
+Section~\ref{sec:src-mv}. It takes a hybrid route~\citep{hatamizadeh2025mambavision}.
+Its first two stages are convolutional. Its last two alternate a modified
+Mamba mixer with self-attention, with attention placed in the later layers.
+
+Two results temper enthusiasm for vision SSMs and must be addressed by any
+paper that uses them. MambaOut removed the state-space component from
+vision Mamba models and found the result \emph{better} on ImageNet
+classification~\citep{yu2025mambaout}. It still trailed VMamba by 1.4 box AP
+on COCO detection, so the SSM may earn its place on dense tasks. Second,
+Mamba's scan is faster than FlashAttention-2 only beyond about two thousand
+tokens~\citep{gu2023mamba,dao2023flash2}. At $640\times640$ input, $P_5$ has
+400 tokens and $P_4$ has 1\,600. At those levels, attention or plain
+convolution is usually faster in practice, as SF-Mamba reports for short
+vision sequences~\citep{sfmamba2026}. Both points shape where \method{}
+places its state-space blocks.
+
+\input{figures/fig_scans}
+
+\section{Visible--thermal fusion}
+\label{sec:fusion}
+
+Visible (RGB) cameras record reflected light, and thermal cameras record
+emitted long-wave infrared. Their failure modes are nearly complementary.
+RGB is rich in texture and colour but fails in darkness, glare, smoke and
+fog. Thermal is indifferent to lighting but flat in texture, and it can
+confuse objects that share a temperature with their background. Fusion
+methods are usually grouped by where the two streams meet
+(Figure~\ref{fig:fusionlevels}):
+\begin{itemize}
+  \item \emph{early} or pixel-level fusion stacks the images and feeds one
+        network;
+  \item \emph{middle} or feature-level fusion runs two backbones and
+        exchanges information between their feature maps;
+  \item \emph{late} or decision-level fusion runs two detectors and merges
+        their boxes~\citep{chen2022proben}.
+\end{itemize}
+Feature-level fusion dominates current work. It began with CNN and
+attention blocks such as CFT~\citep{qingyun2021cft} and
+ICAFusion~\citep{shen2024icafusion}. State-space blocks followed: CFMW~\citep{li2025cfmw},
+Fusion-Mamba~\citep{dong2025fusionmamba}, COMO~\citep{como2024},
+WaveMamba~\citep{wavemamba2025} and MS2Fusion~\citep{ms2fusion2025}.
+
+Three practical problems recur.
+\begin{itemize}
+  \item \emph{Alignment.} The two sensors rarely share an optical axis, so
+        their images are offset, and the offset varies with depth. KAIST is
+        known for weak alignment~\citep{hwang2015kaist,li2018kaistsanitized}.
+        DroneVehicle is only roughly registered~\citep{sun2022dronevehicle}.
+        FLIR ADAS is not registered at all, which is why most papers use an
+        aligned subset~\citep{zhang2020cfr}.
+  \item \emph{Label quality.} Labels drawn on one modality do not always fit
+        the other, and some benchmarks have been relabelled for this reason.
+  \item \emph{Modality imbalance.} On LLVIP, a thermal-only YOLO comes within
+        about one to two points of most fusion methods (Section~\ref{sec:src-cfmw}).
+        Fusion results on that dataset therefore say little.
+\end{itemize}
+
+\input{figures/fig_fusionlevels}
+
+\section{From images to video}
+\label{sec:video}
+
+Video adds a time axis and three research traditions.
+\begin{itemize}
+  \item \emph{Video object detection} improves per-frame detection by
+        aggregating features from neighbouring frames. ImageNet VID is its
+        standard benchmark~\citep{russakovsky2015imagenet}. Most methods use a
+        window of past and future frames, which is acceptable offline but
+        not in a live stream. TMambaDet (CVPR 2026) is a recent example,
+        using a bidirectional temporal Mamba~\citep{tmambadet2026}.
+  \item \emph{Streaming perception} recognises that the world moves while
+        the detector computes. It scores predictions against the state of
+        the world at the moment they are delivered~\citep{li2020streaming}.
+        StreamYOLO, LongShortNet and DAMO-StreamNet forecast object motion to
+        compensate~\citep{yang2022streamyolo,li2023longshortnet,he2023damostreamnet}.
+  \item \emph{Multi-object tracking} links detections into identities over
+        time. Tracking-by-detection methods associate boxes with motion and
+        appearance cues: SORT-family trackers, ByteTrack, BoT-SORT,
+        OC-SORT and TrackTrack~\citep{zhang2022bytetrack,aharon2022botsort,cao2023ocsort,shim2025tracktrack}.
+        End-to-end trackers carry learned queries from frame to frame:
+        MOTR, MOTIP and the state-space SambaMOTR~\citep{zhang2023motrv2,gao2025motip,segu2025sambamotr}.
+        Accuracy is measured with HOTA~\citep{luiten2021hota} and
+        IDF1~\citep{ristani2016idf1}.
+\end{itemize}
+A causal detector, one that uses only the past, is the natural fit for a
+live camera. A recurrent state is the most economical way to give it
+memory. Recurrent detectors exist for event cameras, using recurrent vision
+transformers~\citep{gehrig2023rvt} and state-space
+models~\citep{zubic2024ssmevent}. Chapter~\ref{ch:novelty} shows that the
+equivalent for visible--thermal video of small objects has not been
+published.

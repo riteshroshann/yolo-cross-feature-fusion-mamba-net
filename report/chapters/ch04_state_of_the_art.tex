@@ -1,0 +1,267 @@
+\chapter{State of the Art, October 2026}
+\label{ch:sota}
+
+This chapter surveys the six areas the project draws on. In each, the newest
+verified work comes first. The search closed on 2~October~2026. Each table
+gives the month a work first appeared, its venue where one exists, and the
+result most relevant here. Older work appears only where it is still the
+reference baseline. The aim is not an exhaustive review but a reliable map
+of the frontier that the proposed method must be measured against.
+
+\section{Real-time general detectors}
+\label{sec:sota-rt}
+
+The accuracy--latency frontier moved in two ways between 2024 and 2026. The
+YOLO line kept improving its training recipe and heads. YOLOv10 removed the
+need for NMS~\citep{wang2024yolov10}. YOLOv12 made attention efficient
+enough for real time~\citep{tian2025yolov12}. YOLOv13 added hypergraph
+correlation modules~\citep{lei2025yolov13}. YOLO26 removed distribution focal
+loss and added a small-target-aware label assignment~\citep{yolo26_2026}.
+
+At the same time, detection transformers began to draw on large
+self-supervised vision models. RF-DETR uses a DINOv2 backbone with weight-sharing
+architecture search~\citep{robinson2025rfdetr,oquab2024dinov2}. DEIMv2 and
+RT-DETRv4 use DINOv3, as features or as a teacher during
+training~\citep{deimv2_2025,rtdetrv4_2025,simeoni2025dinov3}. RF-DETR is the
+first real-time detector reported above 60 COCO AP. Table~\ref{tab:sota-rt}
+and Figure~\ref{fig:frontier} summarise the field.
+
+\begin{table}[htbp]
+\centering
+\caption[Real-time detectors, newest first]{Real-time detectors, newest
+first. COCO val2017 AP and latency on a T4 GPU with TensorRT FP16, as
+reported by each work. The ranges run from the smallest to the largest
+model.}
+\label{tab:sota-rt}
+\small
+\begin{tabularx}{\textwidth}{@{}P{1.35cm}P{2.6cm}P{2.3cm}L@{}}
+\hd{Date} & \hd{Model} & \hd{Venue} & \hd{COCO AP and latency} \\ \gap
+06/2026 & YOLO26~\citep{yolo26_2026} & arXiv; released 01/2026 & 40.9 to 57.5 at 1.7 to 11.8\,ms; optional NMS-free head; small-target-aware assignment \\
+11/2025 & RF-DETR~\citep{robinson2025rfdetr} & ICLR 2026 & 48.4 to 60.1 at 2.3 to 17.2\,ms; DINOv2 backbone \\
+10/2025 & RT-DETRv4~\citep{rtdetrv4_2025} & ECCV 2026 & 49.8 to 57.0 at 3.7 to 12.9\,ms; DINOv3 teacher, no inference cost \\
+09/2025 & DEIMv2~\citep{deimv2_2025} & arXiv & 38.5 (1.5M params) to 57.8; first model under 10M params above 50 AP \\
+06/2025 & YOLOv13~\citep{lei2025yolov13} & arXiv & 41.6 to 54.8 at 2.0 to 14.7\,ms \\
+02/2025 & YOLOv12~\citep{tian2025yolov12} & NeurIPS 2025 & 40.4 to 55.4 at 1.6 to 10.4\,ms; needs FlashAttention for full speed \\
+12/2024 & DEIM~\citep{huang2025deim} & CVPR 2025 & 43.0 to 56.5; dense one-to-one matching, half the training time \\
+10/2024 & D-FINE~\citep{peng2025dfine} & ICLR 2025 & 42.8 to 55.8; 59.3 with Objects365 pretraining \\
+09/2024 & YOLO11~\citep{yolo11_2024} & software & 39.5 to 54.7 at 1.5 to 11.3\,ms \\
+05/2024 & YOLOv10~\citep{wang2024yolov10} & NeurIPS 2024 & 38.5 to 54.4 at 1.8 to 10.7\,ms; first NMS-free YOLO \\
+04/2023 & RT-DETR~\citep{zhao2024rtdetr} & CVPR 2024 & baseline of HPS-DETR; v2 and v3 followed in 2024 \\ \gap
+\multicolumn{4}{@{}l}{\textit{Accuracy ceilings, not real-time}} \\
+08/2025 & DINOv3 7B with Plain-DETR~\citep{simeoni2025dinov3} & arXiv & 65.6 AP\unv \\
+11/2022 & Co-DETR, ViT-L~\citep{zong2023codetr} & ICCV 2023 & 66.0 AP on test-dev \\
+\end{tabularx}
+\end{table}
+
+\input{figures/fig_frontier}
+
+For this project, YOLO26 is the natural base. It is the newest YOLO and is
+maintained in the Ultralytics library~\citep{yolo26_2026}. Its label
+assignment already targets small objects. Its modules are defined in a
+configuration file, which makes new blocks easy to register. The DETR
+frontier is stronger at equal latency, but it is heavier to train on a T4
+GPU. It is better treated as a reference point than as a base.
+
+\section{Vision state-space models and Mamba detectors}
+\label{sec:sota-ssm}
+
+Vision state-space models are now competitive with Swin and ConvNeXt as
+general backbones. Examples include VMamba, Spatial-Mamba, DAMamba,
+A2Mamba and PRISMamba~\citep{liu2024vmamba,xiao2025spatialmamba,damamba2025,a2mamba2025,prismamba2026}.
+Inside real-time YOLO detectors the evidence is weaker. Mamba YOLO, the
+AAAI~2025 baseline that most later work builds on, reaches 52.1 COCO AP with
+its large model. YOLO11-l reaches 53.4 at similar
+computation~\citep{wang2025mambayolo,yolo11_2024}. The closest work to the
+project title is MambaPSA (July 2026). It replaces YOLO26's attention block
+with a Mamba block and changes AP by $-0.1$ to $+0.9$ on
+VOC~\citep{mambapsa2026}. Research effort in 2026 has moved to the scan
+order itself (Table~\ref{tab:sota-ssm}).
+
+\begin{table}[htbp]
+\centering
+\caption[Vision state-space models and Mamba detectors, newest first]{Vision
+state-space models and Mamba detectors, newest first.}
+\label{tab:sota-ssm}
+\small
+\begin{tabularx}{\textwidth}{@{}P{1.35cm}P{3.0cm}P{2.1cm}L@{}}
+\hd{Date} & \hd{Work} & \hd{Venue} & \hd{Contribution and result} \\ \gap
+09/2026 & YOLO12-MambaScan~\citep{yolo12mambascan2026} & arXiv & YOLO12 with Mamba context; VisDrone at 960\,px, 38.6 AP \\
+09/2026 & ScopeMamba-YOLO~\citep{scopemamba2026} & arXiv & off-path selective scan; VisDrone 50.8 AP\textsubscript{50} with 3.6M params \\
+07/2026 & MambaPSA~\citep{mambapsa2026} & arXiv & Mamba in place of YOLO26's C2PSA; 12\% fewer FLOPs, $-0.1$ to $+0.9$ AP \\
+07/2026 & VNCT~\citep{vnct2026} & arXiv & non-causal trapezoidal SSM; argues directional scans are unnecessary \\
+06/2026 & AKCMamba-YOLO~\citep{akcmamba2026} & CVPR 2026 & channel-interaction Mamba modules in YOLO \\
+05/2026 & C-GSPN~\citep{cgspn2026} & arXiv & notes that SSMs weaken 2D structure; $4\times$ faster at 2K resolution \\
+03/2026 & SF-Mamba~\citep{sfmamba2026} & arXiv & reports Mamba is slow at short token lengths; batch folding as remedy \\
+02/2026 & PRISMamba~\citep{prismamba2026} & ICML 2026 & partial ring scan; 84.5\% ImageNet top-1 at 3.9 GFLOPs \\
+07/2025 & A2Mamba~\citep{a2mamba2025} & arXiv & $+1.2$ box AP over MambaVision-B with 40\% fewer parameters \\
+06/2025 & MambaNeXt-YOLO~\citep{mambanextyolo2025} & arXiv & CNN--Mamba block; runs on Jetson Xavier and Orin NX \\
+02/2025 & DAMamba~\citep{damamba2025} & NeurIPS 2025 & dynamic adaptive scan; 48.5 to 50.6 box AP, Mask R-CNN $1\times$ \\
+10/2024 & Spatial-Mamba~\citep{xiao2025spatialmamba} & ICLR 2025 & structure-aware state fusion; 47.6 to 50.4 box AP \\
+07/2024 & MambaVision~\citep{hatamizadeh2025mambavision} & CVPR 2025 & source paper; Section~\ref{sec:src-mv} \\
+06/2024 & Mamba YOLO~\citep{wang2025mambayolo} & AAAI 2025 & Ultralytics-based baseline; COCO 44.5 to 52.1 AP \\
+05/2024 & MambaOut~\citep{yu2025mambaout} & CVPR 2025 & SSM unnecessary for classification; may help detection \\
+05/2024 & MLLA~\citep{han2024mlla} & NeurIPS 2024 & Mamba as gated linear attention; forget gate matters most \\
+01/2024 & VMamba~\citep{liu2024vmamba} & NeurIPS 2024 & four-direction SS2D scan \\
+01/2024 & Vim~\citep{zhu2024vim} & ICML 2024 & bidirectional scan \\
+\end{tabularx}
+\end{table}
+
+\section{Small and tiny objects}
+\label{sec:sota-small}
+
+Small-object results are hard to compare because three choices vary between
+papers: the input resolution (640, 960 or about 1\,333 pixels), the split
+(validation or test-dev) and the metric (AP\textsubscript{50} or COCO AP).
+Published VisDrone figures range from 26 to 39 AP, and up to 60
+AP\textsubscript{50} at high resolution, largely for these reasons.
+Table~\ref{tab:sota-small} reports each result with its protocol where the
+paper states it.
+
+\begin{table}[htbp]
+\centering
+\caption[Small and tiny object detection, newest first]{Small and tiny object
+detection, newest first.}
+\label{tab:sota-small}
+\small
+\begin{tabularx}{\textwidth}{@{}P{1.35cm}P{2.75cm}P{2.1cm}L@{}}
+\hd{Date} & \hd{Method} & \hd{Venue} & \hd{Reported result} \\ \gap
+06/2026 & SFDNet~\citep{sfdnet2026} & ECCV 2026 & spectrum-aware; SODA-D 34.2 AP, SODA-A 39.2 AP, AI-TOD 31.7 AP \\
+06/2026 & DERNet~\citep{dernet2026} & arXiv & frequency domain; beats YOLO11 with one sixth of the parameters \\
+03/2026 & O2-DEIM~\citep{o2deim2026} & IEEE TGRS & oriented real-time DETR; DOTA-v1.0 80.15 AP\textsubscript{50} at 119 FPS \\
+01/2026 & EFSI-DETR~\citep{efsidetr2026} & arXiv & VisDrone 33.1 AP, 24.8 AP\textsubscript{S}\unv \\
+01/2026 & TOLF~\citep{tolf2026} & arXiv & normalising flows; $+1.2$ AP over DINO on AI-TOD \\
+05/2025 & Dome-DETR~\citep{domedetr2025} & ACM MM 2025 & AI-TOD-V2 34.7 AP; VisDrone 39.0 AP at about 376 GFLOPs \\
+01/2025 & Strip R-CNN~\citep{yuan2026stripr} & AAAI 2026 & DOTA-v1.0 82.75 mAP with 30M params \\
+01/2025 & UAV-DETR~\citep{uavdetr2025} & arXiv & $+3.1$ AP over RT-DETR on VisDrone \\
+04/2024 & DQ-DETR~\citep{huang2024dqdetr} & ECCV 2024 & AI-TOD-V2 30.2 AP \\
+2021 & NWD~\citep{wang2021nwd} & ISPRS J. 2022 & Wasserstein matching for tiny boxes \\
+\end{tabularx}
+\end{table}
+
+\section{Visible--thermal fusion}
+\label{sec:sota-rgbt}
+
+Fusion has followed the same arc as general detection. Attention-based
+fusion came first: CFT and ICAFusion~\citep{qingyun2021cft,shen2024icafusion}.
+State-space fusion followed in 2024 and 2025. Its main members are
+Fusion-Mamba, COMO, WaveMamba and MS2Fusion~\citep{dong2025fusionmamba,como2024,wavemamba2025,ms2fusion2025}.
+In 2026, methods built on foundation models appeared. RegisterBridgeMM, for
+example, uses a frozen DINOv3 encoder~\citep{registerbridge2026}.
+Table~\ref{tab:sota-rgbt} shows the four standard benchmarks.
+
+LLVIP is saturated. Every recent method scores 97 to 98.4
+AP\textsubscript{50}, and a thermal-only model is close behind. DroneVehicle
+results are not comparable across papers, because some use horizontal and
+some use oriented boxes. M3FD has no official detection split. KAIST is
+scored by miss rate, not AP, and has no clear 2025--2026 leader.
+
+\begin{table}[htbp]
+\centering
+\caption[Visible--thermal fusion detectors, newest first]{Visible--thermal
+fusion detectors, newest first. Each cell gives AP\textsubscript{50} and
+mAP\textsubscript{50:95}. A dash means not reported.}
+\label{tab:sota-rgbt}
+\small
+\begin{tabularx}{\textwidth}{@{}P{1.3cm}LR{1.7cm}R{1.7cm}R{1.7cm}R{1.85cm}@{}}
+\hd{Date} & \hd{Method} & \hd{LLVIP} & \hd{M3FD} & \hd{FLIR-aligned} & \hd{DroneVehicle} \\ \gap
+08/2026 & RegisterBridgeMM~\citep{registerbridge2026} & 98.4 / 70.5 & 92.6 / 64.9 & 88.9 / 49.8 & 81.5 / 61.5 \\
+08/2026 & CFGPNet~\citep{cfgpnet2026} & 97.8 / 68.9 & 89.9 / 63.4 & 80.7 / 45.0 & -- \\
+11/2025 & MambaRefine-YOLO~\citep{mambarefine2025} & -- & -- & -- & 83.2 AP\textsubscript{50} \\
+07/2025 & WaveMamba~\citep{wavemamba2025} & 98.3 / 66.0 & 92.1 / 64.4 & 88.4 / 48.1 & 79.8 / 60.5 \\
+07/2025 & MS2Fusion~\citep{ms2fusion2025} & reported & reported & reported & -- \\
+12/2024 & COMO~\citep{como2024} & 97.2 / 65.3 & -- & -- & 86.1 / 65.5 \\
+04/2024 & Fusion-Mamba~\citep{dong2025fusionmamba} & 97.0 / 64.3 & 88.0 / 61.9 & 84.9 / 47.0 & -- \\
+04/2024 & CFMW~\citep{li2025cfmw} & 98.8 / 69.8\unv & -- & -- & -- \\
+08/2023 & ICAFusion~\citep{shen2024icafusion} & -- & 81.5 / 54.5 & -- & -- \\
+11/2021 & CFT~\citep{qingyun2021cft} & 97.5 / 63.6 & -- & -- & 84.3 / 61.9 \\
+\end{tabularx}
+\end{table}
+
+\section{Video, tracking and foundation models}
+\label{sec:sota-video}
+
+The standard tracking benchmarks MOT17 and MOT20 have levelled off at about
+64 to 66 HOTA. New work reports mainly on DanceTrack and SportsMOT, which test
+association under uniform appearance and fast motion (Table~\ref{tab:sota-mot}).
+SambaMOTR is the only state-space tracker among the leaders. It keeps a
+synchronised SSM memory per track~\citep{segu2025sambamotr}.
+
+For video object detection on ImageNet VID, no strong 2025--2026 method was
+found besides TMambaDet~\citep{tmambadet2026}. TMambaDet uses a bidirectional,
+and therefore offline, temporal Mamba.
+
+Foundation models now reach the detection task directly. SAM~3 detects,
+segments and tracks objects named by a text prompt~\citep{sam3_2025}. YOLOE
+brings open-vocabulary prompts to the YOLO architecture~\citep{wang2025yoloe}.
+DINOv3 has become the backbone or teacher of choice for detection
+transformers~\citep{simeoni2025dinov3}.
+
+\begin{table}[htbp]
+\centering
+\caption[Multi-object tracking, newest first]{Multi-object tracking, newest
+first. HOTA on DanceTrack and SportsMOT test sets as reported.}
+\label{tab:sota-mot}
+\small
+\begin{tabularx}{\textwidth}{@{}P{1.35cm}P{2.9cm}P{2.1cm}R{1.85cm}R{1.85cm}L@{}}
+\hd{Date} & \hd{Method} & \hd{Venue} & \hd{DanceTrack} & \hd{SportsMOT} & \hd{Note} \\ \gap
+07/2026 & SpikingMOT~\citep{spikingmot2026} & arXiv & 56.5 & 74.9 & spiking network \\
+06/2026 & SAM~3 mask propagation~\citep{smp2026} & arXiv & -- & 87.2\unv & offline, training-free \\
+09/2025 & MATR~\citep{matr2025} & arXiv & 71.3 & 72.7 & with extra data \\
+03/2024 & MOTIP~\citep{gao2025motip} & CVPR 2025 & 67.5 & 71.9 & tracking as ID prediction \\
+10/2024 & SambaMOTR~\citep{segu2025sambamotr} & ICLR 2025 & 67.2 & 69.8 & state-space track memory \\
+11/2022 & MOTRv2~\citep{zhang2023motrv2} & CVPR 2023 & 69.9\unv & -- & YOLOX proposals \\
+03/2022 & OC-SORT~\citep{cao2023ocsort} & CVPR 2023 & 55.1\unv & 68.1 & motion-based \\
+10/2021 & ByteTrack~\citep{zhang2022bytetrack} & ECCV 2022 & 47.7\unv & -- & MOT17 HOTA 63.1 \\
+\end{tabularx}
+\end{table}
+
+\section{Caveats that govern fair comparison}
+\label{sec:caveats}
+
+Seven problems recur across the literature. The experimental protocol in
+Chapter~\ref{ch:protocol} is designed around them.
+
+\begin{enumerate}
+  \item \emph{Mamba is not automatically fast.} Its scan beats
+        FlashAttention-2 only beyond about 2\,000 tokens~\citep{gu2023mamba,dao2023flash2}.
+        YOLO's $P_4$ and $P_5$ maps are shorter than that.
+  \item \emph{Installation.} The official \texttt{mamba\_ssm} kernels
+        support Linux only~\citep{mambassm_repo}. On Windows, the choices are
+        WSL2, a cloud notebook, or a pure-PyTorch scan that is about twice
+        as slow~\citep{mambapy_repo}.
+  \item \emph{Scan order.} A one-dimensional causal scan breaks
+        two-dimensional adjacency. At least five papers in 2026 propose
+        remedies, so a fixed order needs justification.
+  \item \emph{Baseline drift.} Published numbers for the same baseline differ
+        between papers. YOLOv12-N, for example, appears as 40.6, 40.4 and
+        40.1 AP. Ultralytics itself recommends YOLO11 or YOLO26 over YOLO12
+        for stability~\citep{yolo26_2026}.
+  \item \emph{Latency protocol.} Many papers omit NMS from latency. GPU
+        thermal throttling can shift measurements by about 25\%. Naive FP16
+        export can collapse accuracy. RF-DETR's protocol addresses all three:
+        it includes NMS, pauses between passes and measures accuracy on the
+        exported engine~\citep{robinson2025rfdetr}.
+  \item \emph{Saturated benchmarks.} COCO contains label errors that
+        COCO-ReM corrects~\citep{singh2024cocorem}. LLVIP is effectively
+        solved. RF100-VL shows that COCO gains often fail to transfer to new
+        domains~\citep{robicheaux2025rf100vl}.
+  \item \emph{Metric choice.} Small-object papers often report
+        AP\textsubscript{50} at high resolution. AP, AP\textsubscript{50} and
+        size-specific AP should all be reported, at a fixed resolution and
+        against baselines trained with the same schedule.
+\end{enumerate}
+
+\section{Implications for this project}
+
+The survey settles four choices.
+\begin{itemize}
+  \item The base detector should be YOLO26. A DETR reference point should be
+        kept for honesty.
+  \item State-space blocks should be placed where they are efficient and
+        where small objects live, at $P_3$ and below, or along the time axis,
+        where sequences are long.
+  \item Fusion results should be reported on benchmarks that are not
+        saturated, with mAP\textsubscript{50:95}.
+  \item The decisive comparison is against temporal and fusion baselines
+        from 2025 and 2026, not against YOLOv8.
+\end{itemize}

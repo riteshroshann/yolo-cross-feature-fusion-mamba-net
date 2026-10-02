@@ -1,0 +1,88 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    bb/.style={base, n, text width=2.55cm, minimum height=0.95cm},
+    nk/.style={base, fuse, text width=1.25cm, minimum height=0.95cm},
+    hd/.style={base, tim, text width=3.0cm, minimum height=0.95cm},
+    ext/.style={base, fill=cAlert!10, text width=1.25cm, minimum height=0.95cm},
+    exthd/.style={base, fill=cAlert!10, text width=3.0cm, minimum height=0.95cm},
+  ]
+  \def\xin{-0.15}\def\xbb{2.65}\def\xtd{5.35}\def\xbu{7.2}\def\xhd{10.05}
+  \def\ya{0}\def\yb{-1.3}\def\yc{-2.6}\def\yd{-3.9}\def\ye{-5.2}
+
+  % column headings
+  \node[grp] at (\xin,1.05) {Input};
+  \node[grp] at (\xbb,1.05) {Backbone};
+  \node[grp] at ({(\xtd+\xbu)/2},1.05) {Neck};
+  \node[grp, font=\scriptsize\scshape] at (\xtd,0.6) {top-down};
+  \node[grp, font=\scriptsize\scshape] at (\xbu,0.6) {bottom-up};
+  \node[grp] at (\xhd,1.05) {Heads};
+
+  % input
+  \node[base, dat, text width=1.55cm, minimum height=2.1cm] (in) at (\xin,{(\ya+\yb)/2})
+       {Image\\ $640\times640$\\[2pt] visible,\\ thermal\\ or both};
+
+  % backbone
+  \node[bb] (b1) at (\xbb,\ya) {$P_1$\enspace stride 2\\ $320\times320$};
+  \node[bb] (b2) at (\xbb,\yb) {$P_2$\enspace stride 4\\ $160\times160$, 25\,600 tok.};
+  \node[bb] (b3) at (\xbb,\yc) {$P_3$\enspace stride 8\\ $80\times80$, 6\,400 tok.};
+  \node[bb] (b4) at (\xbb,\yd) {$P_4$\enspace stride 16\\ $40\times40$, 1\,600 tok.};
+  \node[bb] (b5) at (\xbb,\ye) {$P_5$\enspace stride 32\\ $20\times20$, 400 tok.};
+  \draw[arr] (in.east |- b1) -- (b1.west);
+  \foreach \i/\j in {1/2,2/3,3/4,4/5} \draw[arr] (b\i) -- (b\j);
+
+  % top-down path
+  \node[nk]  (t5) at (\xtd,\ye) {lateral\\ $1\times1$};
+  \node[nk]  (t4) at (\xtd,\yd) {up $\times2$\\ fuse};
+  \node[nk]  (t3) at (\xtd,\yc) {up $\times2$\\ fuse};
+  \node[ext] (t2) at (\xtd,\yb) {up $\times2$\\ fuse};
+  \draw[arr] (b5) -- (t5);
+  \draw[arr] (b4) -- (t4);
+  \draw[arr] (b3) -- (t3);
+  \draw[arr, draw=cAlert] (b2) -- (t2);
+  \draw[arr] (t5) -- (t4);
+  \draw[arr] (t4) -- (t3);
+  \draw[arr, draw=cAlert] (t3) -- (t2);
+
+  % bottom-up path
+  \node[ext] (u2) at (\xbu,\yb) {refine\\ CSP block};
+  \node[nk]  (u3) at (\xbu,\yc) {down $\times2$\\ fuse};
+  \node[nk]  (u4) at (\xbu,\yd) {down $\times2$\\ fuse};
+  \node[nk]  (u5) at (\xbu,\ye) {down $\times2$\\ fuse};
+  \draw[arr, draw=cAlert] (t2) -- (u2);
+  \draw[arr] (t3) -- (u3);
+  \draw[arr] (t4) -- (u4);
+  \draw[arr] (t5) -- (u5);
+  \draw[arr] (u3) -- (u4);
+  \draw[arr] (u4) -- (u5);
+  \draw[darr, draw=cAlert] (u2) -- (u3);
+
+  % heads
+  \node[exthd] (h2) at (\xhd,\yb) {Head $P_2$\\ 16\,px object: $4\times4$ cells};
+  \node[hd]    (h3) at (\xhd,\yc) {Head $P_3$\\ 16\,px object: $2\times2$ cells};
+  \node[hd]    (h4) at (\xhd,\yd) {Head $P_4$\\ 16\,px object: 1 cell};
+  \node[hd]    (h5) at (\xhd,\ye) {Head $P_5$\\ 16\,px object: $\tfrac14$ cell};
+  \draw[arr, draw=cAlert] (u2) -- (h2);
+  \draw[arr] (u3) -- (h3);
+  \draw[arr] (u4) -- (h4);
+  \draw[arr] (u5) -- (h5);
+
+  % annotations
+  \node[lbl, text width=3.6cm, anchor=north] at (\xbb,{\ye-0.7})
+       {Mamba's scan outpaces\\ FlashAttention-2 only above\\ about 2\,000 tokens: $P_2$, $P_3$};
+  \node[lbl, text width=3.9cm, anchor=north, text=cAlert] at ({(\xtd+\xbu)/2},{\ye-0.7})
+       {red path: stride-4 extension\\ for small objects, used by\\ TPH-YOLOv5, UAVDet, \method};
+  \node[lbl, text width=3.6cm, anchor=north] at (\xhd,{\ye-0.7})
+       {each head predicts box,\\ class and score per cell;\\ YOLO26 can skip NMS};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Anatomy of a YOLO detector at 640 pixels]{Anatomy of a YOLO
+detector at $640\times640$ input. The backbone halves resolution at each
+stage. The neck carries semantics down the pyramid (top-down) and
+localisation back up (bottom-up). Heads predict at each retained level. The
+red path is the stride-4 extension used for small objects. The head labels
+show how many cells a 16-pixel object covers at each level, and the backbone
+labels give the token count an SSM would scan.}
+\label{fig:yolo}
+\end{figure}

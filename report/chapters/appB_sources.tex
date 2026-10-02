@@ -1,0 +1,62 @@
+\chapter{Sources and Verification}
+\label{app:sources}
+
+This appendix records how the evidence in the dossier was gathered, and
+which figures could not be confirmed against a primary source.
+
+\section{How the evidence was gathered}
+
+\paragraph{Source papers}
+The four supplied PDFs were converted to text and read in full, including
+their reference lists. Their tables were lost in conversion, so every
+results table was read again from rendered images of the original pages.
+Disagreements between a paper's text and its tables are listed in
+Table~\ref{tab:inconsistencies}.
+
+\paragraph{Literature survey}
+Searches covered arXiv, conference proceedings (CVPR, ICCV, ECCV, NeurIPS,
+ICLR, ICML, AAAI, ACM MM), journal sites and official repositories up to
+2~October~2026. Work from 2026 was given priority. Numbers were taken from
+primary pages, meaning arXiv abstracts or full text, official GitHub
+repositories and official documentation, wherever these could be reached.
+
+\paragraph{Datasets and tools}
+Dataset statistics and licences were taken from official dataset pages and
+repositories. Software versions were taken from the Python Package Index on
+the dates stated.
+
+\section{Figures that could not be confirmed}
+
+The following items are marked with a dagger (\unv) in the text. They came
+from secondary sources or from search snippets. Each must be checked against
+the primary source before it is quoted in a manuscript.
+
+\begin{itemize}
+  \item UAVDet's reported parameter counts of 3.74M and 3.40M. They are
+        printed in the paper but are inconsistent with its other tables.
+  \item CFMW's LLVIP and SWVI mAP values, which differ between the tables
+        and the text of the paper.
+  \item The COCO AP of DINOv3 7B with Plain-DETR (65.6).
+  \item EFSI-DETR's VisDrone results (33.1 AP, 24.8 AP\textsubscript{S}).
+  \item The DanceTrack HOTA of MOTRv2, OC-SORT and ByteTrack, and the
+        SportsMOT HOTA of the SAM~3 mask-propagation method.
+  \item The SODA size thresholds.
+  \item The licence of DroneVehicle.
+  \item Kaggle's weekly GPU quota.
+  \item The postponement of the EU AI Act's high-risk obligations to
+        December 2027.
+  \item The commencement dates of India's DPDP Rules.
+  \item The journal impact factors in Table~\ref{tab:journals}.
+\end{itemize}
+
+\section{Statements of absence}
+
+Several conclusions in the dossier rest on the \emph{absence} of prior work.
+Examples are the absence of a causal, constant-memory state-space detector
+for visible--thermal streams, of a benchmark protocol for temporal sensor
+failure, and of a native TensorRT operator for two-dimensional selective
+scanning. These statements mean only that the searches did not find such
+work. The field publishes rapidly, and two connected literature services
+could not be queried because they required authorisation. The searches must
+therefore be repeated before submission, as Section~\ref{sec:submission}
+requires.

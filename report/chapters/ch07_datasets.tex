@@ -1,0 +1,250 @@
+\chapter{Datasets}
+\label{ch:data}
+
+The datasets decide what the paper can claim. This chapter sets out the
+criteria for choosing them and the recommended core stack. It describes the
+main benchmark in detail and lists the supporting datasets by role. It then
+covers licences, datasets that must not be used, and the data engineering
+that turns downloads into reproducible inputs.
+
+\section{Selection criteria}
+
+A dataset enters the plan only if it meets five criteria.
+\begin{enumerate}
+  \item \emph{Standing.} It is published at a recognised venue and used as a
+        benchmark by the work the paper will be compared against.
+  \item \emph{Relevance.} It contributes small objects, paired visible and
+        thermal imagery, or temporal sequences. The best datasets contribute
+        all three.
+  \item \emph{Label quality.} Known label problems have published fixes,
+        such as the corrected LLVIP labels and the sanitised KAIST labels.
+  \item \emph{Licence.} It permits research use. All datasets used here
+        permit it, and most forbid commercial use.
+  \item \emph{Feasibility.} It can be stored, converted and trained on within
+        the Kaggle and local budget of Section~\ref{sec:compute}.
+\end{enumerate}
+
+\section{The core stack}
+\label{sec:corestack}
+
+Table~\ref{tab:corestack} lists the eight datasets that every phase relies
+on. Together they cover still images and video, visible and thermal
+sensing, ground and aerial viewpoints, and the standard tracking metric.
+
+\begin{table}[htbp]
+\centering
+\caption[The core dataset stack]{The core dataset stack, in order of first
+use. Licences are summarised; the official terms govern.}
+\label{tab:corestack}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.45cm}P{1.15cm}LP{2.25cm}P{1.75cm}@{}}
+\hd{Dataset} & \hd{Phase} & \hd{Content} & \hd{Role} & \hd{Licence} \\ \gap
+COCO 2017~\citep{lin2014coco} & 1 & 118\,287 training images, 80 classes & pretrained weights; AP\textsubscript{S} protocol & annotations CC BY 4.0 \\ \sgap
+VisDrone2019-DET~\citep{zhu2021visdrone} & 1 & 6\,471 / 548 / 1\,610 drone images, 10 classes & visible small objects & CC BY-NC-SA 3.0 \\ \sgap
+LLVIP~\citep{jia2021llvip} & 1 & 15\,488 aligned pairs at $1280\times1024$, person & first RGB--T pipeline test & non-commercial \\ \sgap
+M3FD~\citep{liu2022tardal} and FLIR-aligned~\citep{zhang2020cfr} & 1 & 4\,200 pairs, 6 classes; 5\,142 pairs, 3 classes & comparison with Fusion-Mamba, COMO & research use \\ \sgap
+DroneVehicle~\citep{sun2022dronevehicle} & 1 & 28\,439 aerial pairs, 953\,087 oriented boxes & aerial RGB--T, weak alignment & research use\unv \\ \sgap
+RGBT-Tiny~\citep{ying2025rgbttiny} & 1--3 & 115 paired sequences, 93\,K frames, 1.2\,M boxes & \textbf{main benchmark} & on request \\ \sgap
+VisDrone-VID and MOT17~\citep{zhu2021visdrone,milan2016mot16} & 2 & 288 clips, 261\,908 frames; 14 sequences & video detection, HOTA & non-commercial \\ \sgap
+MEVA~\citep{corona2021meva} & 3--4 & 328\,h ground and UAV video with thermal, consented actors & surveillance-style stress test & CC BY 4.0 \\
+\end{tabularx}
+\end{table}
+
+\section{The main benchmark: RGBT-Tiny}
+\label{sec:rgbttiny}
+
+RGBT-Tiny, published in IEEE TPAMI in 2025, is the single best match for
+this project~\citep{ying2025rgbttiny}.
+\begin{itemize}
+  \item It contains 115 paired visible--thermal sequences: 93\,000 frames
+        and 1.2 million boxes in seven classes. The classes are ship, car,
+        cyclist, pedestrian, bus, drone and plane.
+  \item More than 81\% of its objects are smaller than $16\times16$ pixels.
+  \item The frames are $640\times512$, aligned by homography, at 15 frames per
+        second, across eight scene types.
+  \item The official split is 85 training sequences (79\,050 frames) and 30
+        test sequences (13\,950 frames).
+  \item Boxes carry track identities, and the companion VT-Tiny-MOT
+        benchmark provides tracking labels on the same
+        sequences~\citep{hgttrack2024}. Phases~1 to~3 can therefore all be
+        evaluated on one data source.
+  \item It proposes SAFit, a matching measure intended to be fairer than IoU
+        for tiny boxes. SAFit is reported alongside standard AP.
+\end{itemize}
+
+Two cautions apply. Access is granted through a request form, so the
+request must be made at the start of Phase~0. Its alignment is by
+homography, so residual parallax remains at short range. That is a feature
+for testing the offset-guided alignment of the CMFM block. It is also a
+reason to audit the alignment before training (Section~\ref{sec:audit}).
+
+\section{Supporting datasets}
+
+The supporting datasets fall into four groups by role.
+Table~\ref{tab:support-small} covers small objects,
+Table~\ref{tab:support-rgbt} visible--thermal data,
+Table~\ref{tab:support-video} video and tracking, and
+Table~\ref{tab:support-general} general detection. Each table marks whether a
+dataset is in the plan (\textbf{core}), \emph{optional}, or a \emph{watch}
+item to reconsider before submission.
+
+\begin{table}[htbp]
+\centering
+\caption[Supporting datasets: small and tiny objects]{Supporting datasets for
+small and tiny objects.}
+\label{tab:support-small}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.5cm}P{1.4cm}LP{1.55cm}@{}}
+\hd{Dataset} & \hd{Released} & \hd{Content and notes} & \hd{Status} \\ \gap
+AI-TOD v2~\citep{xu2022aitodv2} & 2022 & 28\,036 images, 8 classes, mean size 12.8\,px; built from xView and others; test labels withheld & optional \\
+SODA-D, SODA-A~\citep{cheng2023soda} & 2023 & 24\,828 driving images; 2\,513 aerial images with oriented boxes; CC BY-NC 4.0 & optional \\
+TinyPerson~\citep{yu2020tinyperson} & 2020 & 1\,610 images, 72\,651 persons at sea and on land & optional \\
+DOTA v1.5~\citep{xia2018dota,ding2021dotav2} & 2019 & 2\,806 images, 403\,318 instances, very small objects labelled; academic use only & optional \\
+xView~\citep{lam2018xview} & 2018 & 1\,M objects, 60 classes, 0.3\,m resolution; CC BY-NC-SA 4.0 & source of AI-TOD \\
+UAVDT~\citep{du2018uavdt} & 2018 & 100 sequences, 80\,K frames, vehicles, detection and tracking & optional \\
+SeaDronesSee~\citep{varga2022seadronessee} & 2022 & maritime search and rescue; CC0, the only fully permissive set & optional \\
+XS-VID~\citep{xsvid2024} & 2024 & 374 sequences, 223\,K frames, extremely small objects in video & optional \\
+TinySet-9M~\citep{tinyset2026} & 04/2026 & multi-domain small-object set; details unconfirmed & watch \\
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption[Supporting datasets: visible and thermal]{Supporting datasets with
+paired visible and thermal (or near-infrared) imagery.}
+\label{tab:support-rgbt}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.5cm}P{1.4cm}LP{1.55cm}@{}}
+\hd{Dataset} & \hd{Released} & \hd{Content and notes} & \hd{Status} \\ \gap
+KAIST~\citep{hwang2015kaist,li2018kaistsanitized} & 2015 & 95\,K pairs of pedestrians; use the sanitised training and improved test labels; scored by miss rate & optional, for MambaST \\
+VT-VOD50~\citep{einet2023} & 2023 & 50 videos, 18\,898 pairs, 7 classes, manually aligned & core for video \\
+UVT-VOD2024~\citep{msenet2024} & 2024 & about 60\,K images, 11 classes, unaligned video & core for misalignment \\
+VT-MOT~\citep{vtmot2024} & 2024 & 582 sequence pairs, 401\,K frames, 3.99\,M boxes & optional \\
+VEDAI~\citep{razakarivony2016vedai} & 2016 & 1\,210 aerial images, RGB and near-infrared, not thermal & optional \\
+CVC-14~\citep{gonzalez2016cvc14} & 2016 & far infrared with grayscale visible, poor alignment & cross-dataset only \\
+M3OT~\citep{m3ot2025} & 2025 & two drones, 10\,790 RGB--IR pairs, multi-view vehicles & Phase 4 \\
+MMOT~\citep{mmot2025} & 2025 & eight-band multispectral tracking, not thermal & watch \\
+DVT-VOD1000~\citep{dchnet2026} & 07/2026 & 1\,000 unaligned videos, 103\,464 pairs; release announced & watch \\
+DRGBT-1K~\citep{drgbt2026} & 07/2026 & 1\,045 tracking sequences with modality switching & watch \\
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption[Supporting datasets: video and tracking]{Supporting datasets for video
+detection and tracking.}
+\label{tab:support-video}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.5cm}P{1.4cm}LP{1.55cm}@{}}
+\hd{Dataset} & \hd{Released} & \hd{Content and notes} & \hd{Status} \\ \gap
+ImageNet VID~\citep{russakovsky2015imagenet} & 2015 & 30 classes, 3\,862 training snippets; standard video detection benchmark & optional \\
+MOT20~\citep{dendorfer2020mot20} & 2020 & extreme crowds, up to 171 boxes per frame & optional \\
+DanceTrack~\citep{sun2022dancetrack} & 2022 & 100 videos, uniform appearance, nonlinear motion & optional \\
+SportsMOT~\citep{cui2023sportsmot} & 2023 & 240 clips of fast sports motion & optional \\
+BDD100K MOT~\citep{yu2020bdd100k} & 2020 & 2\,000 driving videos & optional \\
+TAO~\citep{dave2020tao} & 2020 & 2\,907 videos, 833 classes, open vocabulary & optional \\
+LaSOT~\citep{fan2019lasot} & 2019 & 1\,400 single-object tracking sequences & optional \\
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption[Supporting datasets: general detection]{Supporting datasets for
+general detection and pretraining.}
+\label{tab:support-general}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.5cm}P{1.4cm}LP{1.55cm}@{}}
+\hd{Dataset} & \hd{Released} & \hd{Content and notes} & \hd{Status} \\ \gap
+COCO-ReM~\citep{singh2024cocorem} & 2024 & corrected COCO masks and boxes for honest evaluation & optional \\
+LVIS v1~\citep{gupta2019lvis} & 2019 & 1\,203 classes on COCO images, long tail & optional \\
+Objects365~\citep{shao2019objects365} & 2019 & 1.74\,M images; too large for this budget; use pretrained weights & weights only \\
+Open Images V7~\citep{kuznetsova2020openimages} & 2022 & 1.74\,M images with boxes; extract class subsets only & optional \\
+PASCAL VOC~\citep{everingham2010voc} & 2012 & 20 classes; fast debugging & debugging \\
+RF100-VL~\citep{robicheaux2025rf100vl} & 2025 & 100 domains for generalisation checks & optional \\
+\end{tabularx}
+\end{table}
+
+\section{Licences}
+\label{sec:licences}
+
+Almost every dataset in the plan is licensed for non-commercial research
+only. That is sufficient for a thesis and a journal article. Four further
+rules follow from the terms.
+\begin{itemize}
+  \item The data must not be redistributed. Kaggle datasets created from it
+        must be private.
+  \item The images of MSMT17 must not be shown in publications, at the
+        authors' request.
+  \item Any commercial follow-up would need datasets with permissive terms,
+        such as SeaDronesSee (CC0) and MEVA (CC BY 4.0), or newly collected
+        data.
+  \item The Ultralytics library is licensed under AGPL-3.0. A public release
+        of code built on it must use the same licence~\citep{yolo26_2026}.
+\end{itemize}
+
+\section{Datasets that must not be used}
+\label{sec:withdrawn}
+
+Several surveillance datasets were withdrawn after it emerged that people
+had been recorded without adequate consent (Table~\ref{tab:withdrawn}).
+Withdrawal did not stop their use. Peng, Mathur and Narayanan documented
+continued use of DukeMTMC and its derivatives in hundreds of papers after
+retraction~\citep{peng2021stewardship}. A project inspired by a surveillance
+fiction must be scrupulous here.
+
+\begin{table}[htbp]
+\centering
+\caption[Withdrawn and restricted surveillance datasets]{Withdrawn and
+restricted surveillance datasets.}
+\label{tab:withdrawn}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.9cm}LP{2.2cm}@{}}
+\hd{Dataset} & \hd{Status} & \hd{Decision} \\ \gap
+DukeMTMC and derivatives & withdrawn in June 2019 after deviation from its ethics protocol; derivatives such as DukeMTMC-reID are equally affected & do not use \\
+Brainwash & removed in June 2019 at the depositor's request & do not use \\
+MS-Celeb-1M & retracted in 2019 & do not use \\
+Oxford Town Centre & flagged as recorded without consent & avoid \\
+MSMT17 & available by agreement; images must not appear in publications & only if essential \\
+Market-1501, CUHK03 & collected without documented consent; face-blurred versions exist & legacy comparison only \\
+MEVA & recorded with consenting actors, CC BY 4.0 & preferred alternative \\
+\end{tabularx}
+\end{table}
+
+\section{Data engineering}
+\label{sec:dataeng}
+
+Figure~\ref{fig:datapipe} shows the path from downloads to training inputs.
+Five practices make the results reproducible.
+
+\paragraph{Immutable raw data}
+Archives are stored as downloaded, with checksums recorded in a dataset
+card. Every later step is a script that reads raw data and writes derived
+data. Derived data can always be regenerated.
+
+\paragraph{One paired format}
+Visible and thermal frames are stored in two folders with identical file
+names. A single label file per frame is expressed in the visible frame's
+coordinates. Ultralytics' multi-channel input stacks the channels into one
+TIFF and is convenient for early fusion~\citep{yolo26_2026}. The two-folder
+layout is used for middle fusion because the backbones are separate.
+
+\paragraph{Alignment audit}
+\label{sec:audit}
+For each visible--thermal dataset, the residual offset between modalities is
+measured on a sample of frames. The measurement uses phase correlation of
+edge maps, and the distribution is reported. The audit tells the paper how
+aligned each benchmark really is. That calibrates the synthetic misalignment
+used in training and evaluation.
+
+\paragraph{Leakage-free splits}
+Frames from one video are strongly correlated. Splits are therefore made at
+the sequence level, and official splits are used wherever they exist. No
+sequence may contribute frames to both training and test sets.
+
+\paragraph{Packaging for Kaggle}
+Converted datasets are uploaded as private Kaggle datasets, versioned and
+shared across notebooks, so that each training session starts without
+re-downloading. Ignore regions, such as VisDrone's, are carried into
+evaluation and not silently dropped.
+
+\input{figures/fig_datapipe}

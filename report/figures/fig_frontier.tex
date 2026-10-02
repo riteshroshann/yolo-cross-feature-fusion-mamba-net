@@ -1,0 +1,50 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+      width=12.4cm, height=7.6cm,
+      xmin=0, xmax=18.5, ymin=38, ymax=61.5,
+      axis lines=left, axis line style={draw=cNeutral, line width=0.5pt},
+      tick style={draw=cNeutral}, tick label style={font=\scriptsize, text=muted},
+      xlabel={latency on T4, TensorRT FP16 (ms)}, ylabel={COCO val AP},
+      label style={font=\footnotesize, text=muted},
+      xtick={0,2,4,6,8,10,12,14,16,18}, ytick={40,45,50,55,60},
+      legend style={draw=none, fill=none, font=\scriptsize, text=ink,
+                    at={(0.98,0.03)}, anchor=south east, row sep=1pt},
+      legend cell align=left,
+      mark size=1.7pt, clip=false,
+    ]
+    \addplot[cRGB, line width=1.0pt, mark=*, mark options={fill=cRGB, draw=none}]
+      coordinates {(1.7,40.9) (2.5,48.6) (4.7,53.1) (6.2,55.0) (11.8,57.5)};
+    \addlegendentry{YOLO26 (2026)}
+    \addplot[cTime, line width=1.0pt, mark=square*, mark options={fill=cTime, draw=none}]
+      coordinates {(3.66,49.8) (5.91,53.7) (8.07,55.4) (12.90,57.0)};
+    \addlegendentry{RT-DETRv4 (2025)}
+    \addplot[cIR, line width=1.0pt, mark=triangle*, mark options={fill=cIR, draw=none}]
+      coordinates {(1.97,41.6) (2.98,48.0) (8.63,53.4) (14.67,54.8)};
+    \addlegendentry{YOLOv13 (2025)}
+    \addplot[cNeutral, line width=1.0pt, mark=diamond*, mark options={fill=cNeutral, draw=none}]
+      coordinates {(1.5,39.5) (2.5,47.0) (4.7,51.5) (6.2,53.4) (11.3,54.7)};
+    \addlegendentry{YOLO11 (2024)}
+    \addplot[only marks, cFuse, mark=pentagon*, mark size=2.3pt, mark options={fill=cFuse, draw=none}]
+      coordinates {(2.3,48.4) (17.2,60.1)};
+    \addlegendentry{RF-DETR N and 2XL (2025)}
+    \addplot[only marks, cAlert, mark=*, mark size=1.9pt, mark options={fill=white, draw=cAlert, line width=0.8pt}]
+      coordinates {(1.60,40.4) (10.38,55.4)};
+    \addlegendentry{YOLOv12 N and X (2025)}
+
+    \node[font=\scriptsize\itshape, text=muted, anchor=west] at (axis cs:12.1,57.9) {YOLO26-x};
+    \node[font=\scriptsize\itshape, text=muted, anchor=east] at (axis cs:16.9,60.6) {RF-DETR-2XL};
+  \end{axis}
+\end{tikzpicture}
+
+\vspace{1mm}
+\caption[Accuracy against latency for current real-time detectors]{Accuracy
+against latency for current real-time detectors, using the figures each work
+reports~\citep{yolo26_2026,rtdetrv4_2025,lei2025yolov13,yolo11_2024,robinson2025rfdetr,tian2025yolov12}.
+Lines join model sizes whose individual latencies were confirmed. For
+RF-DETR and YOLOv12, only the smallest and largest models are plotted.
+Protocols differ, notably in whether NMS is timed, so small horizontal
+differences should not be read as significant.}
+\label{fig:frontier}
+\end{figure}

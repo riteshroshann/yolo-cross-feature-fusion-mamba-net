@@ -1,0 +1,148 @@
+\chapter{Novelty Gap Analysis}
+\label{ch:novelty}
+
+A journal contribution has to be new against the work that exists on the day
+of submission, not on the day the project was proposed. This chapter maps 64
+papers from 2024 to September 2026 that are close to the project. It
+identifies which directions are saturated and states precisely the one that
+remains open.
+
+\section{A saturated design space}
+\label{sec:saturated}
+
+Figure~\ref{fig:timeline} places the papers on a timeline in four lanes.
+\begin{itemize}
+  \item The first lane, \emph{Mamba inside YOLO or for small objects},
+        holds 24 papers. Three of them appeared in September 2026 alone:
+        ScopeMamba-YOLO, YOLO12-MambaScan and HDMamba-YOLO~\citep{scopemamba2026,yolo12mambascan2026,hdmambayolo2026}.
+        There is also a CVPR 2026 paper~\citep{akcmamba2026} and a steady
+        flow of journal articles.
+  \item The second lane, \emph{Mamba for visible--thermal fusion}, holds 17
+        papers. They appeared in ICCV, IEEE TMM, IEEE TCSVT and two volumes
+        of Information Fusion.
+  \item The third lane covers state-space models used \emph{across time} for
+        any task. It is dominated by tracking and by event cameras.
+  \item The fourth lane covers \emph{visible--thermal video detection}
+        without state-space models. It uses windows, graphs and hypergraphs.
+\end{itemize}
+
+The design implied by a literal reading of the project title is a YOLO
+detector with Mamba blocks fusing visible and thermal features on still
+images. It sits at the intersection of the first two lanes. Fusion-Mamba
+describes itself as ``a dual-stream feature extraction network and three
+Fusion-Mamba blocks, with the same neck and head as
+YOLOv8''~\citep{dong2025fusionmamba}. MambaRefine-YOLO, RemoteDet-Mamba,
+WaveMamba and COMO occupy the same point~\citep{mambarefine2025,remotedetmamba2024,wavemamba2025,como2024}.
+A reviewer at IEEE TCSVT or Pattern Recognition would read a further
+instance as incremental.
+
+\input{figures/fig_timeline}
+
+\section{Five candidate directions}
+\label{sec:directions}
+
+Table~\ref{tab:directions} assesses five directions that would extend the
+static design. Each is judged by the closest prior art found and by what
+remains open.
+
+\begin{table}[htbp]
+\centering
+\caption[Candidate novelty directions and their prior art]{Candidate novelty
+directions and their prior art. Risk is the likelihood that a reviewer finds
+the contribution already published.}
+\label{tab:directions}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.6cm}P{3.6cm}LP{1.35cm}@{}}
+\hd{Direction} & \hd{Closest prior art} & \hd{What remains open} & \hd{Risk} \\ \gap
+(a) causal state carried across frames & MambaST~\citep{mambast2024}; Zubi\'c et al.~\citep{zubic2024ssmevent}; TMambaDet~\citep{tmambadet2026}; StreamYOLO~\citep{yang2022streamyolo} & No causal, constant-memory, unbounded-length visible--thermal detector. No state-space method on RGB--thermal video detection benchmarks. & low to medium \\ \sgap
+(b) misalignment and missing modality & COMO~\citep{como2024}; contextually guided SSM fusion~\citep{cgssm2025}; MSDF-Mamba~\citep{msdfmamba2025}; SCDT for tracking~\citep{scdt2026} & Temporal missing modality in detection, such as bursty thermal dropout and desynchronisation, has no benchmark protocol. & medium; low if combined with (a) \\ \sgap
+(c) size-aware scan order & QuadMamba~\citep{xie2024quadmamba}; DAMamba~\citep{damamba2025}; ObjM~\citep{objm2025}; ScopeMamba~\citep{scopemamba2026} & Only a temporal twist, ordering tokens by objects predicted in the previous frame. & high \\ \sgap
+(d) joint detection and tracking with shared state & SambaMOTR~\citep{segu2025sambamotr}; MambaTrack~\citep{mambatrack2024}; TrackSSM~\citep{trackssm2024} & A shared state for dense YOLO-style detection and identity in RGB--thermal tiny-object tracking. & medium; large scope \\ \sgap
+(e) edge deployment of SSM detectors & MambaNeXt-YOLO~\citep{mambanextyolo2025}; LCMamNet~\citep{lcmamnet2026}; DLRMamba~\citep{dlrmamba2026} & No native TensorRT operator for two-dimensional selective scan was found; accuracy loss after export is rarely reported. & medium to high alone \\
+\end{tabularx}
+\end{table}
+
+Direction (c) is crowded and should be avoided as a main claim. Directions
+(d) and (e) are valuable but either too large for one paper or too narrow
+for a top journal. Directions (a) and (b) are complementary. Combined, they
+define a problem no published work addresses.
+
+\section{The open problem}
+\label{sec:openproblem}
+
+Stated precisely, the open problem is this:
+
+\begin{quote}
+\itshape
+Detect very small objects in a continuous stream of visible and thermal
+frames, using only past frames, at constant memory and per-frame cost, while
+remaining accurate when one sensor drops out, drifts out of alignment or
+delivers frames at irregular intervals.
+\end{quote}
+
+Figure~\ref{fig:positioning} places the closest work on two axes. The first
+is how much temporal context a method uses. The second is how demanding its
+sensing assumptions are. Every cell to the left of the last column is
+occupied. In the last column, causal and unbounded memory exists only for
+event cameras and for DETR-style tracking. The two cells in the lower right
+are empty. Those cells are the target of \methodS{}.
+
+\input{figures/fig_positioning}
+
+\section{Positioning against the nearest work}
+\label{sec:nearest}
+
+Six papers come closest, and the contribution must be defined against each
+(Table~\ref{tab:nearest}).
+\begin{itemize}
+  \item MambaST is the nearest in spirit~\citep{mambast2024}. It fuses
+        visible and thermal features across three frames with a stride of
+        three. It feeds the last hidden output into the next window and is
+        evaluated on KAIST only. Its authors name longer sequences and other
+        datasets as future work.
+  \item Zubi\'c and colleagues show truly recurrent state-space detection
+        with frequency generalisation, on event data~\citep{zubic2024ssmevent}.
+  \item TMambaDet is bidirectional and therefore offline~\citep{tmambadet2026}.
+  \item SambaMOTR keeps state per track, not per location. It is built on a
+        DETR tracker~\citep{segu2025sambamotr}.
+  \item COMO handles misalignment on still images only~\citep{como2024}.
+  \item RVT is a recurrent detector for event cameras built on convolutional
+        LSTM cells, not state-space models~\citep{gehrig2023rvt}.
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption[Properties of the nearest prior work]{Properties of the nearest
+prior work against the proposed \methodS{}.}
+\label{tab:nearest}
+\small
+\begin{tabularx}{\textwidth}{@{}LC{1.25cm}C{1.25cm}C{1.25cm}C{1.25cm}C{1.35cm}C{1.25cm}@{}}
+\hd{Property} & \hd{MambaST} & \hd{Zubi\'c} & \hd{TMamba-Det} & \hd{Samba-MOTR} & \hd{COMO} & \hd{\methodS} \\ \gap
+detection of objects          & yes & yes & yes & tracks & yes & yes \\
+uses only past frames         & yes & yes & no  & yes & n/a & yes \\
+memory unbounded in length    & no  & yes & no  & yes & n/a & yes \\
+constant per-frame cost       & no  & yes & no  & yes & n/a & yes \\
+visible and thermal input     & yes & no  & no  & no  & yes & yes \\
+small-object benchmark        & no  & no  & no  & no  & partly & yes \\
+robust to misalignment        & no  & n/a & n/a & n/a & yes & yes \\
+robust to sensor dropout      & no  & n/a & n/a & n/a & no  & yes \\
+handles irregular frame rate  & no  & yes & no  & no  & n/a & yes \\
+\end{tabularx}
+\end{table}
+
+\section{What the contribution is not}
+
+Three claims will be avoided.
+\begin{itemize}
+  \item The work will not claim a new static fusion block as its
+        contribution. The still-image \method{} is a baseline and an
+        ablation, not the headline.
+  \item It will not claim a new scan order.
+  \item It will not claim state-of-the-art accuracy on COCO or on saturated
+        fusion benchmarks.
+\end{itemize}
+The claim is narrower and stronger: a causal, constant-memory,
+reliability-aware state-space memory for visible--thermal streams, together
+with a robustness protocol that tests it. The searches behind this chapter
+found no such method. That is evidence, not proof, and the search must be
+repeated immediately before submission (Section~\ref{sec:submission}).

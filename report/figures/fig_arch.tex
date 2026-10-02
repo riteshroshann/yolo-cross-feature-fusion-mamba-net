@@ -1,0 +1,119 @@
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[
+    bv/.style={base, rgb, text width=1.55cm, minimum height=0.62cm, font=\scriptsize, inner ysep=2.5pt},
+    bt/.style={base, ir,  text width=1.55cm, minimum height=0.62cm, font=\scriptsize, inner ysep=2.5pt},
+    fz/.style={base, fuse, text width=1.75cm, minimum height=1.12cm, font=\scriptsize},
+    tm/.style={base, tim, text width=1.75cm, minimum height=1.12cm, font=\scriptsize},
+    nk/.style={base, n, text width=1.35cm, minimum height=1.12cm, font=\scriptsize},
+    hdn/.style={base, fill=cFuse!9, text width=1.45cm, minimum height=1.12cm, font=\scriptsize},
+    over/.style={preaction={draw=white, line width=3.2pt, -}},
+  ]
+  % columns
+  \def\ca{0}\def\cb{2.25}\def\cc{4.75}\def\cd{7.35}\def\ce{9.85}\def\cf{12.05}
+  % rows
+  \def\yT{0.55}\def\yS{-1.0}\def\yb{-2.55}\def\yc{-4.1}\def\yd{-5.65}\def\ye{-7.2}\def\yo{-8.85}
+  \def\bus{6.05}
+
+  % ---------- column headings ----------
+  \node[grp] at (\ca,1.75) {visible\\[-1pt]backbone};
+  \node[grp] at (\cb,1.75) {thermal\\[-1pt]backbone};
+  \node[grp] at (\cc,1.75) {cross-modal\\[-1pt]fusion};
+  \node[grp] at (\cd,1.75) {temporal\\[-1pt]state memory};
+  \node[grp] at (\ce,1.75) {neck};
+  \node[grp] at (\cf,1.75) {heads};
+
+  % ---------- inputs and side modules ----------
+  \node[base, rgb, text width=1.75cm, minimum height=0.85cm, font=\scriptsize] (iv) at (\ca,\yT) {visible frame\\ $I^v_t$, $640{\times}512$};
+  \node[base, ir,  text width=1.75cm, minimum height=0.85cm, font=\scriptsize] (it) at (\cb,\yT) {thermal frame\\ $I^\theta_t$, $640{\times}512$};
+  \node[base, dat, text width=1.75cm, minimum height=0.85cm, font=\scriptsize] (mon) at (\cc,\yT) {stream monitor\\ $\tau_t$, $s^v_t$, $s^\theta_t$, cut};
+  \node[base, n,   text width=1.75cm, minimum height=0.85cm, font=\scriptsize] (ego) at (\cd,\yT) {ego-motion\\ $H_{t-1\to t}$};
+  \node[base, tim, fill=cTime!7, text width=2.95cm, minimum height=0.85cm, font=\scriptsize] (buf) at ({(\ce+\cf)/2},\yT) {state buffer $S^{3..5}_{t-1}$\\ written at frame $t-1$};
+
+  % ---------- stems ----------
+  \node[bv] (sv) at (\ca,\yS) {stem, $P_1$};
+  \node[bt] (st) at (\cb,\yS) {stem, $P_1$};
+  \node[base, tim, text width=1.75cm, minimum height=0.85cm, font=\scriptsize] (warp) at (\cd,\yS) {warp $\mathcal{W}$\\ $\hat S_{t-1}$ from $S_{t-1}$, $H$};
+  \draw[arr] (iv) -- (sv);
+  \draw[arr] (it) -- (st);
+  \draw[arr] (ego) -- (warp);
+  \draw[darr, draw=cTime] (buf.south) |- (warp.east);
+
+  % ---------- backbone stages, staggered: visible high, thermal low ----------
+  \foreach \l/\y/\res in {2/\yb/{160{\times}128}, 3/\yc/{80{\times}64}, 4/\yd/{40{\times}32}, 5/\ye/{20{\times}16}}{
+    \node[bv] (v\l) at (\ca,{\y+0.28}) {$P_{\l}$\enspace$\res$};
+    \node[bt] (t\l) at (\cb,{\y-0.28}) {$P_{\l}$\enspace$\res$};
+  }
+  \draw[arr] (sv) -- (v2);
+  \draw[arr] (st) -- (t2);
+  \foreach \i/\j in {2/3,3/4,4/5}{
+    \draw[arr] (v\i) -- (v\j);
+    \draw[arr] (t\i) -- (t\j);
+  }
+
+  % ---------- fusion column ----------
+  \node[fz] (f2) at (\cc,\yb) {reliability-\\weighted sum};
+  \foreach \l/\y in {3/\yc,4/\yd,5/\ye}
+    \node[fz] (f\l) at (\cc,\y) {CMFM\\ $Z^{\l}_t$,\; $\rho^{\l}_t$};
+
+  \foreach \l/\y in {2/\yb,3/\yc,4/\yd,5/\ye}{
+    \draw[arr, over] (v\l.east) -- (v\l.east -| f\l.west);
+    \draw[arr] (t\l.east) -- (t\l.east -| f\l.west);
+  }
+  \draw[darr, draw=cData] (mon) -- node[lbl, right=1pt, pos=0.45] {$s^m_t$} (f2);
+
+  % ---------- temporal state memory ----------
+  \foreach \l/\y in {3/\yc,4/\yd,5/\ye}
+    \node[tm] (m\l) at (\cd,\y) {TSM\\ $\hat S^{\l}_{t-1}\to S^{\l}_t$};
+  % state bus from the warp node to every TSM block
+  \draw[darr, draw=cTime, line width=0.6pt] (warp.west) -| (\bus,\ye);
+  \foreach \l/\y in {3/\yc,4/\yd,5/\ye}
+    \draw[arr, draw=cTime] (\bus,{\y+0.3}) -- (\bus,{\y+0.3} -| m\l.west);
+  \foreach \l/\y in {3,4,5}
+    \draw[arr, over] (f\l.east) ++(0,-0.18) -- ($(m\l.west)+(0,-0.18)$);
+  \draw[darr, draw=cData] (mon.east) -- node[lbl, above=0.5pt, pos=0.45] {$\tau_t$} (ego.west);
+
+  % ---------- neck ----------
+  \foreach \l/\y in {2/\yb,3/\yc,4/\yd,5/\ye}
+    \node[nk] (n\l) at (\ce,\y) {PAN\\ level $P_{\l}$};
+  \draw[arr, over] (f2.east) -- node[lbl, above=0.5pt, pos=0.58, fill=white] {no state at $P_2$} (n2.west);
+  \foreach \l in {3,4,5}
+    \draw[arr] (m\l) -- (n\l);
+  \foreach \i/\j in {2/3,3/4,4/5}{
+    \draw[arr] ($(n\j.north)+(-0.3,0)$) -- ($(n\i.south)+(-0.3,0)$);
+    \draw[arr] ($(n\i.south)+(0.3,0)$) -- ($(n\j.north)+(0.3,0)$);
+  }
+  \node[lbl, anchor=south] at (\ce,{\yb+0.6}) {top-down $\uparrow$\enspace bottom-up $\downarrow$};
+
+  % ---------- heads ----------
+  \foreach \l/\y/\px in {2/\yb/4, 3/\yc/8, 4/\yd/16}
+    \node[hdn, fill=cFuse!16] (h\l) at (\cf,\y) {head $P_{\l}$\\ stride \px};
+  \node[hdn, fill=cFuse!6, text=muted] (h5) at (\cf,\ye) {head $P_5$\\ optional};
+  \foreach \l in {2,3,4}
+    \draw[arr] (n\l) -- (h\l);
+  \draw[darr] (n5) -- (h5);
+
+  % ---------- outputs ----------
+  \node[base, fuse, text width=2.0cm, minimum height=0.95cm, font=\scriptsize] (out) at (\cf,\yo)
+       {boxes, classes and\\ scores at frame $t$};
+  \node[base, tim, fill=cTime!7, text width=1.95cm, minimum height=0.95cm, font=\scriptsize] (sto) at (\cd,\yo)
+       {$S^{3..5}_t$ stored,\\ used at $t+1$};
+  \draw[arr] (h5.south) ++(0,0) -- node[lbl, right=1pt] {all heads, NMS-free} (out);
+  \draw[darr, draw=cTime] (m5) -- (sto);
+  \node[lbl, text width=4.0cm, anchor=west] at (-0.95,\yo) {image mode: empty state\\ stream mode: state persists};
+\end{tikzpicture}
+
+\vspace{4mm}
+\caption[Architecture of \method{} and \methodS{}]{Architecture of
+\method{} and \methodS{} for one frame of a $640\times512$ visible--thermal
+stream. Two YOLO26 backbones produce features at strides 4 to 32. A
+reliability-weighted sum fuses $P_2$. CMFM blocks fuse $P_3$ to $P_5$ and
+emit reliability maps $\rho$. In stream mode, the Temporal State Memory
+updates a per-location state carried from frame $t-1$ after warping by the
+estimated camera motion. Purple dashed paths carry state. Ochre dashed
+paths carry the monitor's signals: sensor flags $s^m_t$, interval $\tau_t$
+and scene cuts. The neck and heads follow YOLO26 with a stride-4 extension.
+In image mode the state is empty and the network reduces to the still-image
+\method{}.}
+\label{fig:arch}
+\end{figure}

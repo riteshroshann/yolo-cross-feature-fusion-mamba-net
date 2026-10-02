@@ -1,0 +1,42 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    st/.style={base, text width=2.42cm, minimum height=1.55cm},
+  ]
+  \def\dx{2.92}
+  % top row, left to right
+  \node[st, n]     (lit)  at (0*\dx,0) {\textbf{Evidence}\\ source papers,\\ state of the art\\ \textit{Ch.~3--4}};
+  \node[st, alert] (gap)  at (1*\dx,0) {\textbf{Gap}\\ saturated and\\ open directions\\ \textit{Ch.~5}};
+  \node[st, fuse]  (meth) at (2*\dx,0) {\textbf{Method}\\ \method, \methodS,\\ hypotheses\\ \textit{Ch.~6}};
+  \node[st, dat]   (data) at (3*\dx,0) {\textbf{Data}\\ core stack,\\ alignment audit\\ \textit{Ch.~7}};
+  \node[st, n]     (prot) at (4*\dx,0) {\textbf{Protocol}\\ metrics, baselines,\\ ablations\\ \textit{Ch.~8}};
+
+  % bottom row, right to left
+  \node[st, tim]   (phas) at (4*\dx,-2.75) {\textbf{Build}\\ Phases 0--4,\\ notebooks\\ \textit{Ch.~9--10}};
+  \node[st, fuse]  (res)  at (3*\dx,-2.75) {\textbf{Results}\\ tables built\\ from run logs\\ \textit{Notebook 15}};
+  \node[st, n]     (eth)  at (2*\dx,-2.75) {\textbf{Ethics}\\ privacy review,\\ approvals\\ \textit{Ch.~11}};
+  \node[st, alert] (pap)  at (1*\dx,-2.75) {\textbf{Manuscript}\\ journal choice,\\ checklist\\ \textit{Ch.~12}};
+
+  \draw[arr] (lit) -- (gap);
+  \draw[arr] (gap) -- (meth);
+  \draw[arr] (meth) -- (data);
+  \draw[arr] (data) -- (prot);
+  \draw[arr] (prot) -- (phas);
+  \draw[arr] (phas) -- (res);
+  \draw[arr] (res) -- (eth);
+  \draw[arr] (eth) -- (pap);
+
+  % feedback loops
+  \draw[darr] (res.north west) -- node[lbl, fill=white, pos=0.5] {revise} (meth.south east);
+  \draw[darr] (pap.north) -- node[lbl, fill=white, pos=0.5] {re-check} (gap.south);
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[The research programme and its feedback loops]{The research
+programme. Solid arrows give the order of work and the chapters that
+describe each stage. The two dashed arrows are the feedback loops that
+matter most. Ablation results revise the method. Prior art is checked again
+immediately before submission, because the field publishes new Mamba
+detectors every month.}
+\label{fig:programme}
+\end{figure}

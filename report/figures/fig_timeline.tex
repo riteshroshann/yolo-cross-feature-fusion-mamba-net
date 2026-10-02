@@ -1,0 +1,75 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    pd/.style={circle, draw=none, inner sep=0pt, minimum size=2.0mm},
+    pl/.style={font=\scriptsize\itshape, text=muted, inner sep=1pt},
+  ]
+  % 1 month = \u cm, month index m = 12*(year-2024) + (month-1)
+  \def\u{0.285}
+  \def\yE{5.6}\def\yA{4.2}\def\yB{2.8}\def\yC{1.4}\def\yD{0}
+  \newcommand{\pt}[3]{\node[pd, fill=#3] at ({#1*\u},{#2}) {};}
+
+  % lane labels
+  \node[grp, anchor=east, align=right] at (-2.05,\yE) {this work};
+  \node[grp, anchor=east, align=right] at (-2.05,\yA) {Mamba in YOLO\\ or small objects};
+  \node[grp, anchor=east, align=right] at (-2.05,\yB) {Mamba for\\ RGB--T fusion};
+  \node[grp, anchor=east, align=right] at (-2.05,\yC) {SSM across time,\\ any task};
+  \node[grp, anchor=east, align=right] at (-2.05,\yD) {RGB--T video,\\ no SSM};
+
+  % lane A: Mamba in YOLO / small objects
+  \foreach \m/\o in {4/0, 4/0.24, 5/0, 7/0, 8/0, 17/0, 18/0, 21/0, 22/0, 24/0, 27/0,
+                     29/0, 29/0.24, 30/0, 30/0.24, 30/0.48, 32/0, 32/0.24, 32/0.48}
+    \pt{\m}{\yA+\o}{cRGB!75};
+  \node[pl, anchor=north] at ({5*\u},{\yA-0.15}) {Mamba YOLO};
+  \node[pl, anchor=north] at ({24*\u},{\yA-0.15}) {UAVDet};
+  \node[pl, anchor=north] at ({30*\u},{\yA-0.15}) {MambaPSA};
+  \node[pl, anchor=south] at ({32*\u},{\yA+0.6}) {three in Sept.\ 2026};
+
+  % lane B: Mamba for RGB-T fusion
+  \foreach \m/\o in {3/0, 3/0.24, 6/0, 7/0, 9/0, 11/0, 18/0, 18/0.24, 18/0.48, 20/0,
+                     21/0, 22/0, 23/0, 24/0, 26/0}
+    \pt{\m}{\yB+\o}{cFuse!80};
+  \node[pl, anchor=north] at ({3*\u},{\yB-0.15}) {Fusion-Mamba, CFMW};
+  \node[pl, anchor=north] at ({11*\u},{\yB-0.15}) {COMO};
+  \node[pl, anchor=south] at ({18*\u},{\yB+0.6}) {WaveMamba, MS2Fusion};
+  \node[pl, anchor=north] at ({22.5*\u},{\yB-0.15}) {MambaRefine};
+
+  % lane C: SSM across time
+  \foreach \m/\o in {1/0, 6/0, 7/0, 7/0.24, 8/0, 9/0, 9/0.24, 10/0, 12/0, 21/0, 29/0, 31/0}
+    \pt{\m}{\yC+\o}{cTime!80};
+  \node[pl, anchor=north] at ({1*\u},{\yC-0.15}) {Zubi\'c et al.};
+  \node[pl, anchor=south] at ({9*\u},{\yC+0.37}) {SambaMOTR};
+  \node[pl, anchor=north] at ({29*\u},{\yC-0.15}) {TMambaDet};
+
+  % lane D: RGB-T video detection without SSM
+  \foreach \m in {-5, 9, 15, 24, 30}
+    \pt{\m}{\yD}{cIR!80};
+  \node[pl, anchor=north] at ({-5*\u},{\yD-0.15}) {EINet};
+  \node[pl, anchor=north] at ({9*\u},{\yD-0.15}) {MSENet};
+  \node[pl, anchor=north] at ({15*\u},{\yD-0.15}) {MSGNet};
+  \node[pl, anchor=north] at ({24*\u},{\yD-0.15}) {Strip-Fusion};
+  \node[pl, anchor=north] at ({30*\u},{\yD-0.15}) {DCHNet};
+
+  % this work: empty lane with a target marker
+  \node[star, star points=5, star point ratio=2.3, fill=cAlert, draw=none,
+        inner sep=0pt, minimum size=3.6mm] at ({33.6*\u},\yE) {};
+  \node[pl, anchor=east, text=cAlert] at ({33.0*\u},\yE)
+       {causal SSM memory, RGB--T streams, tiny objects: no prior work found};
+
+  % time axis: ticks and year labels only
+  \foreach \m/\lab in {-6/{Jul 2023}, 0/{Jan 2024}, 12/{Jan 2025}, 24/{Jan 2026}, 33/{Oct 2026}}{
+    \draw[draw=cNeutral, line width=0.5pt] ({\m*\u},-0.85) -- ({\m*\u},-0.7);
+    \node[font=\scriptsize, text=muted, anchor=north] at ({\m*\u},-0.88) {\lab};
+  }
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Timeline of closely related work, 2023 to 2026]{Timeline of
+closely related work from July 2023 to October 2026, one dot per paper,
+stacked when several share a month. Papers without a known month of
+publication are omitted. Static Mamba-in-YOLO and Mamba fusion papers
+accumulate quickly. Temporal state-space work concentrates on tracking and
+event cameras. Visible--thermal video detection has advanced without
+state-space models. No work occupies the top lane.}
+\label{fig:timeline}
+\end{figure}

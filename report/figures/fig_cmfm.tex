@@ -1,0 +1,94 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    st/.style={base, text width=1.42cm, minimum height=1.0cm, font=\scriptsize},
+    sm/.style={base, text width=1.1cm, minimum height=0.58cm, font=\scriptsize, inner ysep=2pt},
+    over/.style={preaction={draw=white, line width=3.2pt, -}},
+    tok/.style={circle, draw=none, inner sep=0pt, minimum size=1.55mm},
+  ]
+  \def\xa{0}\def\xb{1.9}\def\xc{3.75}\def\xd{5.55}\def\xe{7.4}\def\xf{9.3}\def\xg{11.2}\def\xh{12.8}
+  \def\yv{1.3}\def\yt{-1.3}\def\yu{2.55}\def\yl{-2.45}
+
+  % inputs
+  \node[st, rgb] (fv) at (\xa,\yv) {$F^v$\\ $C{\times}H{\times}W$};
+  \node[st, ir]  (ft) at (\xa,\yt) {$F^\theta$\\ $C{\times}H{\times}W$};
+
+  % reliability and offset heads
+  \node[st, n, text width=1.5cm, minimum height=1.35cm] (hd) at (\xb,0)
+       {heads $g$, $h$\\ on $[F^v,F^\theta,$\\ $|F^v{-}F^\theta|]$};
+  \draw[arr] (fv.south) to[out=-80,in=170] (hd.west |- 0,0.3);
+  \draw[arr] (ft.north) to[out=80,in=-170] (hd.west |- 0,-0.3);
+
+  % resample thermal onto the visible grid
+  \node[st, ir] (rs) at (\xc,\yt) {resample\\ $\tilde F^\theta{=}\mathcal{S}(F^\theta\!,o)$};
+  \draw[arr] (ft) -- (rs);
+  \draw[arr] (hd.south east) -- node[lbl, right=0.5pt, pos=0.4] {$o$} (rs.north);
+
+  % projections
+  \node[sm, rgb] (pv) at (\xd,0.62) {$\phi_v$, $1{\times}1$};
+  \node[sm, ir]  (pt) at (\xd,-0.62) {$\phi_\theta$, $1{\times}1$};
+
+  % residual lanes (visible on top, thermal at the bottom)
+  \draw[line width=0.55pt, draw=cNeutral] (fv.east) -- (\xd,\yv);
+  \draw[arr] (\xd,\yv) -- (pv.north);
+  \draw[line width=0.55pt, draw=cNeutral] (rs.east) -- (\xd,\yt);
+  \draw[arr] (\xd,\yt) -- (pt.south);
+
+  % interleave tokens
+  \node[st, fuse, minimum height=1.2cm] (il) at (\xe,0) {interleave\\[13pt] \ };
+  \foreach \i in {0,...,7}{
+    \pgfmathsetmacro{\xx}{\xe-0.53+\i*0.152}
+    \ifodd\i \node[tok, fill=cIR] at (\xx,-0.2) {}; \else \node[tok, fill=cRGB] at (\xx,-0.2) {}; \fi
+  }
+  \node[font=\tiny, text=muted] at (\xe,-0.43) {$x^v_1\,x^\theta_1\,x^v_2\,x^\theta_2\cdots$};
+  \draw[arr] (pv.east) -- (il.west |- pv.east);
+  \draw[arr] (pt.east) -- (il.west |- pt.east);
+
+  % gated selective scan
+  \node[st, tim, text width=1.55cm, minimum height=1.45cm] (sc) at (\xf,0)
+       {selective scan\\ SS2D, $d$ dirs\\[1pt] $\Delta_k\cdot r^{m(k)}_{p(k)}$};
+  \draw[arr] (il) -- (sc);
+
+  % local branch
+  \node[st, n] (lc) at (\xf,\yl) {local branch\\ DW $3{\times}3$};
+  \draw[arr] (il.south) |- node[lbl, above=0.5pt, pos=0.75] {concat} (lc.west);
+
+  % merge
+  \node[st, fuse, text width=1.5cm, minimum height=1.45cm] (mg) at (\xg,0)
+       {de-interleave\\ $[Y^v;Y^\theta;$ local$]$\\ $W_o$, residual};
+  \draw[arr] (sc) -- (mg);
+  \draw[arr] (lc.east) -| ($(mg.south)+(0.5,0)$);
+
+  % residual paths around the scan
+  \draw[arr] (\xd,\yv) -- (\xg,\yv) -- (mg.north);
+  \draw[arr] (\xd,\yt) -- (\xg,\yt) -- (mg.south);
+  \node[lbl, anchor=south, text=cRGB] at (\xe,\yv) {residual $\hat r^v\odot F^v$};
+  \node[lbl, anchor=north, text=cIR] at (\xe,\yt) {residual $\hat r^\theta\odot\tilde F^\theta$};
+
+  % reliability gate path along the top
+  \draw[line width=0.6pt, draw=cData, dash pattern=on 2.2pt off 1.6pt] (hd.north) -- (\xb,\yu) -- (\xf,\yu);
+  \draw[arr, over, draw=cData, dash pattern=on 2.2pt off 1.6pt] (\xf,\yu) -- (sc.north);
+  \node[base, tim, fill=cTime!7, text width=1.95cm, minimum height=0.75cm, font=\scriptsize] (rho) at (\xg,\yu) {$\rho=\max(r^v\!,r^\theta)$};
+  \draw[darr, draw=cData] (\xf,\yu) -- (rho.west);
+  \node[lbl, anchor=south] at ({(\xb+\xf)/2},\yu) {$r^v, r^\theta \in (0,1)^{H\times W}$, multiplied by sensor flags $s^m$, gate the step of every token};
+
+  % outputs
+  \node[st, fuse, text width=1.05cm] (zo) at (\xh,0) {$Z$\\ to TSM\\ or neck};
+  \draw[arr] (mg) -- (zo);
+  \node[st, tim, fill=cTime!7, text width=1.05cm, minimum height=0.75cm] (ro) at (\xh,\yu) {to TSM};
+  \draw[arr] (rho) -- (ro);
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[The Cross-Modal Fusion Mamba block]{The Cross-Modal Fusion Mamba
+(CMFM) block at one pyramid level. Small heads estimate per-location
+reliability for each modality and a displacement field that resamples the
+thermal features onto the visible grid. The projected streams are
+interleaved so that the hidden state alternates between modalities at every
+location. The selective scan multiplies each token's step $\Delta_k$ by the
+reliability of its modality and location (ochre path). An unreliable token
+therefore neither writes into the state nor erases it. A local
+convolutional branch and reliability-weighted residuals complete the block.
+The combined reliability $\rho$ is passed to the Temporal State Memory.}
+\label{fig:cmfm}
+\end{figure}

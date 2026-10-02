@@ -1,0 +1,417 @@
+\chapter{Critical Analysis of the Four Source Papers}
+\label{ch:sources}
+
+The project began from four papers supplied with the topic. This chapter
+reads each in turn and then asks what they show together. The analysis used
+the full text and reference lists. Because text extraction lost most of
+their tables, every table was read again from the rendered PDF pages. Where
+a paper's text and tables disagree, both values are reported and the
+disagreement is listed in Table~\ref{tab:inconsistencies}.
+
+One identification matters from the start. The fourth file, supplied as
+\emph{Cross-Modality Fusion Mamba for Object Detection}, is CFMW by Li and
+colleagues~\citep{li2025cfmw}. It is not the similarly named Fusion-Mamba by
+Dong and colleagues~\citep{dong2025fusionmamba}. Both are cited throughout,
+and both belong to the same family of designs. Table~\ref{tab:srcoverview}
+summarises the four papers.
+
+\begin{table}[htbp]
+\centering
+\caption[The four source papers at a glance]{The four source papers at a glance.}
+\label{tab:srcoverview}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.25cm}P{2.75cm}P{2.55cm}LP{1.45cm}@{}}
+\hd{Paper} & \hd{Venue} & \hd{Base detector} & \hd{Task and data} & \hd{Code} \\ \gap
+MambaVision \citep{hatamizadeh2025mambavision} & CVPR 2025 (NVIDIA) & Cascade Mask R-CNN & backbone; ImageNet, COCO, ADE20K & public \\ \sgap
+HPS-DETR \citep{wang2025hpsdetr} & IEEE TGRS 63, 2025 & RT-DETR-r18 & aerial small objects; SIMD, DOTA, NWPU VHR-10 & none \\ \sgap
+UAVDet \citep{yang2026uavdet} & CVIU 264, 2026 & RTMDet-m & UAV small objects; VisDrone, UAVDT, DroneVehicle (RGB) & none \\ \sgap
+CFMW \citep{li2025cfmw} & IEEE TCSVT 35(12), 2025 & dual-stream YOLOv5-L & visible--thermal under weather; LLVIP, SWVI & announced \\
+\end{tabularx}
+\end{table}
+
+\section{MambaVision: a hybrid Mamba--Transformer backbone}
+\label{sec:src-mv}
+
+\paragraph{What it proposes}
+MambaVision, by Hatamizadeh and Kautz of NVIDIA, is a four-stage
+hierarchical backbone~\citep{hatamizadeh2025mambavision}. Stages one and two,
+at strides 4 and 8, are plain convolutional residual blocks chosen for speed
+at high resolution. Stages three and four, at strides 16 and 32, contain $N$
+layers each. The first $N/2$ use a redesigned Mamba mixer and the last $N/2$
+use windowed self-attention. The mixer departs from Mamba in three ways.
+\begin{itemize}
+  \item The causal convolution is replaced by an ordinary one.
+  \item A second branch is added that does not pass through the SSM.
+  \item The multiplicative gate is replaced by concatenating the two
+        branches, followed by a linear projection.
+\end{itemize}
+The scan runs once, in one direction.
+
+\paragraph{Evidence}
+Table~\ref{tab:mvcoco} gives the ImageNet and COCO results that matter here.
+The ablations support both design choices. Concatenation instead of gating
+adds 1.0 point of ImageNet top-1 and 1.1 box AP with Mask R-CNN. Placing
+attention in the last half of each stage gives 82.3\% top-1. That beats
+random placement (81.3\%), the first half (81.5\%) and alternating patterns
+(81.4--81.6\%).
+
+\begin{table}[htbp]
+\centering
+\caption[MambaVision: classification throughput and COCO detection]{MambaVision
+results reproduced from the paper. Throughput is images per second at
+$224\times224$, batch 128, on an A100. COCO uses Cascade Mask R-CNN with the
+$3\times$ schedule. Parameters and GFLOPs for COCO refer to the whole
+detector.}
+\label{tab:mvcoco}
+\small
+\begin{tabularx}{\textwidth}{@{}LR{1.55cm}R{1.35cm}R{1.6cm}R{1.6cm}R{1.6cm}@{}}
+\hd{Model} & \hd{Params (M)} & \hd{GFLOPs} & \hd{Img/s} & \hd{Top-1 (\%)} & \hd{} \\ \gap
+MambaVision-T  & 31.8  & 4.4  & 6\,298 & 82.3 & \\
+MambaVision-S  & 50.1  & 7.5  & 4\,700 & 83.3 & \\
+MambaVision-B  & 97.7  & 15.0 & 3\,670 & 84.2 & \\
+MambaVision-L  & 227.9 & 34.9 & 2\,190 & 85.0 & \\ \gap
+\hd{COCO backbone} & \hd{Params (M)} & \hd{GFLOPs} & \hd{Box AP} & \hd{Mask AP} & \hd{$\Delta$ box} \\ \gap
+ConvNeXt-T     & 86  & 741 & 50.4 & 43.7 & \\
+Swin-T         & 86  & 745 & 50.4 & 43.7 & \\
+MambaVision-T  & 86  & 740 & 51.1 & 44.3 & $+0.7$ \\ \sgap
+ConvNeXt-S     & 108 & 827 & 51.9 & 45.0 & \\
+MambaVision-S  & 108 & 828 & 52.3 & 45.2 & $+0.4$ \\ \sgap
+ConvNeXt-B     & 146 & 964 & 52.7 & 45.6 & \\
+MambaVision-B  & 145 & 964 & 52.8 & 45.7 & $+0.1$ \\
+\end{tabularx}
+\end{table}
+
+\paragraph{Limitations for this project}
+\begin{itemize}
+  \item The detection gains over ConvNeXt are small: $+0.7$, $+0.4$ and
+        $+0.1$ box AP at the three sizes. They come from single runs with no
+        variance reported.
+  \item No size-specific metric is given, so its effect on small objects is
+        unknown.
+  \item Its state-space and attention blocks work only at strides 16 and 32.
+        A 16-pixel object barely registers at those strides, so the part of
+        the network that should supply global context never sees small
+        objects at useful resolution. This is the central mismatch with the
+        project.
+  \item Throughput is reported only for classification at $224\times224$ on
+        an A100. No latency is given for a real-time detector, a consumer GPU
+        or batch size one.
+\end{itemize}
+
+\paragraph{What to take from it}
+Three lessons carry over. Attention or global mixing belongs late in a
+stage. A non-SSM branch beside the scan is cheap and helps. The design that
+would actually serve small objects, cheap global mixing at strides 4 and 8,
+was not attempted.
+
+\section{HPS-DETR: lightweight small-object detection with a transformer}
+\label{sec:src-hps}
+
+\paragraph{What it proposes}
+HPS-DETR, by Wang and Chen, modifies the real-time transformer detector
+RT-DETR-r18 for small objects in aerial images~\citep{wang2025hpsdetr,zhao2024rtdetr}.
+It is a method paper, not a survey. It makes four changes.
+\begin{itemize}
+  \item A lighter backbone block combines partial convolution from
+        FasterNet~\citep{chen2023fasternet} with a gated linear unit.
+  \item Cascaded group attention, from EfficientViT~\citep{liu2023efficientvit},
+        replaces standard self-attention in the encoder. It is applied to
+        $P_5$ only.
+  \item A new fusion neck brings the stride-4 level into scale-sequence and
+        triple-feature fusion. It borrows from ASF-YOLO~\citep{kang2024asfyolo}
+        and adds a learned upsampler derived from DySample~\citep{liu2023dysample}.
+  \item The box loss combines Inner-IoU and MPDIoU~\citep{zhang2023inneriou,ma2023mpdiou}.
+\end{itemize}
+The parameter count falls from 19.9M to 15.5M.
+
+\paragraph{Evidence}
+Table~\ref{tab:hps} gives the headline results. The authors repeated every
+experiment four times and report averages. That is better practice than the
+other three papers follow.
+
+\begin{table}[htbp]
+\centering
+\caption[HPS-DETR: baseline against full model on three datasets]{HPS-DETR
+results from the paper, baseline RT-DETR-r18 against the full model. FPS
+was measured on an RTX 4090. No model uses pretrained weights.}
+\label{tab:hps}
+\small
+\begin{tabularx}{\textwidth}{@{}LR{1.9cm}R{1.9cm}R{1.9cm}R{1.9cm}@{}}
+\hd{Dataset and model} & \hd{AP\textsubscript{50}} & \hd{AP\textsubscript{50:95}} & \hd{AP\textsubscript{S}} & \hd{FPS} \\ \gap
+SIMD, RT-DETR-r18 & 77.4 & 62.0 & 25.4 & 70.3 \\
+SIMD, HPS-DETR    & 79.8 & 63.5 & 27.9 & 80.7 \\ \sgap
+DOTA tiles, RT-DETR-r18 & 85.1 & 60.7 & 37.0 & 68.8 \\
+DOTA tiles, HPS-DETR    & 86.8 & 62.5 & 39.2 & 80.2 \\ \sgap
+NWPU VHR-10, RT-DETR-r18 & 88.4 & 57.5 & 26.5 & 74.3 \\
+NWPU VHR-10, HPS-DETR    & 91.5 & 60.4 & 29.8 & 82.8 \\ \gap
+\multicolumn{5}{@{}l}{\textit{Strongest competitors on SIMD}} \\
+YOLO11m & 78.8 & 62.4 & & \\
+DEIM    & 79.1 & 63.0 & & \\
+RT-DETR-r50 & 78.3 & 62.7 & & \\
+\end{tabularx}
+\end{table}
+
+Its attention ablation is a template worth copying. Holding the rest of the
+network fixed, it swaps six attention modules on DOTA. Standard
+self-attention gives 84.8 AP\textsubscript{50} at 74.5 FPS. Deformable
+attention gives 85.5 at 67.6. HiLo gives 86.0 at 76.6. Cascaded group
+attention gives 86.8 at 80.2. A state-space block can be added to such a
+table as one more row, so that it competes on equal terms.
+
+\paragraph{Limitations}
+\begin{itemize}
+  \item Its own loss table suggests that run-to-run variation is about 1 to
+        1.5 points. Inner-MPDIoU with ratio 1.0 is mathematically equivalent
+        to MPDIoU, yet it scores 1.6 AP\textsubscript{50} lower on SIMD
+        (78.2 against 79.8). Several of the claimed gains are no larger than
+        this.
+  \item The small-object score AP\textsubscript{S} on NWPU swings from 23.2
+        to 29.8 with a single constant in the upsampler.
+  \item The DOTA experiments use the authors' own tiles and an unstated box
+        protocol, so they cannot be compared with the official leaderboard.
+  \item Several citations do not point to the works the text attributes to
+        them.
+  \item The work uses visible light only.
+\end{itemize}
+
+\paragraph{What to take from it}
+The stride-4 level contributes most of the small-object gain. Global
+attention is affordable only at $P_5$, which is precisely where a linear-time
+state-space block could be tried at $P_3$ and $P_4$ instead. Repeated runs
+are both possible and persuasive.
+
+\section{UAVDet: a CNN--Mamba hybrid for UAV imagery}
+\label{sec:src-uavdet}
+
+\paragraph{What it proposes}
+UAVDet, by Yang, Guo and Niu, is built on RTMDet-m in MMDetection, not on a
+YOLO code base~\citep{yang2026uavdet,lyu2022rtmdet}. It makes three changes.
+\begin{itemize}
+  \item The backbone is made heavier in its early stages and lighter in its
+        late stages. Channels become 192--192--96--96 and block counts
+        4--2--2--1.
+  \item A cross-stage partial Mamba block (CSPMB) is placed in the neck at
+        $P_3$ and $P_4$. It runs a VMamba-style four-direction scan beside a
+        convolutional branch.
+  \item The neck is redesigned to add a stride-4 head and remove the
+        stride-32 head.
+\end{itemize}
+The paper links to no code.
+
+\paragraph{Evidence}
+Table~\ref{tab:uavdet} shows the comparison on the VisDrone test set and the
+ablation that explains it. The ablation is the most informative result in
+the four papers. On top of the other two changes, the Mamba block adds
+0.7~AP while frame rate falls from 76 to 53. A transformer block in the same
+position is worse on both counts: 25.6~AP, 46~FPS and seven times the memory.
+The authors offer a Mamba-free variant for this reason. They also show that
+a plain path-aggregation neck with an added stride-4 head reaches 25.2~AP,
+the highest value in their neck study.
+
+\begin{table}[htbp]
+\centering
+\caption[UAVDet: VisDrone comparison and module ablation]{UAVDet results from
+the paper on the VisDrone2019 test set at $640\times640$, measured on an RTX
+4090. The upper block compares detectors and the lower block isolates each
+module. OB is the optimised backbone. TFPN is the redesigned neck with a
+stride-4 head.}
+\label{tab:uavdet}
+\small
+\begin{tabularx}{\textwidth}{@{}LR{1.15cm}R{1.15cm}R{1.15cm}R{1.45cm}R{1.35cm}R{1.0cm}@{}}
+\hd{Model} & \hd{AP} & \hd{AP\textsubscript{50}} & \hd{AP\textsubscript{S}} & \hd{Params (M)} & \hd{GFLOPs} & \hd{FPS} \\ \gap
+YOLOv8m        & 19.3 & 33.9 & 9.4  & 25.9  & 79.1  & 106 \\
+YOLO11m        & 20.6 & 35.7 & 10.7 & 20.1  & 68.2  & 133 \\
+Mamba YOLO-M   & 18.3 & 32.2 & 9.0  & 21.8  & 49.6  & 141 \\
+RemDet-m       & 23.3 & 39.2 & 11.6 & 23.3  & 34.4  & 188 \\
+RT-DETR        & 24.5 & 42.3 & 13.5 & 42    & 136   & 68 \\
+RTMDet-m (baseline) & 22.3 & 37.5 & 10.3 & 24.71 & 39.27 & 59 \\
+UAVDet         & 26.8 & 44.8 & 15.3 & 3.74\unv & 46.63 & 53 \\ \gap
+\multicolumn{7}{@{}l}{\textit{Ablation, each row relative to the baseline}} \\
+$+$ OB                  & 25.6 & 43.5 & 14.3 & 23.96 & 42.68 & \\
+$+$ CSPMB only          & 22.9 & 38.3 & 10.8 & 29.23 & 43.80 & \\
+$+$ TFPN only           & 24.7 & 42.0 & 13.5 & 16.54 & 39.03 & \\
+$+$ OB, TFPN            & 26.1 & 44.0 & 15.2 & 3.40\unv & 45.18 & 76 \\
+$+$ OB, TFPN, transformer & 25.6 & 42.9 &    & 3.54  & 54.20 & 46 \\
+$+$ OB, TFPN, CSPMB     & 26.8 & 44.8 & 15.3 & 3.74\unv & 46.63 & 53 \\
+\end{tabularx}
+\end{table}
+
+\paragraph{Limitations}
+\begin{itemize}
+  \item The parameter counts are implausible. The full model is listed at
+        3.74M parameters, although its separate components are listed at
+        16.54M and 23.96M. The paper does not explain this, and a
+        reimplementation should check it.
+  \item AP\textsubscript{S} for the baseline is 10.3 in three tables and
+        14.5 in two others.
+  \item Frame rate is measured with an unstated protocol. The final model
+        is slower than its baseline and slower than every YOLO in the
+        comparison.
+  \item All results come from single runs. A confidence threshold of 0.3 was
+        used at inference, which can depress AP if the same threshold was
+        applied during evaluation.
+  \item The DroneVehicle experiments use the visible images only.
+\end{itemize}
+
+\paragraph{What to take from it}
+The most important lesson in the four papers comes from this ablation. On
+still images, a stride-4 head and early capacity buy several points. The
+state-space block buys less than one point and costs about a third of the
+frame rate.
+
+\section{CFMW: cross-modality fusion Mamba under adverse weather}
+\label{sec:src-cfmw}
+
+\paragraph{What it proposes}
+CFMW, by Li and colleagues, targets visible--thermal detection in rain, fog
+and snow~\citep{li2025cfmw}. It has two parts. A conditional diffusion model
+first restores the weather-degraded visible image. It follows WeatherDiff and
+uses DDIM sampling~\citep{ozdenizci2023weatherdiff,ho2020ddpm,song2021ddim}.
+A dual-stream YOLOv5-L then extracts features from both images and fuses
+them at three backbone stages with a cross-modality fusion Mamba block. That
+block does four things in turn.
+\begin{itemize}
+  \item It swaps half of the channels between the two streams.
+  \item It normalises and projects each stream.
+  \item It applies VMamba's four-direction scan to each stream.
+  \item It gates the outputs and adds them back to both streams through
+        crossed residuals.
+\end{itemize}
+The paper also releases SWVI, a benchmark of 64\,281 paired images with
+synthetic rain, fog and snow, built from LLVIP, M3FD, MSRS and FLIR.
+
+\paragraph{Evidence}
+Table~\ref{tab:cfmw} gives the main comparison and the efficiency study. The
+efficiency figures are the most revealing. The state-space block triples
+computation, from 95.6 to 308.6 GFLOPs, for 3.2 points of mAP. The full
+model runs at 13.5 frames per second, which is not real-time. On LLVIP, the
+thermal-only YOLOv10 scores 62.5 mAP. The plain two-stream YOLOv10 scores
+63.4. Fusion therefore adds less than one point on that dataset before any
+new module is introduced.
+
+\begin{table}[htbp]
+\centering
+\caption[CFMW: LLVIP and SWVI comparison and efficiency]{CFMW results read from
+Tables IV, V and VII of the paper. mAP is averaged over IoU 0.5 to 0.95. The
+two values marked with a dagger disagree with other parts of the paper
+(Table~\ref{tab:inconsistencies}).}
+\label{tab:cfmw}
+\small
+\begin{tabularx}{\textwidth}{@{}LR{1.5cm}R{1.5cm}R{1.5cm}R{1.6cm}R{1.4cm}@{}}
+\hd{Model, input} & \hd{mAP\textsubscript{50}} & \hd{mAP\textsubscript{75}} & \hd{mAP} & \hd{GFLOPs} & \hd{FPS} \\ \gap
+\multicolumn{6}{@{}l}{\textit{LLVIP}} \\
+YOLOv10, thermal only & 95.3 & 72.4 & 62.5 & & \\
+YOLOv10, two-stream   & 96.1 & 72.7 & 63.4 & & \\
+CFT, two-stream       & 97.5 & 72.9 & 63.6 & & \\
+CFMW                  & 98.8 & 77.2 & 69.8\unv & & \\ \gap
+\multicolumn{6}{@{}l}{\textit{SWVI}} \\
+YOLOv10, thermal only & 94.7 & 70.9 & 62.7 & & \\
+YOLOv10, two-stream   & 92.1 & 68.2 & 59.3 & & \\
+CFT, two-stream       & 94.4 & 69.7 & 59.4 & & \\
+CFMW                  & 97.2 & 75.9 & 68.4\unv & & \\ \gap
+\multicolumn{6}{@{}l}{\textit{SWVI efficiency study at $640\times640$}} \\
+CFT                         & 93.4 & 71.8 & 59.7 & 290.73 & 5.14 \\
+CFMW without channel swap and scan & 92.2 & 70.6 & 58.4 & 95.58 & 23.64 \\
+CFMW without the scan       & 94.8 & 72.3 & 60.2 & 95.58 & 19.54 \\
+CFMW without channel swap   & 96.4 & 75.8 & 62.5 & 308.62 & 15.73 \\
+CFMW, full                  & 97.2 & 76.9 & 63.4 & 308.62 & 13.52 \\
+\end{tabularx}
+\end{table}
+
+\paragraph{Limitations}
+\begin{itemize}
+  \item The weather is synthetic, and only the visible image is degraded.
+        Real fog and rain also affect thermal sensors.
+  \item The method depends on pixel-aligned pairs. Channel swapping and
+        element-wise addition assume that the two images correspond pixel
+        for pixel.
+  \item Training the restoration model takes about three days on a 48~GB
+        A6000.
+  \item Epochs and input size for the detector are not stated in the text.
+  \item The authors note that small objects remain a failure case. Objects
+        below 2\,500 square pixels make up 26.2\% of SWVI.
+  \item Fusion-Mamba, ICAFusion and other contemporaries are not compared.
+\end{itemize}
+
+\paragraph{What to take from it}
+CFMW is already the journal version of the static design implied by the
+project title. It shows how the design is built and evaluated. It also shows
+the price: two backbones, a scan at three stages and a frame rate far below
+real time. Any new contribution must either avoid that price or buy
+something with it that still images cannot.
+
+\section{What the four papers show together}
+\label{sec:src-synthesis}
+
+\subsection{Where the gains come from}
+
+Figure~\ref{fig:gains} collects every isolated measurement in the four
+papers, and in two closely related works, of what the state-space component
+contributes. These are set beside the contributions of other components in
+the same papers. The picture is consistent. On still images, the
+state-space part adds between $-1.3$ and $+3.2$ points, usually below one
+point and often at a large cost in speed or computation. The stride-4 head
+and redistributed early capacity add more, and they do so cheaply.
+
+\input{figures/fig_gains}
+
+\subsection{What none of them do}
+
+Table~\ref{tab:capabilities} lists the capabilities a journal reviewer would
+look for. None of the four papers processes video, carries memory across
+frames, tests robustness to sensor failure or measures latency on an edge
+device. Only one repeats its experiments. These gaps define where a new
+contribution can stand.
+
+\begin{table}[htbp]
+\centering
+\caption[Capabilities covered by the four source papers]{Capabilities covered
+by the four source papers. Entries are as reported in each paper.}
+\label{tab:capabilities}
+\small
+\begin{tabularx}{\textwidth}{@{}LC{2.0cm}C{2.0cm}C{2.0cm}C{2.0cm}@{}}
+\hd{Capability} & \hd{MambaVision} & \hd{HPS-DETR} & \hd{UAVDet} & \hd{CFMW} \\ \gap
+state-space component      & yes & no  & yes, neck & yes, fusion \\
+thermal input              & no  & no  & no  & yes \\
+small-object metric        & no  & AP\textsubscript{S} & AP\textsubscript{S}, AP\textsubscript{T} & size analysis \\
+video or temporal memory   & no  & no  & no  & no \\
+robustness to sensor faults & no & no  & no  & weather only \\
+repeated runs              & no  & four & no  & no \\
+latency at batch one       & no  & yes, 4090 & yes, 4090 & yes, GPU unstated \\
+edge deployment            & no  & no  & no  & no \\
+code released              & yes & no  & no  & announced \\
+\end{tabularx}
+\end{table}
+
+\subsection{Reporting problems}
+
+All four papers contain internal inconsistencies (Table~\ref{tab:inconsistencies}).
+None of them changes the main conclusions. Together they argue for two
+habits. Every baseline in the new work should be re-run under one protocol,
+not copied from papers. Every table should be generated directly from logged
+runs (Section~\ref{sec:nb-results}).
+
+\begin{table}[htbp]
+\centering
+\caption[Inconsistencies found in the source papers]{Inconsistencies found in
+the source papers. Values are quoted as printed.}
+\label{tab:inconsistencies}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.3cm}L@{}}
+\hd{Paper} & \hd{Inconsistency} \\ \gap
+MambaVision & Ablation text gives a baseline of 80.9\% top-1 and 40.2 mask AP; the table gives 80.5\% and 40.4. \\
+            & Claims 56\% fewer GFLOPs than MaxViT-B; 15.0 against 23.4 is 36\% fewer. \\
+            & The output projection in Eq.~7 has the wrong input dimension. \\ \sgap
+HPS-DETR    & Inner-MPDIoU at ratio 1.0, equivalent to MPDIoU, differs from it by 1.6 AP\textsubscript{50}. \\
+            & The new backbone block is said to speed the model up, yet DOTA FPS falls from 68.8 to 65.2. \\
+            & References [4], [20], [30] and [34] do not match the works described. \\ \sgap
+UAVDet      & The full model has 3.74M parameters although its components have 16.54M and 23.96M. \\
+            & Baseline AP\textsubscript{S} is 10.3 in Tables 3, 5 and 6 and 14.5 in Tables 7 and 8. \\
+            & CSPMB at $L_3$--$L_5$ has 29.23M parameters in Table 5 and 29.41M in Table 6. \\ \sgap
+CFMW        & LLVIP mAP is 69.8 in Table IV and 64.8 in the text. \\
+            & The full model scores 68.4 mAP on SWVI in Table V and 63.4 in Tables VI and VII. \\
+            & The SWVI splits sum to 59\,990 images, not the stated 64\,281. \\
+            & A 51.2\% memory saving is claimed; 18.0 against 35.2\,GB is 48.9\%. \\
+            & Three fusion blocks are described, but performance peaks at eight in Fig.~7. \\
+\end{tabularx}
+\end{table}

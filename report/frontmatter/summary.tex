@@ -1,0 +1,72 @@
+\chapter*{Summary}
+\addcontentsline{toc}{chapter}{Summary}
+\markboth{Summary}{}
+
+This dossier turns the supervised project topic \emph{YOLO-Based Cross Feature
+Fusion Mamba Net for Object Detection} into a research programme that can
+support a journal article. It has three parts: an evidence base, a proposed
+method, and an implementation plan.
+
+\paragraph{Evidence base}
+The four source papers were read in full, including their tables and
+reference lists: MambaVision~\citep{hatamizadeh2025mambavision},
+HPS-DETR~\citep{wang2025hpsdetr}, UAVDet~\citep{yang2026uavdet} and
+CFMW~\citep{li2025cfmw}. They were then placed against work published up to
+October 2026. Three findings shape everything that follows.
+\begin{itemize}
+  \item On still images, most of the accuracy gain these papers report comes
+        from familiar devices. These are a stride-4 detection head, more
+        capacity in early layers, and better multi-scale fusion. The state-space
+        (Mamba) component itself adds between $+0.6$ and about $+3$ points of
+        mAP, often at a large cost in speed or computation.
+  \item Combining a YOLO detector with a Mamba fusion block for visible and
+        thermal images is already well covered. Fusion-Mamba~\citep{dong2025fusionmamba},
+        COMO~\citep{como2024}, WaveMamba~\citep{wavemamba2025},
+        MS2Fusion~\citep{ms2fusion2025} and more than twenty
+        Mamba-in-YOLO variants occupy that space. A further static fusion
+        block would be judged incremental.
+  \item No published method was found that carries a state-space memory
+        causally across an unbounded stream of visible--thermal frames, at
+        constant memory, for small objects. The nearest work,
+        MambaST~\citep{mambast2024}, uses three-frame windows on one pedestrian
+        dataset and does not evaluate streaming.
+\end{itemize}
+
+\paragraph{Proposed method}
+\method{} (Cross-Feature Fusion Mamba Network) keeps the supervised topic
+intact. It is a dual-stream YOLO detector with a stride-4 small-object head
+and state-space fusion of visible and thermal features. Its streaming
+variant, \methodS{}, adds a \emph{Temporal State Memory} that carries the
+state-space hidden state from frame to frame, after correcting for camera
+motion. Both variants rest on one observation. In a selective state-space
+model the discretisation step $\Delta$ decides whether the state keeps its
+memory or takes in new input. \method{} uses this single control for three
+purposes: to discount an unreliable modality at a location, to carry objects
+through gaps in a sensor feed, and to adjust for irregular frame intervals.
+Five hypotheses with explicit falsification criteria are stated in
+Section~\ref{sec:hypotheses}.
+
+\paragraph{Implementation plan}
+The system is built in four phases, each a usable product in its own right.
+\begin{enumerate}
+  \item Phase 1 detects objects in still images from curated datasets.
+  \item Phase 2 detects and tracks objects in uploaded video.
+  \item Phase 3 runs on live webcam and network camera streams.
+  \item Phase 4, an optional extension, adds anonymous multi-camera
+        analytics.
+\end{enumerate}
+The core benchmark is RGBT-Tiny~\citep{ying2025rgbttiny}. It contains 115
+paired visible--thermal sequences, and more than 81\% of its objects are
+smaller than $16\times16$ pixels. A notebook-driven workflow of sixteen
+notebooks runs over a tested Python package. Training runs on Kaggle T4 GPUs,
+while a local RTX~4050 laptop GPU is used for development and live
+demonstrations.
+
+\paragraph{Ethics and law}
+The fictional Machine of \emph{Person of Interest} motivated the project, but
+the system deliberately stops short of it. It does not identify people, keep
+watch-lists or profile behaviour. Those functions are prohibited or
+high-risk under the EU AI Act~\citep{euaiact2024} and constrained by India's
+Digital Personal Data Protection Act~\citep{dpdp2023}. The system is a
+perception layer that detects and tracks objects and anonymous people, with
+faces blurred when footage is ingested.

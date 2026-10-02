@@ -1,0 +1,40 @@
+\chapter{Notation}
+\label{app:notation}
+
+The symbols below are used in Chapters~\ref{ch:foundations}
+and~\ref{ch:method}. Superscripts $v$ and $\theta$ always denote the visible
+and thermal modalities; $\tau$ always denotes time.
+
+{\small
+\begin{longtable}{@{}P{3.4cm}P{10.4cm}@{}}
+\caption[Notation]{Notation.}\label{tab:notation}\\
+\hd{Symbol} & \hd{Meaning} \\ \gap
+\endfirsthead
+\hd{Symbol} & \hd{Meaning} \\ \gap
+\endhead
+$I^v_t$, $I^\theta_t$ & visible and thermal frames at time $t$ \\
+$P_l$ & feature level at stride $2^l$ \\
+$F^{v,l}_t$, $F^{\theta,l}_t$ & backbone features of each modality at level $l$ \\
+$\tilde F^\theta$ & thermal features resampled onto the visible grid \\
+$o$ & displacement field predicted for resampling \\
+$r^v$, $r^\theta$ & per-location reliability of each modality, in $(0,1)$ \\
+$s^v_t$, $s^\theta_t$ & sensor availability flags from the stream monitor \\
+$\rho_t$ & combined reliability, $\max(r^v, r^\theta)$ \\
+$Z^l_t$ & fused features from the CMFM block \\
+$h_k$, $S_t$ & state of a selective scan; state of the Temporal State Memory \\
+$A$, $B$, $C$, $D$ & state-space parameters; $A$ is diagonal and negative \\
+$\Delta$ & discretisation step; small values hold the state, large values overwrite it \\
+$\bar A$, $\bar B$ & discretised parameters under the zero-order hold \\
+$N$ & state size per channel \\
+$C$, $C'$, $C_s$ & channel counts of features, projected tokens and TSM state \\
+$\tau_t$, $\tau_0$ & measured frame interval and nominal training interval \\
+$H_{t-1\to t}$ & estimated camera motion between consecutive frames \\
+$\mathcal{W}$, $\mathcal{S}$ & warp of the state by a homography; resampling by a displacement field \\
+$L$ & clip length in Stage B training \\
+$q^m_t$ & reliability target from the corruption simulator \\
+$\lambda_{\text{rel}}$ & weight of the reliability loss \\
+AP, AP\textsubscript{50}, AP\textsubscript{S} & COCO average precision over IoU 0.5 to 0.95, at IoU 0.5, and for small objects \\
+HOTA, IDF1 & tracking metrics combining detection and association; identity F1 \\
+AUDC, $R_{95}$ & area under the degradation curve; recovery time to 95\% recall \\
+\end{longtable}
+}

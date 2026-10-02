@@ -1,0 +1,64 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    pn/.style={base, text width=2.15cm, minimum height=1.35cm, font=\scriptsize},
+    qn/.style={base, fill=cNeutral!7, text width=0.95cm, minimum height=0.75cm, font=\scriptsize},
+  ]
+  % thread lanes
+  \node[grp, anchor=west] at (-1.2,1.95) {capture threads};
+  \node[pn, rgb] (cv) at (0,0.75)  {\textbf{visible camera}\\ webcam or\\ RTSP over TCP};
+  \node[pn, ir]  (ct) at (0,-1.15) {\textbf{thermal camera}\\ USB or IP\\ module};
+  \node[qn] (qv) at (2.2,0.75)  {queue\\ of 1};
+  \node[qn] (qt) at (2.2,-1.15) {queue\\ of 1};
+  \draw[arr] (cv) -- (qv);
+  \draw[arr] (ct) -- (qt);
+  \node[lbl, anchor=north] at (1.1,-2.2) {newest frame replaces the old};
+
+  \node[grp, anchor=west] at (3.35,1.95) {inference thread};
+  \node[pn, dat] (mon) at (4.5,-0.2) {\textbf{stream monitor}\\ pairs by time,\\ $\tau_t$ and flags};
+  \draw[arr] (qv.east) -- (mon.west |- qv.east);
+  \draw[arr] (qt.east) -- (mon.west |- qt.east);
+
+  \node[pn, tim, minimum height=1.6cm] (inf) at (7.15,-0.2) {\textbf{\methodS}\\ TensorRT FP16,\\ stream mode,\\ state persists};
+  \draw[arr] (mon) -- (inf);
+
+  \node[pn, n] (mot) at (7.15,-2.55) {\textbf{motion thread}\\ ORB, RANSAC\\ on small frames};
+  \draw[arr] (mot) -- node[lbl, right=1pt] {$H_{t-1\to t}$} (inf);
+  \draw[arr] (mon.south) |- (mot.west);
+
+  \node[grp, anchor=west] at (8.75,1.95) {output thread};
+  \node[pn, n]    (trk) at (9.85,-0.2) {\textbf{tracker and}\\ \textbf{renderer}\\ boxes and tracks};
+  \draw[arr] (inf) -- (trk);
+  \node[pn, fuse] (web) at (9.85,-2.55) {\textbf{WebRTC}\\ FastRTC, or\\ MJPEG on LAN};
+  \draw[arr] (trk) -- (web);
+  \node[pn, fuse, text width=1.45cm] (br) at (12.2,-2.55) {\textbf{browser}\\ dashboard};
+  \draw[arr] (web) -- (br);
+
+  % latency strip
+  \def\k{0.118}
+  \def\yl{-4.95}
+  \def\xs{-1.2}
+  \node[grp, anchor=west] at (\xs,{\yl+0.95}) {one frame, end to end, planning estimate in milliseconds};
+  \foreach \a/\w/\c/\lab in {0/8/cRGB/capture, 8/2/cNeutral/pre, 10/12/cTime/network, 22/2/cNeutral/track, 24/8/cFuse/render, 32/40/cData/{to browser}}{
+    \fill[\c!32] ({\xs+\a*\k},{\yl-0.2}) rectangle ({\xs+(\a+\w)*\k},{\yl+0.2});
+  }
+  \foreach \a/\lab in {4/capture, 16/network, 28/render, 52/{network to browser}}
+    \node[font=\scriptsize, text=ink, anchor=north] at ({\xs+\a*\k},{\yl-0.25}) {\lab};
+  \foreach \t in {0,10,22,32,72}{
+    \draw[draw=cNeutral, line width=0.45pt] ({\xs+\t*\k},{\yl+0.26}) -- ({\xs+\t*\k},{\yl+0.38});
+    \node[font=\scriptsize, text=muted, anchor=south] at ({\xs+\t*\k},{\yl+0.38}) {\t};
+  }
+  \node[lbl, anchor=west] at ({\xs+72*\k+0.2},\yl) {target under 150};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Phase 3 threaded design for live streams]{Phase 3 threaded design
+for live streams. Each camera has a capture thread writing into a queue of
+one frame, so the model always processes the present. The stream monitor
+pairs frames by timestamp and supplies $\tau_t$ and the sensor flags.
+Motion estimation runs in its own thread, in parallel with the network.
+The strip below shows a planning estimate of where the time goes for one
+frame. Stages run concurrently, so throughput is set by the slowest stage
+and delay by their sum.}
+\label{fig:phase3}
+\end{figure}

@@ -1,0 +1,131 @@
+\chapter{Ethics, Law and the Person of Interest Question}
+\label{ch:ethics}
+
+The project was inspired by a fictional system of mass surveillance. That
+inspiration is a reason for more care, not less. This chapter states what
+the system will not do and why. It summarises the legal framework that
+applies in India and the European Union, sets out the design rules that
+follow, and drafts the ethics statement the paper will carry.
+
+\section{What the Machine does that this system will not}
+
+The Machine of \emph{Person of Interest} combines three capabilities beyond
+detection~\citep{poi2011}.
+\begin{itemize}
+  \item It \emph{identifies} individuals and follows them across cameras.
+  \item It \emph{profiles} them from their movements and associations.
+  \item It \emph{predicts} who will commit or suffer a crime.
+\end{itemize}
+Each of these is, in law, a distinct and heavily regulated activity: remote
+biometric identification, profiling and predictive risk assessment.
+
+The system in this dossier is a perception layer. It detects and tracks
+objects, and it tracks people only as anonymous moving boxes. It does not
+recognise faces, it builds no identities and it makes no predictions about
+individuals. The gap between the two is not a technical limitation waiting
+to be closed. It is a boundary the project keeps on purpose.
+
+\section{The legal framework}
+
+\paragraph{European Union}
+The AI Act, Regulation (EU) 2024/1689, has prohibited a set of practices since
+2~February~2025~\citep{euaiact2024}. Article~5 bans four that matter here.
+\begin{itemize}
+  \item Assessing a person's risk of committing a criminal offence based
+        solely on profiling or personality traits.
+  \item Building facial-recognition databases by untargeted scraping of
+        images from the internet or CCTV.
+  \item Inferring sensitive characteristics, such as political opinion or
+        religion, from biometric data.
+  \item Real-time remote biometric identification in publicly accessible
+        spaces for law enforcement, apart from three narrow exceptions that
+        each require prior authorisation.
+\end{itemize}
+Other remote biometric identification is classed as high-risk. The
+application date of those obligations was postponed to December 2027 by
+later amendment\unv. Systems developed solely for scientific research are
+outside the Act's scope, but their deployment is not.
+
+The General Data Protection Regulation adds two further constraints. It
+treats biometric data used for unique identification as a special category.
+It requires an impact assessment before systematic monitoring of publicly
+accessible areas on a large scale~\citep{gdpr2016}.
+
+\paragraph{India}
+The Digital Personal Data Protection Act, 2023, and its Rules, notified in
+November 2025, come into force in phases. The core obligations apply from
+May 2027\unv~\citep{dpdp2023,dpdprules2025}. Three provisions matter here.
+\begin{itemize}
+  \item Processing personal data, including images of identifiable people,
+        requires a lawful basis, normally consent.
+  \item The exemption for research and statistical purposes applies only
+        when no decision is taken about a specific individual and prescribed
+        safeguards are met.
+  \item Tracking or behavioural monitoring of children is prohibited.
+\end{itemize}
+Beneath the Act sits the Supreme Court's recognition of privacy as a
+fundamental right in \emph{Puttaswamy}. Under that judgment, any
+surveillance must be lawful, necessary and proportionate~\citep{puttaswamy2017}.
+
+\section{Design rules}
+\label{sec:design-rules}
+
+The rules below apply in every phase. They are written so that a reviewer,
+an ethics committee or a future user can check them.
+
+\begin{enumerate}
+  \item No face recognition, re-identification of people, watch-lists or
+        identity databases are built or used.
+  \item Faces in any footage the project records are blurred at ingest,
+        before storage.
+  \item Processing happens on the device where possible. Only detections
+        and aggregates leave it.
+  \item Phase~4 outputs are aggregates and rule-based events about places,
+        not profiles of people.
+  \item Raw footage the project records is deleted on a fixed schedule.
+        Retention periods are written down in advance.
+  \item Recording for the project happens only with consent or clear
+        signage, and never in places where children are likely to be
+        present.
+  \item Approval from the university's ethics committee is obtained before
+        any recording of people.
+  \item The withdrawn datasets of Table~\ref{tab:withdrawn} are never used.
+  \item Released models carry a model card that states intended uses and
+        excluded uses. Identification and predictive policing are among the
+        excluded uses.
+  \item Access to live feeds and logs is restricted and itself logged.
+\end{enumerate}
+
+\section{Uses worth building for}
+
+The same perception layer serves purposes that need no identification at
+all, and the paper should present these as its motivation.
+\begin{itemize}
+  \item Search and rescue at night or at sea, where thermal imaging finds
+        people who cannot be seen.
+  \item Detection of small drones near airports and other sensitive sites.
+        Drones are one of RGBT-Tiny's seven classes.
+  \item Wildlife monitoring and the detection of poaching.
+  \item Traffic safety in fog and darkness.
+  \item Perimeter safety on industrial sites.
+  \item Disaster response from drones.
+\end{itemize}
+
+\section{Draft ethics and dual-use statement}
+
+The paper will include a statement along the following lines.
+
+\begin{quote}
+\itshape
+This work develops a detector for small objects in visible and thermal video.
+It does not perform face recognition, re-identification or any form of
+biometric identification, and it was not evaluated for such use. All
+datasets were used under their research licences. No dataset withdrawn for
+privacy reasons was used. Footage recorded by the authors was collected with
+the approval of the institutional ethics committee, with faces blurred at
+capture. We recognise that detection and tracking can be components of
+surveillance systems. We therefore release the model with a card that
+excludes identification and predictive policing, and we encourage
+deployments that comply with the EU AI Act and India's Digital Personal Data
+Protection Act.
+\end{quote}

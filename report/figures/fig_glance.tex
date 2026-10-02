@@ -1,0 +1,87 @@
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[
+    col/.style={base, text width=2.5cm, minimum height=1.42cm},
+  ]
+  % columns (phases) and rows
+  \def\xa{0}\def\xb{3.0}\def\xc{6.0}\def\xd{9.0}
+  \def\yh{0.15}\def\ys{-1.3}\def\yi{-3.25}\def\ym{-5.35}\def\yp{-7.45}\def\yo{-9.4}
+  \def\xt{-3.0}
+
+  % row labels on the far left
+  \node[grp, anchor=east] at (\xt+1.05,\ys) {};
+
+  % phase headings
+  \node[grp] at (\xa,\yh) {Phase 1\\[-1pt]still images};
+  \node[grp] at (\xb,\yh) {Phase 2\\[-1pt]uploaded video};
+  \node[grp] at (\xc,\yh) {Phase 3\\[-1pt]live streams};
+  \node[grp] at (\xd,\yh) {Phase 4\\[-1pt]multi-camera};
+  \node[grp] at (\xt,\yh) {Offline};
+
+  % sources
+  \node[col, dat] (s1) at (\xa,\ys) {Dataset folders\\ labelled visible--\\thermal pairs};
+  \node[col, dat] (s2) at (\xb,\ys) {Video files\\ single or paired\\ visible--thermal};
+  \node[col, dat] (s3) at (\xc,\ys) {Live cameras\\ webcam, RTSP,\\ thermal sensor};
+  \node[col, dat] (s4) at (\xd,\ys) {Camera network\\ several synced\\ live streams};
+
+  % ingest
+  \node[col, n] (i1) at (\xa,\yi) {Paired loader\\ letterbox and\\ shared geometry};
+  \node[col, n] (i2) at (\xb,\yi) {Decoder\\ PyAV or OpenCV,\\ timestamp pairing};
+  \node[col, n] (i3) at (\xc,\yi) {Capture threads\\ latest frame wins,\\ queue of one};
+  \node[col, n] (i4) at (\xd,\yi) {Camera workers\\ one per stream,\\ shared clock};
+
+  % model row: one network, two modes
+  \node[base, fuse, text width=2.5cm, minimum height=1.6cm] (m1) at (\xa,\ym)
+       {\textbf{\method}\\ image mode, state\\ reset each frame};
+  \node[base, tim, text width=8.5cm, minimum height=1.6cm] (m2) at ({(\xb+\xd)/2},\ym)
+       {\textbf{\methodS}\enspace stream mode\\[1pt]
+        identical weights, plus the Temporal State Memory\\
+        carried from frame to frame at constant cost};
+
+  % post-processing
+  \node[col, n] (p1) at (\xa,\yp) {Detections\\ boxes, classes\\ and scores};
+  \node[col, n] (p2) at (\xb,\yp) {Tracker\\ BoT-SORT or\\ ByteTrack};
+  \node[col, n] (p3) at (\xc,\yp) {Tracker, then\\ overlay renderer\\ and encoder};
+  \node[col, n] (p4) at (\xd,\yp) {Anonymous\\ cross-camera\\ association};
+
+  % outputs
+  \node[col, fuse] (o1) at (\xa,\yo) {Benchmark scores\\ AP, AP\textsubscript{S},\\ tiny-object AP};
+  \node[col, fuse] (o2) at (\xb,\yo) {Annotated video\\ HOTA, IDF1,\\ frame latency};
+  \node[col, fuse] (o3) at (\xc,\yo) {Live dashboard\\ under 150\,ms\\ end to end};
+  \node[col, fuse] (o4) at (\xd,\yo) {Counts, zones,\\ events and\\ heat maps};
+
+  % arrows down each column
+  \foreach \c in {1,2,3,4}{
+    \draw[arr] (s\c) -- (i\c);
+    \draw[arr] (p\c) -- (o\c);
+  }
+  \draw[arr] (i1) -- (m1);
+  \draw[arr] (m1) -- (p1);
+  \foreach \c/\x in {2/\xb,3/\xc,4/\xd}{
+    \draw[arr] (i\c.south) -- (\x,{\ym+0.8});
+    \draw[arr] (\x,{\ym-0.8}) -- (p\c.north);
+  }
+
+  % offline training lane
+  \node[base, dat, text width=1.95cm, minimum height=1.6cm] (tr) at (\xt,\ym)
+       {Training\\ labelled data,\\ Kaggle T4};
+  \node[base, n, text width=1.95cm, minimum height=1.42cm] (ck) at (\xt,\yi)
+       {Checkpoints\\ seeds, logs,\\ exports};
+  \node[base, n, text width=1.95cm, minimum height=1.42cm] (an) at (\xt,\yo)
+       {Error analysis\\ missed and\\ false objects};
+  \draw[arr] (tr.east) -- node[lbl, above=0.5pt] {weights} (m1.west);
+  \draw[arr] (tr) -- (ck);
+  \draw[arr] (o1.west) -- (an.east);
+  \draw[darr] (an) -- node[lbl, fill=white, text width=1.6cm, pos=0.5] {new or\\ relabelled\\ data} (tr);
+\end{tikzpicture}
+
+\vspace{4mm}
+\caption[The system at a glance]{The system at a glance. Training always
+uses labelled datasets. The trained weights then serve four kinds of input,
+one per phase. Phase 1 evaluates the image-mode network on still images.
+Phases 2 to 4 run the same weights in stream mode, where the Temporal State
+Memory of \methodS{} carries information between frames. Errors found on
+benchmarks and in the field are analysed and turned into new or corrected
+training data.}
+\label{fig:glance}
+\end{figure}

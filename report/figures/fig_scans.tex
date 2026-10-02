@@ -1,0 +1,92 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    dot/.style={circle, fill=cNeutral!45, draw=none, inner sep=0pt, minimum size=1.7mm},
+    hot/.style={circle, fill=cAlert, draw=none, inner sep=0pt, minimum size=2.3mm},
+    sa/.style={-{Stealth[length=1.4mm,width=1.1mm]}, line width=0.5pt},
+    jump/.style={line width=0.4pt, draw=faint, dash pattern=on 1.2pt off 1.2pt},
+  ]
+  \def\g{0.46}
+
+  % ---------- (a) raster scan ----------
+  \begin{scope}[shift={(0,0)}]
+    \foreach \r in {0,...,3}{
+      \foreach \c in {0,...,2}{
+        \draw[sa, draw=cRGB] ({\c*\g+0.07},{-\r*\g}) -- ({(\c+1)*\g-0.07},{-\r*\g});
+      }
+      \ifnum\r<3 \draw[jump] ({3*\g},{-\r*\g}) -- (0,{-(\r+1)*\g}); \fi
+    }
+    \foreach \r in {0,...,3} \foreach \c in {0,...,3} \node[dot] at ({\c*\g},{-\r*\g}) {};
+    \node[hot] at ({1*\g},{-1*\g}) {};
+    \node[hot] at ({1*\g},{-2*\g}) {};
+    \node[grp] at ({1.5*\g},0.62) {(a) raster};
+    \node[lbl, text width=2.6cm] at ({1.5*\g},-2.25) {vertical neighbours\\ are four steps apart};
+  \end{scope}
+
+  % ---------- (b) bidirectional ----------
+  \begin{scope}[shift={(3.35,0)}]
+    \foreach \r in {0,...,3}{
+      \foreach \c in {0,...,2}{
+        \draw[sa, draw=cRGB] ({\c*\g+0.07},{-\r*\g+0.07}) -- ({(\c+1)*\g-0.07},{-\r*\g+0.07});
+        \draw[sa, draw=cIR]  ({(\c+1)*\g-0.07},{-\r*\g-0.07}) -- ({\c*\g+0.07},{-\r*\g-0.07});
+      }
+    }
+    \foreach \r in {0,...,3} \foreach \c in {0,...,3} \node[dot] at ({\c*\g},{-\r*\g}) {};
+    \node[grp] at ({1.5*\g},0.62) {(b) bidirectional};
+    \node[lbl, text width=2.6cm] at ({1.5*\g},-2.25) {forward and reverse,\\ as in Vim};
+  \end{scope}
+
+  % ---------- (c) four-way cross-scan ----------
+  \begin{scope}[shift={(6.7,0)}]
+    \def\h{0.3}
+    % one mini grid per direction
+    \begin{scope}[shift={(0,0)}]
+      \foreach \a in {0,1,2} \foreach \b in {0,1}
+        \draw[sa, draw=cRGB] ({\b*\h+0.05},{-\a*\h}) -- ({(\b+1)*\h-0.05},{-\a*\h});
+      \foreach \a in {0,1,2} \foreach \b in {0,1,2} \node[dot, minimum size=1.3mm] at ({\b*\h},{-\a*\h}) {};
+    \end{scope}
+    \begin{scope}[shift={(1.15,0)}]
+      \foreach \a in {0,1,2} \foreach \b in {0,1}
+        \draw[sa, draw=cIR] ({(\b+1)*\h-0.05},{-\a*\h}) -- ({\b*\h+0.05},{-\a*\h});
+      \foreach \a in {0,1,2} \foreach \b in {0,1,2} \node[dot, minimum size=1.3mm] at ({\b*\h},{-\a*\h}) {};
+    \end{scope}
+    \begin{scope}[shift={(0,-1.05)}]
+      \foreach \a in {0,1} \foreach \b in {0,1,2}
+        \draw[sa, draw=cFuse] ({\b*\h},{-\a*\h-0.05}) -- ({\b*\h},{-(\a+1)*\h+0.05});
+      \foreach \a in {0,1,2} \foreach \b in {0,1,2} \node[dot, minimum size=1.3mm] at ({\b*\h},{-\a*\h}) {};
+    \end{scope}
+    \begin{scope}[shift={(1.15,-1.05)}]
+      \foreach \a in {0,1} \foreach \b in {0,1,2}
+        \draw[sa, draw=cTime] ({\b*\h},{-(\a+1)*\h+0.05}) -- ({\b*\h},{-\a*\h-0.05});
+      \foreach \a in {0,1,2} \foreach \b in {0,1,2} \node[dot, minimum size=1.3mm] at ({\b*\h},{-\a*\h}) {};
+    \end{scope}
+    \node[grp] at (0.875,0.62) {(c) cross-scan};
+    \node[lbl, text width=2.8cm] at (0.875,-2.25) {four directions, merged,\\ as in VMamba SS2D};
+  \end{scope}
+
+  % ---------- (d) local windows ----------
+  \begin{scope}[shift={(10.25,0)}]
+    \def\w{0.36}
+    \foreach \wx/\wy in {0/0, 0.95/0, 0/-0.95, 0.95/-0.95}{
+      \begin{scope}[shift={(\wx,\wy)}]
+        \draw[sa, draw=cRGB] (0.06,0) -- ({\w-0.06},0);
+        \draw[jump] (\w,0) -- (0,-\w);
+        \draw[sa, draw=cRGB] (0.06,-\w) -- ({\w-0.06},-\w);
+        \foreach \a in {0,1} \foreach \b in {0,1} \node[dot] at ({\b*\w},{-\a*\w}) {};
+      \end{scope}
+    }
+    \node[grp] at (0.66,0.62) {(d) local windows};
+    \node[lbl, text width=2.6cm] at (0.66,-2.25) {scan inside each window,\\ as in LocalMamba};
+  \end{scope}
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Scan orders used to apply state-space models to images]{Scan orders
+used to apply state-space models to images, shown on small grids of feature
+cells. (a)~A raster scan places vertical neighbours (red) a full row apart
+in sequence order. (b)~Vim adds a reverse pass. (c)~VMamba's SS2D scans rows
+and columns in both directions and merges the four outputs. (d)~Local scans
+keep neighbourhoods together. Work in 2026 replaces fixed orders with
+adaptive or non-directional ones (Section~\ref{sec:vssm}).}
+\label{fig:scans}
+\end{figure}

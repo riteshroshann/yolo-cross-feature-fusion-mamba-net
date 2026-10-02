@@ -1,0 +1,60 @@
+\begin{figure}[htbp]
+\centering
+\begin{ganttchart}[
+    hgrid=false, vgrid=false,
+    x unit=0.98cm, y unit title=0.62cm, y unit chart=0.56cm,
+    title/.style={draw=none, fill=none},
+    title label font=\scriptsize\color{muted},
+    title height=0.9,
+    bar/.style={draw=none, fill=cTime!45, rounded corners=1.5pt},
+    bar height=0.5, bar top shift=0.25,
+    bar label font=\scriptsize\color{ink},
+    bar label node/.append style={align=right},
+    group/.style={draw=none, fill=cNeutral!55},
+    group height=0.22, group top shift=0.4, group peaks height=0, group peaks width=0,
+    group label font=\scriptsize\scshape\color{muted},
+    canvas/.style={draw=none, fill=none},
+    milestone/.style={shape=diamond, inner sep=0pt, draw=none, fill=cAlert},
+    milestone label font=\scriptsize\itshape\color{cAlert},
+    milestone height=0.5, milestone top shift=0.25,
+    link/.style={-{Stealth[length=1.6mm]}, draw=cNeutral, line width=0.45pt},
+  ]{1}{10}
+  \gantttitle{2026}{3} \gantttitle{2027}{7} \\
+  \gantttitle{Oct}{1} \gantttitle{Nov}{1} \gantttitle{Dec}{1} \gantttitle{Jan}{1}
+  \gantttitle{Feb}{1} \gantttitle{Mar}{1} \gantttitle{Apr}{1} \gantttitle{May}{1}
+  \gantttitle{Jun}{1} \gantttitle{Jul}{1} \\
+
+  \ganttgroup{Setup}{1}{2} \\
+  \ganttbar[bar/.append style={fill=cNeutral!40}]{Phase 0, environment}{1}{1} \\
+  \ganttbar[bar/.append style={fill=cData!45}]{data requests and conversion}{1}{2} \\
+  \ganttmilestone{M1 environment ready}{1} \\
+
+  \ganttgroup{Still images}{2}{4} \\
+  \ganttbar[bar/.append style={fill=cFuse!45}]{baselines}{2}{3} \\
+  \ganttbar[bar/.append style={fill=cFuse!60}]{\method, Stage A, ablations}{3}{4} \\
+  \ganttmilestone{M2 Phase 1 exit}{4} \\
+
+  \ganttgroup{Video}{5}{7} \\
+  \ganttbar{\methodS, Stage B}{5}{6} \\
+  \ganttbar[bar/.append style={fill=cTime!30}]{robustness and tracking}{6}{7} \\
+  \ganttmilestone{M3 H1 to H4 answered}{6} \\
+
+  \ganttgroup{Live}{7}{9} \\
+  \ganttbar[bar/.append style={fill=cRGB!45}]{export and live system}{7}{8} \\
+  \ganttbar[bar/.append style={fill=cRGB!22}]{Phase 4, optional}{8}{9} \\
+  \ganttmilestone{M4 live demonstration}{8} \\
+
+  \ganttgroup{Paper}{7}{10} \\
+  \ganttbar[bar/.append style={fill=cAlert!35}]{writing}{7}{9} \\
+  \ganttbar[bar/.append style={fill=cAlert!25}]{prior-art check, review}{9}{9} \\
+  \ganttmilestone{M5 submission}{10}
+\end{ganttchart}
+
+\vspace{2mm}
+\caption[Timeline from October 2026 to July 2027]{Timeline from October 2026
+to July 2027. Grey lines group the work by phase, and red diamonds mark the
+five milestones. Writing begins while the live system is built, so that the
+method and results sections are drafted as soon as the hypotheses are
+answered.}
+\label{fig:gantt}
+\end{figure}

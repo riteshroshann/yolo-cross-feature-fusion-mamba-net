@@ -1,0 +1,70 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+      width=8.2cm, height=12.4cm,
+      xbar, bar width=7pt,
+      xmin=-2, xmax=4.2,
+      ymin=0.4, ymax=12.6,
+      axis lines=left, axis line style={draw=cNeutral, line width=0.5pt},
+      y axis line style={draw=none},
+      ytick={1,...,12}, yticklabels={},
+      ytick style={draw=none},
+      xtick={-1,0,1,2,3,4},
+      tick label style={font=\scriptsize, text=muted},
+      xlabel={change in AP or mAP, points},
+      xlabel style={font=\footnotesize, text=muted},
+      clip=false,
+      enlarge y limits=0,
+      extra x ticks={0}, extra x tick style={grid=major, major grid style={draw=faint, line width=0.4pt}, tick label style={opacity=0}},
+    ]
+    % state-space components (purple), rows 11 to 5
+    \addplot[draw=none, fill=cTime!70] coordinates {(3.2,12) (0.9,11) (0.7,10) (0.7,9) (0.6,8) (0.1,7) (-1.3,6)};
+    % other components (grey), rows 4 to 1
+    \addplot[draw=none, fill=cNeutral!55] coordinates {(3.5,4) (3.3,3) (2.4,2) (1.5,1)};
+
+    % row labels on the left
+    \def\L#1#2{\node[anchor=east, font=\scriptsize, text=ink, align=right] at (axis cs:-2.15,#1) {#2};}
+    \L{12}{CFMW: scan in fusion block, SWVI}
+    \L{11}{MambaPSA in YOLO26, best placement, VOC}
+    \L{10}{UAVDet: Mamba added to CSP neck, VisDrone}
+    \L{9}{MambaVision-T against ConvNeXt-T, COCO}
+    \L{8}{UAVDet: CSP-Mamba block alone, VisDrone}
+    \L{7}{MambaVision-B against ConvNeXt-B, COCO}
+    \L{6}{Mamba YOLO-L against YOLO11-l, COCO}
+    \L{4}{CFMW: weather restoration alone, SWVI}
+    \L{3}{UAVDet: early-heavy backbone, VisDrone}
+    \L{2}{UAVDet: stride-4 neck and head, VisDrone}
+    \L{1}{HPS-DETR: four changes together, SIMD}
+
+    % cost annotations on the right
+    \def\C#1#2#3{\node[anchor=west, font=\scriptsize\itshape, text=muted] at (axis cs:#1,#2) {#3};}
+    \C{3.35}{12}{GFLOPs $\times3.2$}
+    \C{1.05}{11}{range $-0.1$ to $+0.9$}
+    \C{0.85}{10}{76 to 53 FPS}
+    \C{0.85}{9}{single run}
+    \C{0.75}{8}{$+4.5$M params}
+    \C{0.25}{7}{single run}
+    \C{0.15}{6}{similar FLOPs}
+    \C{3.65}{4}{3 days to train}
+    \C{3.45}{3}{GFLOPs $+3.4$}
+    \C{2.55}{2}{GFLOPs $-0.2$}
+    \C{1.65}{1}{FPS $+10$}
+
+    % group headings
+    \node[anchor=west, font=\footnotesize\scshape, text=cTime] at (axis cs:-1.95,12.75) {state-space component};
+    \node[anchor=west, font=\footnotesize\scshape, text=cNeutral] at (axis cs:-1.95,4.85) {other components};
+  \end{axis}
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Measured contribution of the state-space component against other
+components]{Measured contribution of the state-space component (purple)
+against other components (grey), from the ablations of the source papers and
+two related works~\citep{li2025cfmw,yang2026uavdet,hatamizadeh2025mambavision,wang2025hpsdetr,mambapsa2026,wang2025mambayolo,yolo11_2024}.
+Each bar isolates one change on one dataset. Notes on the right give the
+cost reported with it. On still images, the stride-4 pathway and the
+redistribution of early capacity contribute more than the state-space block,
+and at lower cost.}
+\label{fig:gains}
+\end{figure}

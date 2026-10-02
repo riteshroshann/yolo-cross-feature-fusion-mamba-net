@@ -1,0 +1,67 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    hs/.style={base, tim, minimum width=1.25cm, minimum height=0.85cm},
+    xs/.style={base, n, minimum width=1.0cm, minimum height=0.7cm},
+    ys/.style={base, fuse, minimum width=1.0cm, minimum height=0.7cm},
+    ps/.style={base, dat, text width=1.75cm, minimum height=0.7cm, font=\scriptsize},
+  ]
+  \def\sx{3.6}
+  \node[grp] at (-2.2,1.55) {(a)\enspace recurrence};
+  \foreach \k/\lab in {0/{k-1},1/{k},2/{k+1}}{
+    \node[hs] (h\k) at (\k*\sx,0) {$h_{\lab}$};
+    \node[xs] (x\k) at (\k*\sx-0.95,-1.75) {$x_{\lab}$};
+    \node[ys] (y\k) at (\k*\sx,1.55) {$y_{\lab}$};
+    \node[ps] (p\k) at (\k*\sx+0.95,-1.75) {$\Delta_{\lab},\,B_{\lab},\,C_{\lab}$};
+    \draw[arr] (x\k) -- (p\k);
+    \draw[arr] (x\k.north) -- node[lbl, left=1pt, pos=0.45] {$\bar B_{\lab} x_{\lab}$} (h\k.south west);
+    \draw[arr] (h\k) -- node[lbl, right=1pt] {$C_{\lab}$} (y\k);
+    \draw[darr] (p\k.north) -- (h\k.south east);
+  }
+  \node[hs, fill=cTime!6] (hm) at (-1.75,0) {$h_{k-2}$};
+  \node[plain, text=muted] (hp) at (2*\sx+1.9,0) {$\cdots$};
+  \draw[tarr] (hm) -- node[lbl, above=1pt] {$\bar A_{k-1}$} (h0);
+  \draw[tarr] (h0) -- node[lbl, above=1pt] {$\bar A_{k}=e^{\Delta_k A}$} (h1);
+  \draw[tarr] (h1) -- node[lbl, above=1pt] {$\bar A_{k+1}$} (h2);
+  \draw[tarr] (h2) -- (hp);
+  \node[lbl, text width=6cm, anchor=north] at (\sx,-2.35)
+       {each input chooses its own step $\Delta$ and projections};
+\end{tikzpicture}
+
+\vspace{6mm}
+
+\begin{tikzpicture}
+  \node[grp] at (-0.95,4.25) {(b)\enspace the role of $\Delta$};
+  \begin{axis}[
+      width=11.6cm, height=5.0cm,
+      xmode=log, xmin=0.01, xmax=10, ymin=0, ymax=1.05,
+      axis lines=left, axis line style={draw=cNeutral, line width=0.5pt},
+      tick style={draw=cNeutral}, tick label style={font=\scriptsize, text=muted},
+      xlabel={$\Delta$ (log scale)}, ylabel={coefficient},
+      label style={font=\footnotesize, text=muted},
+      xtick={0.01,0.1,1,10}, xticklabels={0.01,0.1,1,10},
+      ytick={0,0.5,1},
+      clip=false, samples=120, domain=0.01:10,
+    ]
+    \fill[cTime!6] (axis cs:0.01,0) rectangle (axis cs:0.12,1.05);
+    \fill[cFuse!7] (axis cs:2.5,0) rectangle (axis cs:10,1.05);
+    \addplot[cTime, line width=1.1pt] {exp(-x)};
+    \addplot[cFuse, line width=1.1pt] {1-exp(-x)};
+    \node[font=\scriptsize, text=cTime, anchor=west] at (axis cs:0.4,0.78) {$\bar A=e^{-\Delta}$, memory kept};
+    \node[font=\scriptsize, text=cFuse, anchor=west] at (axis cs:0.4,0.25) {$\bar B=1-e^{-\Delta}$, input written};
+    \node[font=\scriptsize\itshape, text=muted, align=center] at (axis cs:0.035,0.5) {hold\\ state kept,\\ input ignored};
+    \node[font=\scriptsize\itshape, text=muted, align=center] at (axis cs:5.0,0.5) {overwrite\\ past forgotten};
+  \end{axis}
+\end{tikzpicture}
+
+\vspace{1mm}
+\caption[The selective state-space recurrence and the role of the step $\Delta$]{The
+selective state-space recurrence. (a)~Each input $x_k$ produces its own step
+$\Delta_k$ and projections $B_k$ and $C_k$. The state $h$ is carried forward
+through $\bar A_k = \exp(\Delta_k A)$. (b)~For a scalar state with $A=-1$
+and $B=1$, the zero-order-hold coefficients depend only on $\Delta$. A small
+$\Delta$ holds the state and ignores the input. A large $\Delta$ forgets the
+past and writes the input. \method{} exploits this single control to
+discount unreliable sensors and to bridge gaps in a stream.}
+\label{fig:ssm}
+\end{figure}

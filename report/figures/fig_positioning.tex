@@ -1,0 +1,46 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    cell/.style={base, n, text width=3.35cm, minimum height=2.05cm, font=\scriptsize},
+    goal/.style={base, fill=cAlert!11, text width=3.35cm, minimum height=2.05cm, font=\scriptsize},
+    rowl/.style={grp, text width=2.4cm, align=right, anchor=east},
+    coll/.style={grp, text width=3.4cm},
+  ]
+  \def\cx{3.75}\def\cy{2.35}
+  % column headings
+  \node[coll] at (0*\cx,0.05+1.45) {single image};
+  \node[coll] at (1*\cx,0.05+1.45) {short window\\[-1pt] of frames};
+  \node[coll] at (2*\cx,0.05+1.45) {causal memory,\\[-1pt] unbounded length};
+  \node[font=\footnotesize\itshape, text=muted] at (1*\cx,2.35) {temporal context used};
+
+  % row headings
+  \node[rowl] at (-1.95,0)       {visible only};
+  \node[rowl] at (-1.95,-1*\cy)  {visible and\\ thermal, aligned};
+  \node[rowl] at (-1.95,-2*\cy)  {visible and thermal,\\ misaligned or\\ missing frames};
+
+  % row 1: visible only
+  \node[cell] at (0*\cx,0) {Mamba YOLO, MambaPSA,\\ UAVDet, HPS-DETR,\\ MambaVision, YOLO26};
+  \node[cell] at (1*\cx,0) {TMambaDet (offline),\\ StreamYOLO,\\ LongShortNet,\\ DAMO-StreamNet};
+  \node[cell] at (2*\cx,0) {Zubi\'c et al., RVT\\ (event cameras);\\ SambaMOTR\\ (memory per track)};
+
+  % row 2: aligned RGB-T
+  \node[cell] at (0*\cx,-1*\cy) {Fusion-Mamba, CFMW,\\ WaveMamba, MS2Fusion,\\ MambaRefine-YOLO};
+  \node[cell] at (1*\cx,-1*\cy) {MambaST (3 frames,\\ KAIST only), EINet,\\ Strip-Fusion};
+  \node[goal] (g1) at (2*\cx,-1*\cy) {\textbf{empty}\\[2pt] target of \methodS:\\ temporal state memory};
+
+  % row 3: misaligned / missing
+  \node[cell] at (0*\cx,-2*\cy) {COMO, contextually\\ guided SSM fusion,\\ MSDF-Mamba, DMM};
+  \node[cell] at (1*\cx,-2*\cy) {MSENet, MSGNet,\\ MCDA-Net, DCHNet\\ (alignment-free)};
+  \node[goal] (g2) at (2*\cx,-2*\cy) {\textbf{empty}\\[2pt] target of \methodS:\\ reliability-gated $\Delta$};
+
+  \node[font=\footnotesize\itshape, text=muted, rotate=90] at (-4.55,-1*\cy) {sensing assumptions, increasingly demanding};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Positioning of the closest work by temporal context and sensing]{Positioning
+of the closest work. Columns give the temporal context a method uses.
+Rows give how demanding its sensing assumptions are. Each cell lists
+representative methods. The two highlighted cells contain no published
+method that the searches could find. They are the targets of \methodS{}.}
+\label{fig:positioning}
+\end{figure}

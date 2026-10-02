@@ -1,0 +1,60 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    nb/.style={base, text width=1.22cm, minimum height=1.0cm, font=\scriptsize},
+    loc/.style={nb, rgb},
+    kag/.style={nb, fuse},
+    both/.style={nb, n},
+  ]
+  \def\dx{1.6}
+  \node[both] (n00) at (0*\dx,0)    {\textbf{00}\\ setup};
+  \node[loc]  (n01) at (1*\dx,0)    {\textbf{01}\\ acquire};
+  \node[both] (n02) at (2*\dx,0)    {\textbf{02}\\ convert};
+  \node[kag]  (n03) at (3*\dx,1.45) {\textbf{03}\\ audit};
+  \node[kag]  (n04) at (3*\dx,0)    {\textbf{04}\\ single};
+  \node[loc]  (n06) at (3*\dx,-1.45){\textbf{06}\\ CMFM tests};
+  \node[both] (n09) at (3*\dx,-2.9) {\textbf{09}\\ clips, TSM};
+  \node[kag]  (n05) at (4*\dx,0)    {\textbf{05}\\ fusion};
+  \node[kag]  (n07) at (5*\dx,0)    {\textbf{07}\\ Stage A};
+  \node[kag]  (n08) at (6*\dx,1.45) {\textbf{08}\\ ablations};
+  \node[kag]  (n10) at (6*\dx,-1.45){\textbf{10}\\ Stage B};
+  \node[kag]  (n11) at (7*\dx,0)    {\textbf{11}\\ robustness};
+  \node[kag]  (n12) at (7*\dx,-1.45){\textbf{12}\\ tracking};
+  \node[loc]  (n13) at (7*\dx,-2.9) {\textbf{13}\\ export};
+  \node[loc]  (n15) at (8*\dx,1.45) {\textbf{15}\\ tables};
+  \node[loc]  (n14) at (8*\dx,-2.9) {\textbf{14}\\ live demo};
+
+  \draw[arr] (n00) -- (n01);
+  \draw[arr] (n01) -- (n02);
+  \draw[arr] (n02) -- (n04);
+  \draw[arr] (n02.north) |- (n03.west);
+  \draw[arr] (n02.south) |- (n09.west);
+  \draw[arr] (n04) -- (n05);
+  \draw[arr] (n05) -- (n07);
+  \draw[arr] (n06.east) -| ($(n07.south)+(-0.25,0)$);
+  \draw[darr] (n03.east) -| node[lbl, pos=0.25, above=0.5pt] {informs} ($(n07.north)+(-0.25,0)$);
+  \draw[arr] (n07.north east) ++(-0.1,0) |- (n08.west);
+  \draw[arr] (n07.south east) ++(-0.1,0) |- (n10.west);
+  \draw[arr] (n09.east) -| ($(n10.south)+(0.0,0)$);
+  \draw[arr] (n10.east) -- ++(0.2,0) |- (n11.west);
+  \draw[arr] (n10) -- (n12);
+  \draw[arr] (n10.south east) ++(-0.15,0) |- (n13.west);
+  \draw[arr] (n13) -- (n14);
+  \draw[arr] (n08) -- (n15);
+  \draw[arr] (n11.north east) ++(-0.1,0) |- ($(n15.south)+(0,0)$);
+  \draw[darr] (n12.east) -| ($(n15.south)+(0.35,0)$);
+
+  % legend
+  \node[loc, text width=1.2cm, minimum height=0.55cm] (l1) at (0.35*\dx,-2.9) {local};
+  \node[kag, text width=1.2cm, minimum height=0.55cm] (l2) at (1.35*\dx,-2.9) {Kaggle};
+  \node[both, text width=1.2cm, minimum height=0.55cm] (l3) at (0.85*\dx,-2.2) {both};
+  \node[lbl, anchor=north] at (0.85*\dx,-3.25) {where each notebook runs};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[Dependencies between the notebooks]{Dependencies between the
+notebooks. Colour shows where each notebook normally runs. Every training
+and evaluation notebook writes run logs, and Notebook~15 reads all of them.
+Only the main dependencies into it are drawn.}
+\label{fig:notebooks}
+\end{figure}

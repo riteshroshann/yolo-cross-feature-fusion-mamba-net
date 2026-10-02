@@ -1,0 +1,68 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    pc/.style={base, text width=2.05cm, minimum height=1.32cm, font=\scriptsize},
+    rl/.style={grp, font=\scriptsize\scshape, text width=1.55cm, align=right, anchor=east},
+    ph/.style={grp, font=\footnotesize\scshape, text width=2.3cm},
+  ]
+  \def\dx{2.48}
+  \def\x#1{{#1*\dx}}
+  \def\ra{0}\def\rb{-1.52}\def\rc{-3.04}\def\rd{-4.56}\def\re{-6.08}
+
+  % phase headings and arrows between them
+  \foreach \i/\lab in {0/{Phase 0\\environment}, 1/{Phase 1\\still images}, 2/{Phase 2\\uploaded video}, 3/{Phase 3\\live streams}, 4/{Phase 4\\multi-camera}}
+    \node[ph] (h\i) at (\i*\dx,1.2) {\lab};
+  \foreach \i/\j in {0/1,1/2,2/3,3/4}
+    \draw[arr] ($(h\i.east)+(-0.05,0)$) -- ($(h\j.west)+(0.05,0)$);
+
+  % row labels
+  \node[rl] at (-1.2,\ra) {input};
+  \node[rl] at (-1.2,\rb) {core work};
+  \node[rl] at (-1.2,\rc) {tools};
+  \node[rl] at (-1.2,\rd) {deliverable};
+  \node[rl] at (-1.2,\re) {exit test};
+
+  % phase 0
+  \node[pc, n] at (0*\dx,\ra) {laptop, Kaggle,\\ dataset requests};
+  \node[pc, n] at (0*\dx,\rb) {WSL2, pinned\\ environment,\\ scan check};
+  \node[pc, n] at (0*\dx,\rc) {uv or conda,\\ pytest, Kaggle\\ datasets};
+  \node[pc, n] at (0*\dx,\rd) {reproducible\\ environment};
+  \node[pc, n] at (0*\dx,\re) {tests pass\\ in both places};
+
+  % phase 1
+  \node[pc, fuse] at (1*\dx,\ra) {folders of\\ paired images};
+  \node[pc, fuse] at (1*\dx,\rb) {baselines,\\ CMFM blocks,\\ ablations};
+  \node[pc, fuse] at (1*\dx,\rc) {Ultralytics 8.4,\\ COCO eval,\\ SAHI, FiftyOne};
+  \node[pc, fuse] at (1*\dx,\rd) {still-image\\ \method, tables};
+  \node[pc, fuse] at (1*\dx,\re) {fusion gap\\ reproduced;\\ three seeds};
+
+  % phase 2
+  \node[pc, tim] at (2*\dx,\ra) {video files,\\ paired clips};
+  \node[pc, tim] at (2*\dx,\rb) {clip-mode TSM,\\ tracking,\\ writers};
+  \node[pc, tim] at (2*\dx,\rc) {PyAV, trackers,\\ TrackEval,\\ Gradio};
+  \node[pc, tim] at (2*\dx,\rd) {video analyser\\ and app};
+  \node[pc, tim] at (2*\dx,\re) {matches offline;\\ HOTA end to end};
+
+  % phase 3
+  \node[pc, rgb] at (3*\dx,\ra) {webcam, RTSP,\\ thermal camera};
+  \node[pc, rgb] at (3*\dx,\rb) {capture threads,\\ TensorRT,\\ stream mode};
+  \node[pc, rgb] at (3*\dx,\rc) {OpenCV,\\ TensorRT 11,\\ FastRTC};
+  \node[pc, rgb] at (3*\dx,\rd) {live detection\\ system};
+  \node[pc, rgb] at (3*\dx,\re) {30\,FPS for\\ ten minutes;\\ recovers};
+
+  % phase 4
+  \node[pc, dat] at (4*\dx,\ra) {calibrated\\ camera network};
+  \node[pc, dat] at (4*\dx,\rb) {ground plane,\\ association,\\ zones, events};
+  \node[pc, dat] at (4*\dx,\rc) {supervision\\ zones,\\ DeepStream 9.1};
+  \node[pc, dat] at (4*\dx,\rd) {anonymous\\ analytics};
+  \node[pc, dat] at (4*\dx,\re) {counts verified;\\ privacy review\\ signed};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[The five phases of the build]{The five phases of the build. Each
+column is a phase and each row one aspect of it. A phase begins only when
+the exit test of the previous phase has passed. Phases 1 to 3 share one set
+of weights. Phase 4 is optional and bounded by the privacy rules of
+Chapter~\ref{ch:ethics}.}
+\label{fig:phases}
+\end{figure}

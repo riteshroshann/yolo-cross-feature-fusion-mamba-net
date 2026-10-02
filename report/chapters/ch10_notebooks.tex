@@ -1,0 +1,135 @@
+\chapter{Notebook Workflow and Repository Design}
+\label{ch:notebooks}
+
+The work is carried out in Jupyter notebooks. Notebooks are good for
+exploration and poor at reproducibility. The design below keeps their
+convenience and removes their usual failure modes.
+
+\section{Principles}
+
+\begin{enumerate}
+  \item \emph{Notebooks drive; modules hold the code.} Every model, loss,
+        dataset and metric lives in a tested Python package. Notebooks import
+        it, set parameters, run and display. Nothing a result depends on is
+        defined only inside a notebook cell.
+  \item \emph{One notebook, two machines.} Each notebook detects whether it
+        runs locally or on Kaggle and sets paths accordingly. The same file
+        runs in both places without edits.
+  \item \emph{Configuration as files.} Data, model, training and evaluation
+        settings are YAML files under version control. A run is identified
+        by the hash of its resolved configuration.
+  \item \emph{Every run is logged.} Each run records five things:
+        \begin{itemize}
+          \item its seed;
+          \item the git commit;
+          \item the configuration hash;
+          \item the library versions;
+          \item its metrics, written as machine-readable JSON.
+        \end{itemize}
+  \item \emph{Results are generated, never typed.} The tables and figures of
+        the paper are produced from the run logs by Notebook~15.
+\end{enumerate}
+
+\section{Repository layout}
+
+\begin{Verbatim}
+cffm-net/
+  pyproject.toml            pinned dependencies
+  configs/
+    data/                   rgbt_tiny.yaml, llvip.yaml, m3fd.yaml, ...
+    model/                  yolo26s_dual.yaml, cffm_net_s.yaml, ablations/
+    train/                  stage_a.yaml, stage_b.yaml
+    eval/                   robustness.yaml, latency.yaml
+  src/cffm/
+    data/                   paired and clip datasets, corruption simulator,
+                            converters, alignment audit
+    models/                 backbones, cmfm.py, scan.py (CUDA and PyTorch),
+                            tsm.py, egomotion.py, monitor.py, registry.py
+    train/                  stage_a.py, stage_b.py, losses.py, tbptt.py
+    eval/                   coco_eval.py, size_bins.py, safit.py,
+                            stream_metrics.py, track_eval.py, latency.py,
+                            bootstrap.py
+    deploy/                 export_trt.py, stream_runtime.py, capture.py,
+                            webrtc_app.py
+    utils/                  logging, seeding, checkpoint and resume
+  notebooks/                00 to 15, described in Table 10.1
+  tests/                    unit, property and regression tests
+  scripts/                  kaggle_setup.sh, build_mamba_wheel.sh,
+                            package_dataset.py
+  runs/                     run logs (synchronised, not committed)
+  paper/                    manuscript with generated tables
+\end{Verbatim}
+
+The model modules are registered with Ultralytics' model parser, so a model
+is defined by a YAML file in the Ultralytics format and trained with its
+trainer. A custom trainer subclass adds paired inputs, clip training and the
+reliability loss.
+
+\section{The notebook sequence}
+
+Table~\ref{tab:notebooks} lists the sixteen notebooks, and
+Figure~\ref{fig:notebooks} shows how they depend on one another.
+
+\begin{table}[htbp]
+\centering
+\caption[The sixteen notebooks]{The sixteen notebooks. The location column
+says where each normally runs: L is the local laptop, K is Kaggle.}
+\label{tab:notebooks}
+\small
+\begin{tabularx}{\textwidth}{@{}P{0.65cm}P{3.6cm}LP{0.8cm}@{}}
+\hd{No.} & \hd{Notebook} & \hd{Purpose and main output} & \hd{Runs} \\ \gap
+00 & environment setup & install, GPU check, compile and verify \texttt{mamba\_ssm}, scan equivalence, smoke training & L, K \\
+01 & data acquisition & downloads, request tracking, checksums, dataset cards & L \\
+02 & data conversion & paired folders, YOLO labels, COCO JSON, ignore regions & L, K \\
+03 & data audit & size histograms, density, class balance, alignment offsets & K \\
+04 & single-modality baselines & YOLO26 on visible and thermal; measured throughput replaces estimates & K \\
+05 & fusion baselines & two-stream fusion, CFT-style, Fusion-Mamba, COMO & K \\
+06 & CMFM tests & gating, interleaving and reliability maps, visualised & L \\
+07 & Stage A training & still-image \method{} with three seeds & K \\
+08 & image ablations & A1 to A6 and A15 & K \\
+09 & clips and TSM & clip loader, corruption simulator checks, constant-memory test & L, K \\
+10 & Stage B training & \methodS{} and temporal baselines & K \\
+11 & robustness evaluation & the protocol of Table~\ref{tab:robustness} & K \\
+12 & tracking evaluation & ByteTrack, BoT-SORT, TrackTrack with TrackEval & K \\
+13 & export and latency & TensorRT export, latency protocol, accuracy of the engine & L \\
+14 & live demonstration & capture threads, stream runtime, FastRTC application & L \\
+15 & results and tables & aggregation, bootstrap intervals, LaTeX tables and figures & L \\
+\end{tabularx}
+\end{table}
+
+\input{figures/fig_notebooks}
+
+\section{Testing}
+
+Three kinds of test protect the results.
+\begin{itemize}
+  \item \emph{Unit tests} check shapes and numerical agreement. The most
+        important check is that the CUDA and pure-PyTorch scans agree.
+  \item \emph{Property tests} check the behaviour the method relies on.
+        \begin{itemize}
+          \item With $\Delta=0$ the state does not change.
+          \item With zero reliability for a modality, its tokens do not alter
+                the state.
+          \item Image mode equals a single step from an empty state.
+          \item Memory use of the TSM does not grow with sequence length.
+        \end{itemize}
+  \item \emph{Regression tests} run a tiny model on a fixed fixture of
+        frames. They fail if its outputs change unexpectedly.
+\end{itemize}
+The tests run in Notebook~00 on both machines and before every training
+run.
+
+\section{Generating results}
+\label{sec:nb-results}
+
+Notebook~15 is the only route from experiments to the manuscript.
+\begin{enumerate}
+  \item It reads every run log and groups runs by configuration.
+  \item It computes means, standard deviations and sequence-level bootstrap
+        intervals.
+  \item It applies the multiple-comparison correction.
+  \item It writes LaTeX tables and plot data into the paper's directory.
+\end{enumerate}
+A number in the paper can therefore always be traced to the runs that
+produced it. A changed run changes the paper on the next build, and no table
+is edited by hand.

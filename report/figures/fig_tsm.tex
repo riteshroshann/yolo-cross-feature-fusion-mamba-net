@@ -1,0 +1,79 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    cl/.style={base, text width=2.4cm, minimum height=1.05cm, font=\scriptsize},
+    wp/.style={op, fill=cTime!16, minimum size=6.2mm, font=\scriptsize},
+  ]
+  \def\dx{3.42}
+  \def\yo{2.25}\def\ym{0.6}\def\yz{-1.05}\def\ys{-2.65}
+
+  % frame headings
+  \foreach \i/\lab in {0/{frame $t-1$}, 1/{frame $t$}, 2/{frame $t+1$}, 3/{frame $t+2$}}
+    \node[grp] at (\i*\dx,3.35) {\lab};
+
+  % --- frame t-1: normal ---
+  \node[cl, dat]  (s0) at (0*\dx,\ys) {both sensors on\\ interval $\tau_0$};
+  \node[cl, fuse] (z0) at (0*\dx,\yz) {$Z_{t-1}$\\ reliability $\rho\approx1$};
+  \node[cl, tim]  (m0) at (0*\dx,\ym) {normal step\\ write and keep};
+  \node[cl, fill=cFuse!8] (o0) at (0*\dx,\yo) {faint object\\ detected};
+
+  % --- frame t: thermal dropout ---
+  \node[cl, alert] (s1) at (1*\dx,\ys) {thermal dropout\\ flag $s^\theta_t=0$};
+  \node[cl, fuse]  (z1) at (1*\dx,\yz) {$Z_t$ from visible\\ only; $\rho$ low at night};
+  \node[cl, tim]   (m1) at (1*\dx,\ym) {$\Delta\to0$ where $\rho$\\ is low: state held};
+  \node[cl, fill=cFuse!8] (o1) at (1*\dx,\yo) {object kept\\ from memory};
+
+  % --- frame t+1: frame gap ---
+  \node[cl, dat]  (s2) at (2*\dx,\ys) {two frames lost\\ $\tau_{t+1}=3\tau_0$};
+  \node[cl, fuse] (z2) at (2*\dx,\yz) {$Z_{t+1}$\\ reliability $\rho\approx1$};
+  \node[cl, tim]  (m2) at (2*\dx,\ym) {step scaled by\\ $\tau/\tau_0=3$};
+  \node[cl, fill=cFuse!8] (o2) at (2*\dx,\yo) {position\\ re-anchored};
+
+  % --- frame t+2: scene cut ---
+  \node[cl, alert] (s3) at (3*\dx,\ys) {scene cut found\\ by the monitor};
+  \node[cl, fuse]  (z3) at (3*\dx,\yz) {$Z_{t+2}$};
+  \node[cl, tim, fill=cTime!6] (m3) at (3*\dx,\ym) {reset $S=0$\\ fresh start};
+  \node[cl, fill=cFuse!8] (o3) at (3*\dx,\yo) {behaves as\\ image mode};
+
+  % vertical flow inside each frame
+  \foreach \i in {0,1,2,3}{
+    \draw[arr] (s\i) -- (z\i);
+    \draw[arr] (z\i) -- (m\i);
+    \draw[arr] (m\i) -- (o\i);
+  }
+
+  % state carried between frames through the warp
+  \node[wp] (w01) at (0.5*\dx,\ym) {$\mathcal{W}$};
+  \node[wp] (w12) at (1.5*\dx,\ym) {$\mathcal{W}$};
+  \draw[tarr] (m0) -- (w01); \draw[tarr] (w01) -- (m1);
+  \draw[tarr] (m1) -- (w12); \draw[tarr] (w12) -- (m2);
+  \node[lbl, anchor=south] at (w01.north) {$H_{t-1\to t}$};
+  \node[lbl, anchor=south] at (w12.north) {$H_{t\to t+1}$};
+
+  % reset between t+1 and t+2
+  \node[op, fill=cAlert!14, minimum size=6.2mm] (cut) at (2.5*\dx,\ym) {$\times$};
+  \draw[darr, draw=cTime] (m2) -- (cut);
+  \node[lbl, anchor=south] at (cut.north) {state discarded};
+
+  % incoming and outgoing state
+  \draw[darr, draw=cTime] ($(m0.west)+(-0.85,0)$) -- node[lbl, above=0.5pt] {$S_{t-2}$} (m0.west);
+  \draw[darr, draw=cTime] (m3.east) -- ++(0.75,0) node[lbl, above=0.5pt, pos=0.5] {$S_{t+2}$};
+
+  % equation strip
+  \node[font=\footnotesize, text=ink] at (1.5*\dx,-3.75)
+    {$S_t = e^{\Delta_t A}\odot\mathcal{W}(S_{t-1};H)+\Delta_t\,u_t B_t^{\top},
+      \qquad \Delta_t=\softplus(\cdot)\cdot\dfrac{\tau_t}{\tau_0}\cdot\rho_t$};
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[The Temporal State Memory unrolled over four frames]{The Temporal
+State Memory unrolled over four frames that exercise its three controls. At
+$t-1$ both sensors work and the state updates normally. At $t$ the thermal
+sensor drops out at night. The reliability $\rho$ falls where only thermal
+could see, the step $\Delta$ falls with it, and the state holds the object
+until the sensor returns. At $t+1$ two frames have been lost, so the step is
+scaled by the true interval. At $t+2$ the monitor detects a scene cut and
+the state is reset. Purple arrows carry the state through the motion warp
+$\mathcal{W}$.}
+\label{fig:tsm}
+\end{figure}

@@ -1,0 +1,69 @@
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    tn/.style={base, text width=1.42cm, minimum height=1.5cm, font=\scriptsize},
+    over/.style={preaction={draw=white, line width=3.2pt, -}},
+  ]
+  \def\dx{2.04}
+  \def\ya{0}\def\yb{-3.35}\def\yc{-7.15}
+
+  % ---------- stage A ----------
+  \node[grp, anchor=west] at (-0.8,{\ya+1.2}) {Stage A, still images};
+  \node[tn, dat]  (a0) at (0*\dx,\ya) {still pairs:\\ LLVIP, M3FD,\\ FLIR and\\ RGBT-Tiny};
+  \node[tn, n]    (a1) at (1*\dx,\ya) {random\\ frames,\\ batch 16};
+  \node[tn, n]    (a2) at (2*\dx,\ya) {paired\\ geometry,\\ mosaic on};
+  \node[tn, fuse] (a4) at (4*\dx,\ya) {\method\\ image mode,\\ empty state};
+  \node[tn, n]    (a5) at (5*\dx,\ya) {detection\\ loss\\ $\mathcal{L}_{\text{det}}$};
+  \node[tn, n]    (a6) at (6*\dx,\ya) {MuSGD,\\ AMP, EMA;\\ checkpoint A};
+  \draw[arr] (a0) -- (a1); \draw[arr] (a1) -- (a2);
+  \draw[arr] (a2) -- node[lbl, above=1pt] {no corruption} (a4);
+  \draw[arr] (a4) -- (a5); \draw[arr] (a5) -- (a6);
+
+  % ---------- stage B ----------
+  \node[grp, anchor=west] at (-0.8,{\yb+1.2}) {Stage B, clips};
+  \node[tn, dat]   (b0) at (0*\dx,\yb) {sequences:\\ RGBT-Tiny,\\ VT-MOT,\\ VisDrone VID};
+  \node[tn, n]     (b1) at (1*\dx,\yb) {clips of\\ $L$ = 8 to 16,\\ stride 1--3};
+  \node[tn, n]     (b2) at (2*\dx,\yb) {shared\\ geometry\\ per clip};
+  \node[tn, alert] (b3) at (3*\dx,\yb) {corruption\\ simulator};
+  \node[tn, tim]   (b4) at (4*\dx,\yb) {\methodS\\ unrolled,\\ burn-in 2,\\ TBPTT};
+  \node[tn, n]     (b5) at (5*\dx,\yb) {loss\\ $\overline{\mathcal{L}}_{\text{det}}$ $+$\\ $\lambda_{\text{rel}}\,$BCE};
+  \node[tn, n]     (b6) at (6*\dx,\yb) {optimiser;\\ FP32 scan;\\ checkpoint B};
+  \foreach \i/\j in {0/1,1/2,2/3,3/4,4/5,5/6} \draw[arr] (b\i) -- (b\j);
+
+  % simulator details above its node
+  \node[lbl, anchor=south, text width=2.3cm, text=cAlert] at (3*\dx,{\yb+0.82})
+       {bursty dropout, blackout,\\ drift, desync, gaps};
+
+  % checkpoint A initialises stage B
+  \draw[arr] (a6.south) -- ++(0,-0.5) -| node[lbl, pos=0.22, above=0.5pt] {initialise} ($(b4.north)+(0.35,0)$);
+
+  % reliability targets from the simulator to the loss
+  \draw[darr, draw=cAlert] (b3.south) -- ++(0,-0.42) -| (b5.south);
+  \node[lbl, anchor=north, text=cAlert] at (4.55*\dx,{\yb-1.25}) {reliability targets $q$};
+
+  % state carried to the next clip
+  \draw[darr, draw=cTime, over] ($(b4.south)+(-0.35,0)$) -- ++(0,-1.25) -| (b1.south);
+  \node[lbl, anchor=north, text=cTime] at (2.5*\dx,{\yb-2.08}) {final state initialises the next clip, $p=0.5$};
+
+  % ---------- evaluation ----------
+  \node[grp, anchor=west] at (-0.8,{\yc+1.15}) {Evaluation};
+  \node[base, fuse, fill=cFuse!10, text width=8.4cm, minimum height=1.45cm, font=\scriptsize, align=left] (ev) at (2.45*\dx,\yc)
+     {\textbf{image metrics}\enspace AP, AP\textsubscript{50}, AP\textsubscript{S}, AP below 16\,px, SAFit\\[2pt]
+      \textbf{stream robustness}\enspace degradation curves, recovery time, flicker\\[2pt]
+      \textbf{efficiency}\enspace latency with NMS, memory against sequence length};
+  \node[tn, n, minimum height=1.45cm] (log) at (6*\dx,\yc) {run log:\\ seed, config\\ hash, tables};
+  \draw[arr] (b6.south) -- ++(0,-1.6) -| ($(ev.north)+(3.4,0)$);
+  \draw[arr] (ev) -- (log);
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption[The two-stage training pipeline]{The two-stage training pipeline.
+Stage A trains the still-image \method{} and yields the Phase~1 model.
+Stage B continues on clips with a corruption simulator, truncated
+back-propagation through time (TBPTT) and stochastic carry-over of the state
+between clips. Because the simulator knows which sensor it disabled or
+shifted, it provides targets for the reliability heads. Every evaluation is
+logged with its seed and configuration hash, and the tables of the final
+paper are generated from these logs.}
+\label{fig:training}
+\end{figure}
