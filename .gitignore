@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+papers/download.log
+report/build.log
+report/main.pdf
+papers.zip
