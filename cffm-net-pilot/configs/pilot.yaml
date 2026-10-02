@@ -40,6 +40,10 @@ runs:
   - {name: llvip_cffm_gconv,  notebook: "08", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-gconv.yaml,  batch: 16}
   - {name: llvip_cffm_nop2,   notebook: "08", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-nop2.yaml,   batch: 16, optional: true}
 
+  # notebook 08b: head control, so concat and CFFM-Net are compared with the same head
+  - {name: llvip_concat_p2,   notebook: "08b", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-p2-n.yaml, batch: 16}
+  - {name: llvip_cffm_nop2b,  notebook: "08b", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-nop2.yaml,      batch: 16}
+
 probe:
   runs: [llvip_cffm, llvip_cffm_nogate, llvip_concat]
   kinds: [clean, visible_dark, visible_drop, thermal_drop, thermal_shift_4, thermal_shift_8, thermal_shift_16]

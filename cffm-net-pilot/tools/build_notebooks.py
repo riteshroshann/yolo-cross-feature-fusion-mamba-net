@@ -754,6 +754,15 @@ def nb08():
              "08", "about 4 to 5 hours on 2 x T4 (about 6 with the optional run)", optional_filter=True)
 
 
+
+def nb08b():
+    train_nb("notebooks/phase1_still_images/08b_head_control.ipynb",
+             "08b · Head control",
+             "CFFM-Net uses YOLO26's stride-4 head and the concat baseline does not. Here concat gets the stride-4 "
+             "head and CFFM-Net the standard one, so fusion and head can be compared separately.",
+             "08b", "about 1.5 hours on 2 x T4")
+
+
 def nb09():
     write("notebooks/phase1_still_images/09_probe_and_latency.ipynb", [
         header("09 · Degradation probe and latency",
@@ -900,5 +909,5 @@ print(sorted(p.name for p in out.iterdir()))
     ])
 
 if __name__ == "__main__":
-    for f in (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb09, nb15):
+    for f in (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb09, nb15):
         f()

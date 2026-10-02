@@ -56,3 +56,5 @@ if __name__ == "__main__":
             head=YOLO26_HEAD)
     variant("two-stream-concat-n.yaml", "# Naive two-stream baseline: two YOLO26 backbones, features concatenated\n"
             "# and squeezed by a 1x1 conv at P3..P5, standard YOLO26 head.\n", fusion="concat", head=YOLO26_HEAD)
+    variant("two-stream-concat-p2-n.yaml", "# Two-stream concat with CFFM-Net's stride-4 head: isolates the fusion "
+            "from the head.\n", fusion="concat")

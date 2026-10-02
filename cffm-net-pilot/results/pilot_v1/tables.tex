@@ -1,0 +1,32 @@
+\begin{table}[htbp]
+\centering
+\caption{Pilot results, one seed per configuration.}
+\label{tab:pilot}
+\small
+\begin{tabular}{@{}lrrrrrrrrr@{}}
+run & AP & AP50 & AP\_small & AP\_vt & AP\_t & AP\_s & params\_M & GFLOPs & median\_ms \\ \addlinespace[5pt]
+llvip\_yolo26n\_visible & 0.519 & 0.900 & 0.093 &  &  & 0.093 & 2.504 & 5.892 & 17.210 \\
+llvip\_yolo26n\_thermal & 0.641 & 0.962 & 0.064 &  &  & 0.064 & 2.504 & 5.892 & 16.980 \\
+llvip\_concat & 0.649 & 0.968 & 0.127 &  &  & 0.128 & 4.067 & 9.708 & 23.444 \\
+llvip\_cffm & 0.629 & 0.958 & 0.087 &  &  & 0.087 & 6.031 & 18.387 & 41.906 \\
+llvip\_cffm\_nogate & 0.626 & 0.960 & 0.065 &  &  & 0.065 & 6.009 & 18.139 & 41.087 \\
+llvip\_cffm\_gconv & 0.628 & 0.960 & 0.061 &  &  & 0.062 & 6.154 & 18.295 & 34.695 \\
+m3fd\_concat & 0.505 & 0.783 & 0.315 & 0.064 & 0.222 & 0.445 & 4.069 & 9.719 & 24.035 \\
+m3fd\_cffm & 0.479 & 0.773 & 0.298 & 0.059 & 0.191 & 0.428 & 6.033 & 18.409 & 42.455 \\
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Pilot hypotheses and verdicts.}
+\label{tab:pilot-hyp}
+\small
+\begin{tabular}{@{}llll@{}}
+id & hypothesis & evidence & verdict \\ \addlinespace[5pt]
+PH1 & fusion beats the best single sensor at night & -0.0120 AP vs thermal-only & inconclusive \\
+PH2 & gating the step adds value & clean +0.0031 AP; degrades less by +0.0133 AP & inconclusive \\
+PH3 & the pathway helps 8-32 px objects (M3FD) & -0.0242 AP in the 8-32 px bands & against \\
+PH4 & the selective scan is needed & +0.0009 AP vs gated-conv control & inconclusive \\
+PH5 & latency at most 2x the two-stream baseline & ratio 1.79 & supported \\
+\end{tabular}
+\end{table}

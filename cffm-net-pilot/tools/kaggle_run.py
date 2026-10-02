@@ -29,6 +29,7 @@ NOTEBOOKS = {
     "06": (f"{P1}/06_inside_cmfm.ipynb", "cpu", [], []),
     "07": (f"{P1}/07_train_cffm_net.ipynb", "gpu", [LLVIP, M3FD], ["02"]),
     "08": (f"{P1}/08_ablations.ipynb", "gpu", [LLVIP], ["02"]),
+    "08b": (f"{P1}/08b_head_control.ipynb", "gpu", [LLVIP], ["02"]),
     "09": (f"{P1}/09_probe_and_latency.ipynb", "gpu", [LLVIP], ["02", "04", "05", "07", "08"]),
     "15": (f"{P1}/15_results_and_figures.ipynb", "cpu", [], ["04", "05", "07", "08", "09"]),
 }

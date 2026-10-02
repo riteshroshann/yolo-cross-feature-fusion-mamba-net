@@ -1,0 +1,6 @@
+id,hypothesis,evidence,verdict
+PH1,fusion beats the best single sensor at night,-0.0120 AP vs thermal-only,inconclusive
+PH2,gating the step adds value,clean +0.0031 AP; degrades less by +0.0133 AP,inconclusive
+PH3,the pathway helps 8-32 px objects (M3FD),-0.0242 AP in the 8-32 px bands,against
+PH4,the selective scan is needed,+0.0009 AP vs gated-conv control,inconclusive
+PH5,latency at most 2x the two-stream baseline,ratio 1.79,supported
