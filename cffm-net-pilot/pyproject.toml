@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cffm"
+version = "0.1.0"
+description = "CFFM-Net pilot: reliability-gated state-space fusion of visible and thermal images in YOLO26"
+requires-python = ">=3.10"
+dependencies = [
+    "ultralytics==8.4.171",
+    "faster-coco-eval>=1.6.7",
+    "cloudpickle",
+    "opencv-python",
+    "pyyaml",
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "nbformat", "jupyter", "ipykernel"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

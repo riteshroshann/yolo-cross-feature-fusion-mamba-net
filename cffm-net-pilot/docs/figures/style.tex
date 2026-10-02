@@ -1,0 +1,43 @@
+% Shared style for the methodology figures, after the block diagrams of
+% "Attention Is All You Need": rounded blocks in soft colours with fine outlines,
+% a grey container with a repetition count, and thin arrows.
+\usepackage{libertinus}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds,shapes.geometric}
+
+\definecolor{ink}{HTML}{1E2227}
+\definecolor{muted}{HTML}{5C6670}
+\definecolor{cRGB}{HTML}{2F6DB5}
+\definecolor{cIR}{HTML}{C0622B}
+\definecolor{cFuse}{HTML}{3B8B66}
+\definecolor{cTime}{HTML}{7450A8}
+\definecolor{cNeutral}{HTML}{66707B}
+\definecolor{cData}{HTML}{8C6A2F}
+\definecolor{cAlert}{HTML}{A8384A}
+\definecolor{cHead}{HTML}{B08A2E}
+\color{ink}
+
+\tikzset{
+  blk/.style   = {rounded corners=3pt, align=center, font=\small, inner xsep=6pt, inner ysep=4.5pt,
+                  minimum height=0.8cm, line width=0.5pt, text=ink,
+                  execute at begin node={\hyphenpenalty=10000}},
+  vis/.style   = {blk, fill=cRGB!14, draw=cRGB!65},
+  thr/.style   = {blk, fill=cIR!15, draw=cIR!65},
+  fus/.style   = {blk, fill=cFuse!16, draw=cFuse!70},
+  scn/.style   = {blk, fill=cTime!14, draw=cTime!65},
+  neu/.style   = {blk, fill=cNeutral!10, draw=cNeutral!55},
+  hed/.style   = {blk, fill=cHead!16, draw=cHead!70},
+  dat/.style   = {blk, fill=cData!12, draw=cData!60},
+  io/.style    = {align=center, font=\small, text=ink},
+  op/.style    = {circle, draw=cNeutral!70, fill=white, line width=0.5pt, inner sep=0pt,
+                  minimum size=5.2mm, font=\small},
+  lab/.style   = {font=\footnotesize\itshape, text=muted, align=center},
+  note/.style  = {font=\footnotesize, text=muted, align=left},
+  ar/.style    = {-{Stealth[length=2.1mm,width=1.6mm]}, line width=0.55pt, draw=ink!75},
+  dar/.style   = {ar, dash pattern=on 2.4pt off 1.6pt},
+  gar/.style   = {ar, draw=cData, dash pattern=on 2.4pt off 1.6pt},
+  box/.style   = {rounded corners=6pt, fill=cNeutral!5, draw=cNeutral!45, line width=0.5pt},
+  over/.style  = {preaction={draw=white, line width=3.2pt, -}},
+}

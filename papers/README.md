@@ -1,6 +1,6 @@
 # Papers
 
-Every work cited in the research dossier (`report/CFFM-Net_Research_Dossier.pdf`), grouped as in the report. Open-access papers are stored here as PDFs; the rest are listed with the reason and a link. `index.csv` holds the same information in machine-readable form, keyed by the citation keys of `report/references.tex`.
+Every work cited in the research dossier (`docs/dossier/CFFM-Net_Research_Dossier.pdf`), grouped as in the report. Open-access papers are stored here as PDFs; the rest are listed with the reason and a link. `index.csv` holds the same information in machine-readable form, keyed by the citation keys of `docs/dossier/references.tex`.
 
 148 of 174 cited works are stored as PDFs. To refresh, run `python papers/download_papers.py` (files already present are skipped). arXiv identifiers were confirmed against each PDF's first page.
 

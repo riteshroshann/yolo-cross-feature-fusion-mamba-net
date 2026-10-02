@@ -1,0 +1,44 @@
+\documentclass[border=6pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}
+  \node[io] (x) at (0,0) {$x_k$};
+  \node[io] (r) at (3.6,0) {$r_k$\\[-1pt] \footnotesize reliability of token $k$};
+
+  \node[neu, minimum width=3.2cm] (lin) at (0,1.3) {Linear};
+  \draw[ar] (x) -- (lin);
+
+  \node[neu, minimum width=1.4cm] (sp) at (-1.7,2.7) {softplus};
+  \node[io] (B) at (0,2.7) {$B_k$};
+  \node[io] (C) at (1.7,2.7) {$C_k$};
+  \draw[ar] ($(lin.north)+(-1.1,0)$) -- (sp);
+  \draw[ar] (lin) -- (B);
+  \draw[ar] ($(lin.north)+(1.1,0)$) -- (C);
+
+  \node[op] (mul) at (-1.7,4.0) {$\times$};
+  \draw[ar] (sp) -- (mul);
+  \draw[gar] (r) |- (mul.east) node[pos=0.75, lab, above] {gate};
+
+  \node[scn, minimum width=2.0cm] (dA) at (-2.6,5.4) {$\bar A_k = e^{\Delta_k A}$};
+  \node[scn, minimum width=2.2cm] (dB) at (0.2,5.4) {$\bar B_k x_k = \Delta_k B_k x_k$};
+  \draw[ar] (mul) -| node[lab, pos=0.25, above] {$\Delta_k$} (dA);
+  \draw[ar] (mul) -| (dB.south west);
+  \draw[ar] (B) -- (dB);
+
+  \node[scn, minimum width=4.6cm, minimum height=1.0cm] (h) at (-1.2,6.9) {$h_k = \bar A_k\, h_{k-1} + \bar B_k x_k$};
+  \draw[ar] (dA) -- (dA |- h.south);
+  \draw[ar] (dB) -- (dB |- h.south);
+  \draw[ar] (h.west) -- ++(-0.55,0) |- node[lab, pos=0.2, left] {$h_{k-1}$ (next step)} ($(h.west)+(0,-0.3)$);
+
+  \node[neu, minimum width=4.6cm] (y) at (-1.2,8.3) {$y_k = C_k \cdot h_k + D\,x_k$};
+  \draw[ar] (h) -- (y);
+  \draw[ar] (C) |- ($(y.east)+(0,-0.15)$);
+  \node[io] (out) at (-1.2,9.4) {$y_k$};
+  \draw[ar] (y) -- (out);
+
+  \node[note, anchor=north west, text width=4.3cm] at (3.0,8.9)
+    {$r_k \to 0$: $\Delta_k \to 0$, so $\bar A_k \to 1$ and $\bar B_k \to 0$.\\[3pt]
+     The token neither writes into the state nor erases it: an unreliable sensor is skipped, and the memory of
+     the reliable one carries on.};
+\end{tikzpicture}
+\end{document}

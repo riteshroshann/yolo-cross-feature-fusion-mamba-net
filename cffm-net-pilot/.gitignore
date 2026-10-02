@@ -1,0 +1,8 @@
+data/
+runs/
+results/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+weights/*.pt

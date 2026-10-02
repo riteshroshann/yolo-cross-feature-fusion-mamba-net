@@ -1,0 +1,46 @@
+# The pilot run plan. Every notebook reads its runs from here, so a setting is
+# changed in one place and every notebook follows. Batch sizes are TOTAL over
+# all GPUs: on Kaggle's 2 x T4, batch 16 means 8 images per GPU.
+
+defaults:
+  imgsz: 640          # long side; pairs are stored at 640 px by the converters
+  epochs: 30          # short pilot schedule (the full plan uses longer ones)
+  seed: 0             # one seed per configuration in the pilot
+  close_mosaic: 5     # last 5 epochs without mosaic, as Ultralytics recommends
+  patience: 100       # no early stopping inside 30 epochs
+  workers: 4          # Kaggle sessions have 4 CPU cores
+  amp: true           # mixed precision; the scan itself always runs in float32
+  cache: false        # 'ram' speeds up epochs if the session has the memory
+
+datasets:
+  llvip:
+    imgsz: 640
+    train_stride: 3   # every 3rd training frame (consecutive frames are near duplicates): ~4 000 pairs
+    val_stride: 1     # full official test split as our evaluation set: 3 463 pairs
+  m3fd:
+    imgsz: 640
+    val_frac: 0.2     # no official split: fixed seeded 80/20, recorded in dataset_card.json
+    seed: 0
+
+runs:
+  # notebook 04: single-sensor baselines (stock YOLO26-n, COCO-pretrained)
+  - {name: llvip_yolo26n_visible, notebook: "04", data: llvip/data_visible.yaml,  model: yolo26n.yaml, batch: 32}
+  - {name: llvip_yolo26n_thermal, notebook: "04", data: llvip/data_infrared.yaml, model: yolo26n.yaml, batch: 32}
+
+  # notebook 05: naive two-stream baseline (concatenate, 1x1 conv, standard YOLO26 head)
+  - {name: llvip_concat, notebook: "05", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n.yaml, batch: 16}
+  - {name: m3fd_concat,  notebook: "05", data: m3fd/data_paired.yaml,  model: configs/models/two-stream-concat-n.yaml, batch: 16}
+
+  # notebook 07: CFFM-Net (image mode)
+  - {name: llvip_cffm, notebook: "07", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n.yaml, batch: 16}
+  - {name: m3fd_cffm,  notebook: "07", data: m3fd/data_paired.yaml,  model: configs/models/cffm-net-n.yaml, batch: 16}
+
+  # notebook 08: ablations, each changes one thing
+  - {name: llvip_cffm_nogate, notebook: "08", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-nogate.yaml, batch: 16}
+  - {name: llvip_cffm_gconv,  notebook: "08", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-gconv.yaml,  batch: 16}
+  - {name: llvip_cffm_nop2,   notebook: "08", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-nop2.yaml,   batch: 16, optional: true}
+
+probe:
+  runs: [llvip_cffm, llvip_cffm_nogate, llvip_concat]
+  kinds: [clean, visible_dark, visible_drop, thermal_drop, thermal_shift_4, thermal_shift_8, thermal_shift_16]
+  flagged: [visible_drop, thermal_drop]   # also evaluated with the sensor flag set

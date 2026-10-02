@@ -1,0 +1,506 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------
+%  Layout and typography (matches the research dossier)
+% ---------------------------------------------------------------
+\usepackage[a4paper, top=32mm, bottom=34mm, inner=30mm, outer=30mm,
+            headsep=11mm, footskip=15mm]{geometry}
+\usepackage{amsmath}
+\usepackage{libertinus}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.2}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc}
+\usepackage{booktabs,array,tabularx,longtable}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[numbers,square,sort&compress]{natbib}
+
+\definecolor{ink}{HTML}{1E2227}
+\definecolor{muted}{HTML}{5C6670}
+\definecolor{cRGB}{HTML}{2F6DB5}
+\definecolor{cIR}{HTML}{C0622B}
+\definecolor{cFuse}{HTML}{3B8B66}
+\definecolor{cTime}{HTML}{7450A8}
+\definecolor{cNeutral}{HTML}{66707B}
+\definecolor{cData}{HTML}{8C6A2F}
+\definecolor{cAlert}{HTML}{A8384A}
+\color{ink}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.7em plus 0.2em minus 0.1em}
+\setlength{\emergencystretch}{2em}
+\clubpenalty=10000
+\widowpenalty=10000
+\raggedbottom
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{18pt plus 2fil}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+
+\titleformat{\section}{\normalfont\Large\raggedright}{\thesection}{0.9em}{}
+\titlespacing*{\section}{0pt}{2.2em}{0.8em}
+\titleformat{\subsection}{\normalfont\large\itshape\raggedright}{\thesubsection}{0.9em}{}
+\titlespacing*{\subsection}{0pt}{1.5em}{0.5em}
+\titleformat{\paragraph}[runin]{\normalfont\scshape}{}{0pt}{}[.\enspace]
+\titlespacing*{\paragraph}{0pt}{0.8em}{0pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\small\scshape\color{muted}Pilot study: problem, novelty and related work}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+\captionsetup{font={small,stretch=1.1}, labelfont={sc}, labelsep=period,
+              justification=justified, singlelinecheck=true, skip=8pt, margin=4mm}
+\captionsetup[table]{position=top, skip=6pt}
+\setlist{itemsep=0.25em, topsep=0.35em, parsep=0pt, leftmargin=1.6em}
+\setlist[itemize]{label=\textcolor{muted}{\textbullet}}
+
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{5pt}
+\newcolumntype{L}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcommand{\hd}[1]{{\color{muted}#1}}
+\newcommand{\gap}{\addlinespace[5pt]}
+\newcommand{\sgap}{\addlinespace[3pt]}
+\newcommand{\method}{\textsc{cffm}-Net}
+\newcommand{\methodS}{\textsc{cffm}-Net-S}
+\newcommand{\R}{\mathbb{R}}
+
+\tikzset{
+  base/.style  = {rounded corners=2.5pt, align=left, font=\scriptsize, inner xsep=5pt,
+                  inner ysep=4pt, draw=none, text=ink,
+                  execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  lim/.style   = {base, fill=cNeutral!9, text width=5.6cm},
+  limp2/.style = {base, fill=cNeutral!4, text width=5.6cm, text=muted},
+  con/.style   = {base, fill=cFuse!15, text width=4.3cm},
+  arr/.style   = {-{Stealth[length=1.8mm,width=1.4mm]}, line width=0.5pt, draw=cNeutral},
+}
+
+\renewcommand{\bibfont}{\small}
+\setlength{\bibsep}{0.45em plus 0.2em}
+
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={CFFM-Net pilot study: problem, novelty and related work}, pdfauthor={Roshan}}
+
+\begin{document}
+
+% ---------------------------------------------------------------
+%  Title block
+% ---------------------------------------------------------------
+\thispagestyle{plain}
+\begin{center}
+\vspace*{6mm}
+{\small\scshape\color{muted} Companion note to the research dossier\par}
+\vspace{7mm}
+{\fontsize{21}{27}\selectfont The \method{} Pilot Study\par}
+\vspace{3mm}
+{\large\itshape Problem, novelty and position in the literature\par}
+\vspace{7mm}
+{\normalsize Roshan\par}
+\vspace{1mm}
+{\small\color{muted} October 2026\par}
+\vspace{6mm}
+\end{center}
+
+\begin{quote}
+\small
+\textsc{Abstract.} The pilot builds and evaluates the still-image form of \method{}:
+a dual-stream YOLO26 detector whose visible and thermal features are fused by a
+selective state-space scan. In that scan, the discretisation step of every token is
+scaled by an estimate of how reliable its modality is at its location. This note
+states the problem precisely and identifies twelve recent papers whose limitations
+bear on it. It separates the limitations their authors state from those observed in
+their reported results. It then specifies five contributions of the pilot, each tied
+to at least one of those limitations and to an experiment that can refute it. The
+pilot addresses six stated limitations from five papers. Two further stated
+limitations, temporal memory and post-export accuracy, are deferred to later phases
+and listed as such. Claims are framed as hypotheses. A two-day pilot with one
+training seed per configuration can support or undermine them, but cannot establish
+them.
+\end{quote}
+
+% ---------------------------------------------------------------
+\section{The problem}
+% ---------------------------------------------------------------
+
+Detecting very small objects with visible and thermal cameras is the regime in which
+each sensor fails differently. Visible imagery loses objects in darkness, glare and
+fog. Thermal imagery loses texture and confuses objects with backgrounds at the same
+temperature. Both lose objects that cover only a few pixels. Three properties are
+therefore needed together:
+\begin{itemize}
+  \item enough spatial resolution to see objects of a few pixels;
+  \item a fusion rule that trusts each sensor only where it is informative;
+  \item a cost low enough for real-time use.
+\end{itemize}
+State-space models (SSMs) are attractive because they mix information globally at
+linear cost~\citep{gu2023mamba,liu2024vmamba}. The recent literature has shown,
+however, that dropping a Mamba block into a detector is neither cheap nor clearly
+useful (Section~\ref{sec:lims}). The pilot asks a narrower question: \emph{can a
+selective scan be made to fuse two sensors selectively, at the resolution where small
+objects live, at a cost compatible with a real-time YOLO detector?}
+
+% ---------------------------------------------------------------
+\section{What the latest work leaves open}
+\label{sec:lims}
+% ---------------------------------------------------------------
+
+Table~\ref{tab:lims} lists twelve recent papers. For each it gives one limitation and
+how that limitation is known. \emph{Stated} means the authors write it themselves.
+\emph{Measured} means it follows from numbers the authors report. \emph{Inferred}
+means it follows from the method as published. The last column gives the
+contribution of Section~\ref{sec:contrib} that addresses the limitation, or the later
+phase to which it is deferred.
+
+\begin{table}[htbp]
+\centering
+\caption{Limitations of recent work and how the pilot responds. C1 to C5 are the
+contributions of Section~\ref{sec:contrib}.}
+\label{tab:lims}
+\small
+\begin{tabularx}{\textwidth}{@{}P{2.85cm}LP{1.35cm}P{1.25cm}@{}}
+\hd{Paper, venue, date} & \hd{Limitation} & \hd{Basis} & \hd{Response} \\ \gap
+CFMW, IEEE TCSVT, Dec 2025~\citep{li2025cfmw} & still misses small objects, which are 26\% of its benchmark & stated & C2 \\
+ & the scan triples computation (95.6 to 308.6 GFLOPs) for $+3.2$ mAP; 13.5 FPS & measured & C3 \\ \sgap
+UAVDet, CVIU, Jan 2026~\citep{yang2026uavdet} & fails in very dark scenes; not validated on multimodal input; multimodal and low-light use named as future work & stated & C1 \\
+ & the sequential state update uses GPU parallelism poorly; adding Mamba costs 23 FPS for $+0.7$ AP & stated, measured & C3 \\ \sgap
+HPS-DETR, IEEE TGRS, Jun 2025~\citep{wang2025hpsdetr} & objects below $10\times10$ pixels and distant objects are still missed, especially in snow & stated & C2 \\ \sgap
+SF-Mamba, Mar 2026~\citep{sfmamba2026} & Mamba is relatively slow at the short token lengths typical of vision & stated & C3 \\ \sgap
+C-GSPN, May 2026~\citep{cgspn2026} & SSMs and linear attention weaken two-dimensional spatial structure & stated & C1 \\ \sgap
+MambaOut, CVPR 2025~\citep{yu2025mambaout} & whether the SSM is needed for detection is left open & stated & C4 \\ \sgap
+MambaVision, CVPR 2025~\citep{hatamizadeh2025mambavision} & SSM and attention run only at strides 16 and 32; no small-object metric; no real-time detector & inferred & C2 \\ \sgap
+Fusion-Mamba, IEEE TMM 2025~\citep{dong2025fusionmamba} & 287.6M parameters and 78\,ms per image; fusion assumes registered pairs & measured, inferred & C1, C3 \\ \sgap
+Mamba YOLO, AAAI 2025~\citep{wang2025mambayolo} & large model below YOLO11-l (52.1 against 53.4 AP); latency on an RTX 4090, not comparable with T4 figures & measured & C5 \\ \sgap
+RGBT-Tiny, IEEE TPAMI 2025~\citep{ying2025rgbttiny} & IoU-based evaluation is unfair to tiny objects & stated & C2, C5 \\ \sgap
+MambaST, ITSC 2024~\citep{mambast2024} & fuses only three frames; not evaluated on longer sequences or other datasets & stated & Phase 2 \\ \sgap
+LCMamNet, Jul 2026~\citep{lcmamnet2026} & accuracy falls after TensorRT FP16 export (71.27 to 65.96 mIoU) & measured & Phase 3 \\
+\end{tabularx}
+\end{table}
+
+Two patterns stand out. First, the cost of SSM blocks is the most frequently reported
+weakness. It is measured in CFMW, stated in UAVDet and stated in general terms by
+SF-Mamba. Second, small and tiny objects remain the acknowledged failure case of the
+best recent detectors, with or without an SSM. Fusion work also assumes, almost
+everywhere, that both sensors are equally trustworthy at every pixel. The
+fusion-weighting schemes of CFMW and Fusion-Mamba act on the output of the scan,
+after a degraded modality has already written into the state.
+
+% ---------------------------------------------------------------
+\section{Contributions of the pilot}
+\label{sec:contrib}
+% ---------------------------------------------------------------
+
+Figure~\ref{fig:map} connects the stated and measured limitations to the five
+contributions. Each contribution is described with its closest prior work and the
+pilot experiment that tests it.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+  \def\xl{0}\def\xr{9.0}
+  % limitations (left)
+  \node[lim] (l1) at (\xl,  0.00) {\textbf{CFMW}: misses small objects (stated)};
+  \node[lim] (l2) at (\xl, -0.95) {\textbf{HPS-DETR}: objects under 10\,px missed (stated)};
+  \node[lim] (l3) at (\xl, -1.90) {\textbf{RGBT-Tiny}: IoU unfair to tiny objects (stated)};
+  \node[lim] (l4) at (\xl, -2.85) {\textbf{UAVDet}: dark scenes, no multimodal test (stated)};
+  \node[lim] (l5) at (\xl, -3.80) {\textbf{C-GSPN}: SSMs weaken 2D structure (stated)};
+  \node[lim] (l6) at (\xl, -4.75) {\textbf{Fusion-Mamba}: assumes registered pairs (inferred)};
+  \node[lim] (l7) at (\xl, -5.70) {\textbf{UAVDet}, \textbf{SF-Mamba}: Mamba slow, poor parallelism (stated)};
+  \node[lim] (l8) at (\xl, -6.65) {\textbf{CFMW}: scan triples GFLOPs, 13.5 FPS (measured)};
+  \node[lim] (l9) at (\xl, -7.60) {\textbf{MambaOut}: is the SSM needed? (stated, open)};
+  \node[lim] (l10) at (\xl,-8.55) {\textbf{Mamba YOLO}: latency on non-standard GPU (measured)};
+
+  % contributions (right)
+  \node[con] (c1) at (\xr, -3.30) {\textbf{C1} reliability-gated cross-modal scan with offset alignment and local branch};
+  \node[con] (c2) at (\xr, -0.95) {\textbf{C2} small-object pathway: stride-4 head, SSM fusion at stride 8, size-binned metrics};
+  \node[con] (c3) at (\xr, -6.10) {\textbf{C3} efficient placement and a portable chunked parallel scan};
+  \node[con] (c4) at (\xr, -7.60) {\textbf{C4} necessity test: SSM against a gated-convolution control};
+  \node[con] (c5) at (\xr, -8.80) {\textbf{C5} single-protocol evaluation, T4 latency, tables from logs};
+
+  \foreach \a/\b in {l1/c2, l2/c2, l3/c2, l4/c1, l5/c1, l6/c1, l7/c3, l8/c3, l9/c4, l10/c5, l3/c5}
+    \draw[arr] (\a.east) -- (\b.west);
+\end{tikzpicture}
+
+\vspace{2mm}
+\caption{Limitations reported in recent work (left) and the pilot contribution that
+addresses each (right). Every limitation on the left is stated by its authors or
+follows from numbers they report, except the registration assumption, which follows
+from the published method.}
+\label{fig:map}
+\end{figure}
+
+\subsection*{C1. Reliability-gated cross-modal selective scan}
+
+\paragraph{What it is}
+At every location, a small head estimates a reliability $r^m\in(0,1)$ for each
+modality $m$ from the two feature maps and their absolute difference. The visible and
+thermal tokens of each location are \emph{interleaved} in one sequence, so the hidden
+state alternates between modalities at every position. The selective step of token
+$k$ is then scaled by the reliability of its modality at its location:
+\begin{equation}
+  \Delta_k=\operatorname{softplus}(w^{\top}x_k+b)\cdot r^{m(k)}_{p(k)} .
+  \label{eq:gate}
+\end{equation}
+Because $\bar A_k=\exp(\Delta_k A)$ and $\bar B_k\approx\Delta_k B_k$, a token judged
+unreliable ($r\to0$) neither writes into the state nor erases
+it~\citep{gu2023mamba}. A displacement field resamples thermal features onto the
+visible grid before the scan, following COMO~\citep{como2024}. A depthwise
+convolutional branch beside the scan restores local two-dimensional structure.
+
+\paragraph{Why it is new}
+CFMW and Fusion-Mamba weight the modalities on the \emph{output} of the
+scan~\citep{li2025cfmw,dong2025fusionmamba}. MambaRefine-YOLO gates by global
+illumination and modality difference~\citep{mambarefine2025}. Gating the
+discretisation step per location and per modality controls what enters the state
+itself. No published fusion method found in the survey does this.
+
+\paragraph{Limitations addressed}
+UAVDet's failure in dark scenes and its untested multimodal setting. C-GSPN's loss of
+two-dimensional structure, through interleaving, which keeps the two modalities of
+each location adjacent, and through the local branch. Fusion-Mamba's registration
+assumption, through offset alignment.
+
+\paragraph{Pilot test}
+Three comparisons, all under identical training:
+\begin{itemize}
+  \item \method{} against the same network with $r\equiv1$ (gating off);
+  \item both against a plain two-stream concatenation baseline;
+  \item a test-time probe that degrades one modality and shifts the thermal image,
+        which requires no extra training.
+\end{itemize}
+
+\subsection*{C2. A small-object pathway in a real-time dual-stream YOLO}
+
+\paragraph{What it is}
+A stride-4 detection head is grafted onto YOLO26~\citep{yolo26_2026}. The SSM fusion
+is applied from stride 8, not only at strides 16 and 32 as in
+MambaVision~\citep{hatamizadeh2025mambavision}. Evaluation reports AP in the AI-TOD
+size bands (2--8, 8--16 and 16--32 pixels) alongside COCO AP\textsubscript{S}.
+
+\paragraph{Limitations addressed}
+Small objects missed by CFMW. Objects under ten pixels missed by HPS-DETR.
+RGBT-Tiny's warning about IoU-based evaluation, through size-binned reporting now and
+SAFit once RGBT-Tiny access is granted.
+
+\paragraph{Pilot test}
+Size-binned AP of \method{} against the two-stream baseline with and without the
+stride-4 head.
+
+\subsection*{C3. Efficient placement and a portable parallel scan}
+
+\paragraph{What it is}
+Two decisions keep the cost of the scan down.
+\begin{itemize}
+  \item Scans run where sequences are long. Interleaving doubles the sequence length,
+        to 10\,240 tokens at stride 8 for a $640\times512$ input. No scan runs at
+        stride 4, where a reliability-weighted sum suffices.
+  \item The selective scan is implemented twice and tested for numerical agreement:
+        with the official CUDA kernel where available, and as a two-level chunked
+        parallel scan in plain PyTorch. The PyTorch version needs about
+        $2\sqrt{L}$ sequential steps instead of $L$, and it runs on Windows laptops
+        and on GPUs that the CUDA kernel does not support.
+\end{itemize}
+
+\paragraph{Limitations addressed}
+UAVDet's poor GPU parallelism, SF-Mamba's slow short sequences, and the measured cost
+of CFMW and Fusion-Mamba.
+
+\paragraph{Pilot test}
+Parameters, GFLOPs and batch-one latency on a T4 for every model, including NMS where
+it is used.
+
+\subsection*{C4. A necessity test for the SSM}
+
+\paragraph{What it is}
+A control model replaces the selective scan in CMFM with a gated depthwise
+convolution of matched cost. Everything else, including reliability gating of the
+input, is kept.
+
+\paragraph{Limitation addressed}
+MambaOut found the SSM unnecessary for ImageNet classification and left detection
+open~\citep{yu2025mambaout}. The analysis of Mamba as gated linear
+attention~\citep{han2024mlla} makes the same control necessary.
+
+\paragraph{Pilot test}
+\method{} against the control on LLVIP. A null result is reported, not hidden.
+
+\subsection*{C5. A single measurement protocol}
+
+\paragraph{What it is}
+All of these run through one code path:
+\begin{itemize}
+  \item every baseline is retrained, not copied from a paper;
+  \item one evaluation script scores every model;
+  \item latency is measured on a T4, the GPU used by the YOLO and DETR literature;
+  \item every table is generated from logged runs.
+\end{itemize}
+
+\paragraph{Limitation addressed}
+The incomparable latency figures of Mamba YOLO. The fifteen internal
+inconsistencies found in the four source papers of the project.
+
+% ---------------------------------------------------------------
+\section{Scope of the pilot}
+% ---------------------------------------------------------------
+
+\paragraph{What the pilot does}
+It trains nine configurations at the smallest YOLO26 scale with a short schedule and
+one seed each, on LLVIP and M3FD, the two freely downloadable paired benchmarks
+(Table~\ref{tab:runs}). The planned total is about 26 T4 GPU-hours, run in parallel on
+Kaggle T4s and a local RTX~4050.
+
+\begin{table}[htbp]
+\centering
+\caption{Pilot configurations. T4-hours are planning estimates.}
+\label{tab:runs}
+\small
+\begin{tabularx}{\textwidth}{@{}LP{1.6cm}P{2.6cm}P{1.4cm}@{}}
+\hd{Configuration} & \hd{Data} & \hd{Tests} & \hd{T4-hours} \\ \gap
+YOLO26-n, visible only & LLVIP & baseline & 1.5 \\
+YOLO26-n, thermal only & LLVIP & baseline & 1.5 \\
+two-stream YOLO26-n, concatenation & LLVIP & baseline & 2.5 \\
+\method{} (image mode) & LLVIP & C1--C3 & 4.0 \\
+\method{}, gating off ($r\equiv1$) & LLVIP & C1 & 4.0 \\
+\method{}, scan replaced by gated convolution & LLVIP & C4 & 4.0 \\
+two-stream YOLO26-n, concatenation & M3FD & baseline & 1.5 \\
+\method{} (image mode) & M3FD & C1--C3 & 2.0 \\
+test-time degradation probe & LLVIP & C1 & 0.5 \\
+environment checks, latency (C5) & & C3, C5 & 4.5 \\ \gap
+\textit{total} & & & \textit{about 26} \\
+\end{tabularx}
+\end{table}
+
+\paragraph{What the pilot does not claim}
+\begin{itemize}
+  \item Temporal memory across frames. That is \methodS{}, which answers MambaST's
+        stated limitation in Phase~2.
+  \item Robustness to sensor dropout over time, and the full robustness protocol.
+  \item Accuracy after TensorRT export on embedded hardware, which answers LCMamNet's
+        observation in Phase~3.
+  \item Results on RGBT-Tiny, which await dataset approval.
+  \item Statistical significance. One seed per configuration cannot separate small
+        effects from run-to-run variation, which HPS-DETR's own tables suggest is
+        about 1 to 1.5 points~\citep{wang2025hpsdetr}.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Pilot hypotheses}
+% ---------------------------------------------------------------
+
+The pilot is designed so that each hypothesis can come out against the method
+(Table~\ref{tab:hyp}). The thresholds exceed the single-seed noise estimated above
+wherever possible. A result inside that noise is reported as inconclusive.
+
+\begin{table}[htbp]
+\centering
+\caption{Pilot hypotheses and decision rules. AP is COCO AP\textsubscript{50:95}.}
+\label{tab:hyp}
+\small
+\begin{tabularx}{\textwidth}{@{}P{0.9cm}P{4.3cm}L@{}}
+\hd{} & \hd{Hypothesis} & \hd{Supported if} \\ \gap
+PH1 & Fusion beats the best single sensor at night & \method{} exceeds thermal-only YOLO26-n on LLVIP by at least 1.5 AP \\
+PH2 & Gating the step adds value & \method{} exceeds the gating-off model by at least 1.5 AP, or degrades less in the test-time probe by the same margin \\
+PH3 & The pathway helps small objects & AP in the 8--32 pixel bands exceeds the two-stream baseline on M3FD by at least 1.5 \\
+PH4 & The SSM is needed & \method{} exceeds the gated-convolution control by at least 1.0 AP at matched GFLOPs \\
+PH5 & The cost is acceptable & T4 latency of \method{} is no more than twice that of the two-stream baseline \\
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------
+\section{Related work}
+% ---------------------------------------------------------------
+
+The full survey, newest first, is Chapter~4 of the research dossier. This section
+places the pilot within it.
+
+\paragraph{Real-time detection}
+The accuracy--latency frontier in 2025--2026 belongs to two lines of work. YOLO26
+removes NMS and adds a small-target-aware label assignment~\citep{yolo26_2026}.
+Detection transformers draw on DINOv2 and DINOv3 features:
+RF-DETR~\citep{robinson2025rfdetr}, RT-DETRv4~\citep{rtdetrv4_2025} and
+DEIMv2~\citep{deimv2_2025}. YOLOv12 and YOLOv13 bring attention and hypergraph
+correlation into the YOLO family~\citep{tian2025yolov12,lei2025yolov13}. The pilot
+builds on YOLO26 because its assignment already targets small objects and its modules
+are open to extension.
+
+\paragraph{Vision state-space models}
+Several 2025--2026 backbones make SSMs competitive as general backbones:
+MambaVision~\citep{hatamizadeh2025mambavision},
+Spatial-Mamba~\citep{xiao2025spatialmamba}, DAMamba~\citep{damamba2025} and
+PRISMamba~\citep{prismamba2026}. The critical literature is as important.
+\begin{itemize}
+  \item MambaOut questions whether the SSM is needed at all~\citep{yu2025mambaout}.
+  \item MLLA recasts Mamba as gated linear attention~\citep{han2024mlla}.
+  \item SF-Mamba and C-GSPN report cost and spatial-structure
+        problems~\citep{sfmamba2026,cgspn2026}.
+  \item VNCT and GraphScan contest the need for directional
+        scans~\citep{vnct2026,graphscan2026}.
+\end{itemize}
+C3 and C4 respond directly to this critical line.
+
+\paragraph{Mamba inside YOLO}
+Mamba YOLO established the Ultralytics-based baseline~\citep{wang2025mambayolo}.
+MambaPSA places Mamba inside YOLO26 and reports changes of $-0.1$ to $+0.9$
+AP~\citep{mambapsa2026}. ScopeMamba-YOLO, YOLO12-MambaScan and HDMamba-YOLO target UAV
+small objects~\citep{scopemamba2026,yolo12mambascan2026,hdmambayolo2026}. UAVDet
+shows that most of its gain comes from the stride-4 head and early capacity, not the
+Mamba block~\citep{yang2026uavdet}. The pilot therefore does not claim a
+Mamba-in-YOLO block as its contribution. The block exists to perform gated fusion.
+
+\paragraph{Small and tiny objects}
+SFDNet, Dome-DETR and EFSI-DETR define the current state of the
+art~\citep{sfdnet2026,domedetr2025,efsidetr2026}. RGBT-Tiny contributes the
+benchmark that matches the full project and a matching measure for tiny
+boxes~\citep{ying2025rgbttiny}. HPS-DETR illustrates the value of fusing the stride-4
+level~\citep{wang2025hpsdetr}.
+
+\paragraph{Visible--thermal fusion}
+Fusion moved from attention, in CFT and ICAFusion~\citep{qingyun2021cft,shen2024icafusion},
+to state-space blocks:
+Fusion-Mamba~\citep{dong2025fusionmamba}, CFMW~\citep{li2025cfmw},
+COMO~\citep{como2024}, WaveMamba~\citep{wavemamba2025},
+MS2Fusion~\citep{ms2fusion2025} and MambaRefine-YOLO~\citep{mambarefine2025}. In 2026,
+foundation-model fusion followed, with RegisterBridgeMM and
+CFGPNet~\citep{registerbridge2026,cfgpnet2026}. Misalignment is handled by offset
+guidance in COMO and by contextually guided SSM fusion~\citep{como2024,cgssm2025}.
+None gates the state update per modality and location, which is the step C1 adds.
+
+\paragraph{Temporal and streaming detection}
+MambaST fuses three visible--thermal frames~\citep{mambast2024}. TMambaDet runs a
+bidirectional temporal Mamba offline~\citep{tmambadet2026}. Zubi\'c and colleagues
+detect with recurrent SSMs on event cameras~\citep{zubic2024ssmevent}.
+Alignment-free visible--thermal video detectors use windows, graphs and hypergraphs
+without SSMs~\citep{msenet2024,msgnet2025,dchnet2026}. These define Phase~2, for which
+the pilot builds and tests the shared components.
+
+% ---------------------------------------------------------------
+\section{Threats to validity}
+% ---------------------------------------------------------------
+
+\begin{itemize}
+  \item \emph{One seed.} Differences below about 1.5 AP are inconclusive and are
+        reported as such.
+  \item \emph{LLVIP is close to saturated} for AP\textsubscript{50}. The pilot
+        reports AP\textsubscript{50:95} and size bands, and adds M3FD.
+  \item \emph{Both pilot datasets are registered.} Misalignment is therefore tested
+        only by synthetic shifts at test time. Real misalignment waits for
+        UVT-VOD2024 and DroneVehicle.
+  \item \emph{Short schedules at the smallest scale} may favour simpler models.
+        Rankings are confirmed in the full plan at the small (s) scale with three
+        seeds.
+  \item \emph{Re-implemented baselines} may differ from the originals. Every
+        difference is documented in the code.
+\end{itemize}
+
+\input{refs}
+
+\end{document}

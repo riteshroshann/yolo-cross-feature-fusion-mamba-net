@@ -1,6 +1,12 @@
+# python
 __pycache__/
 *.pyc
+.venv/
+
+# build outputs
+dist/
+docs/dossier/build.log
+docs/dossier/main.pdf
+docs/novelty/build.log
+docs/novelty/novelty.pdf
 papers/download.log
-report/build.log
-report/main.pdf
-papers.zip

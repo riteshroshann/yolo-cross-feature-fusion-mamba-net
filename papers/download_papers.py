@@ -1,6 +1,6 @@
 """Download the open-access papers cited in the research dossier.
 
-Every entry is keyed by its citation key in report/references.tex. arXiv
+Every entry is keyed by its citation key in docs/dossier/references.tex. arXiv
 papers are fetched through the arXiv API, and the title returned by the API is
 checked against a keyword before the PDF is saved, so that a wrong identifier
 is caught instead of silently downloading the wrong paper. Entries without an
@@ -382,10 +382,10 @@ def write_readme(rows):
     """Write papers/README.md: one table per category, linked to the local PDFs."""
     have = sum(r["status"] == "downloaded" for r in rows)
     out = ["# Papers", "",
-           "Every work cited in the research dossier (`report/CFFM-Net_Research_Dossier.pdf`), "
+           "Every work cited in the research dossier (`docs/dossier/CFFM-Net_Research_Dossier.pdf`), "
            "grouped as in the report. Open-access papers are stored here as PDFs; the rest are "
            "listed with the reason and a link. `index.csv` holds the same information in "
-           "machine-readable form, keyed by the citation keys of `report/references.tex`.", "",
+           "machine-readable form, keyed by the citation keys of `docs/dossier/references.tex`.", "",
            f"{have} of {len(rows)} cited works are stored as PDFs. To refresh, run "
            "`python papers/download_papers.py` (files already present are skipped). arXiv "
            "identifiers were confirmed against each PDF's first page.", ""]
