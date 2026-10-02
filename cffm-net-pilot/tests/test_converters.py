@@ -83,6 +83,12 @@ def test_m3fd_split_classes_and_unknowns(fake_m3fd):
     assert set(labels) == {"0", "1"}                                    # 'Unknown' objects are dropped
 
 
+def test_locate_raw_tells_llvip_and_m3fd_apart(fake_llvip, fake_m3fd):
+    env = make_env(fake_llvip)                                          # both datasets attached at once
+    assert pipeline.locate_raw("llvip", env) == fake_llvip / "raw" / "LLVIP"
+    assert pipeline.locate_raw("m3fd", env) == fake_m3fd / "raw" / "M3FD_Detection"
+
+
 def test_run_plan_is_consistent():
     root = Path(__file__).resolve().parents[1]
     plan = pipeline.load_plan(root)

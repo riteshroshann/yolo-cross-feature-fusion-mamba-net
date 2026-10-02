@@ -66,7 +66,9 @@ def _looks_like_llvip(p: Path) -> bool:
 
 
 def _looks_like_m3fd(p: Path) -> bool:
-    names = {c.name.lower() for c in p.iterdir() if c.is_dir()} if p.is_dir() else set()
+    if not p.is_dir() or _looks_like_llvip(p):  # LLVIP's visible/infrared/Annotations would pass the test below
+        return False
+    names = {c.name.lower() for c in p.iterdir() if c.is_dir()}
     return bool(names & {"vis", "visible"}) and bool(names & {"ir", "infrared"}) and \
         bool(names & {"annotation", "annotations", "labels"})
 

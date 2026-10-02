@@ -35,6 +35,7 @@ cffm-net-pilot/
   docs/figures/                methodology diagrams (architecture, CMFM, gated scan, workflow), TikZ sources
   tools/build_notebooks.py     regenerates all notebooks from one script
   tools/make_zip.py            packs the project into cffm-net-pilot.zip for Kaggle
+  tools/kaggle_run.py          uploads the code and pushes and watches the notebooks via the Kaggle API
   weights/yolo26n.pt           COCO-pretrained YOLO26-n; in the zip, not in git (notebook 00 downloads it)
 ```
 

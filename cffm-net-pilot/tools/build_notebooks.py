@@ -55,18 +55,26 @@ from pathlib import Path
 
 ON_KAGGLE = Path("/kaggle/working").exists()
 if ON_KAGGLE:
-    # up to five levels deep: /kaggle/input/<slug>/, /kaggle/input/<slug>/cffm-net-pilot/,
-    # /kaggle/input/datasets/<owner>/<slug>/..., whichever layout this Kaggle version uses
-    hits = [Path(p).parent for k in range(1, 6) for p in glob.glob("/kaggle/input" + "/*" * k + "/pyproject.toml")
-            if (Path(p).parent / "src" / "cffm").is_dir()]
-    assert hits, "Add the 'cffm-net-pilot' dataset (the uploaded zip) as an input to this notebook."
     PROJECT = Path("/kaggle/working/cffm-net-pilot")
     if not PROJECT.exists():
-        shutil.copytree(hits[0], PROJECT, copy_function=shutil.copyfile)
-        for p in [PROJECT, *PROJECT.rglob("*")]:     # the input was read-only; our copy must be writable
+        # Up to five levels deep: /kaggle/input/<slug>/, /kaggle/input/<slug>/cffm-net-pilot/,
+        # /kaggle/input/datasets/<owner>/<slug>/..., whichever layout this Kaggle version uses.
+        hits = [Path(p).parent for k in range(1, 6) for p in glob.glob("/kaggle/input" + "/*" * k + "/pyproject.toml")
+                if (Path(p).parent / "src" / "cffm").is_dir()]
+        # Saved outputs of earlier notebooks also hold a copy of the code, next to their runs/ or data/.
+        # Prefer the uploaded dataset, so a stale copy can never win.
+        hits.sort(key=lambda h: any((h.parent / d).exists() for d in ("runs", "data")))
+        zips = [Path(p) for k in range(1, 5) for p in glob.glob("/kaggle/input" + "/*" * k + ".zip")
+                if "cffm" in Path(p).name]
+        if hits:
+            shutil.copytree(hits[0], PROJECT, copy_function=shutil.copyfile)
+        elif zips:                       # the zip was attached but not unpacked by Kaggle
+            shutil.unpack_archive(str(zips[0]), "/kaggle/working")   # it holds one folder, cffm-net-pilot/
+        assert PROJECT.exists(), "Add the 'cffm-net-pilot' dataset (the uploaded zip) as an input to this notebook."
+        for p in [PROJECT, *PROJECT.rglob("*")]:     # inputs are read-only; our copy must be writable
             p.chmod(p.stat().st_mode | 0o200)
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "ultralytics==8.4.171",
-                    "faster-coco-eval>=1.6.7", "cloudpickle"], check=True)   # cloudpickle: two-GPU launcher
+                    "faster-coco-eval>=1.6.7", "cloudpickle", "pytest"], check=True)   # cloudpickle: two-GPU launcher
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "-e", str(PROJECT)], check=True)
 else:
     PROJECT = next(p for p in [Path.cwd().resolve(), *Path.cwd().resolve().parents] if (p / "src" / "cffm").is_dir())
@@ -153,6 +161,13 @@ keys = ["mAP50-95(B)", "mAP50(B)", "mAP_small(B)", "AP_vt(B)", "AP_t(B)", "AP_s(
 rows = [{"run": r["run"], **{k.replace("(B)", ""): r["metrics"].get(k) for k in keys}} for r in results]
 pd.DataFrame(rows).set_index("run").round(4)
 '''
+
+CLEANUP = code('''
+# On Kaggle everything in /kaggle/working becomes this notebook's saved output. The converted data can be
+# rebuilt in minutes (or attached from notebook 02), so drop it and keep the output to runs and checkpoints.
+if env.platform == "kaggle":
+    shutil.rmtree(env.data, ignore_errors=True)
+''')
 
 SAVE_NOTE = md('''
 ### Keep the results
@@ -661,6 +676,7 @@ specs = [s for s in pipeline.runs_for(plan, "{notebook_id}") if INCLUDE_OPTIONAL
         md("## Results on the full validation set"),
         code(SUMMARY),
         *extra_cells,
+        CLEANUP,
         SAVE_NOTE,
     ]
     write(path, cells)
@@ -895,6 +911,7 @@ for run, w in sorted(ckpts.items()):
 (env.runs / "latency").mkdir(parents=True, exist_ok=True)
 (env.runs / "latency" / "latency.json").write_text(json.dumps(lat, indent=2))
 '''),
+        CLEANUP,
         SAVE_NOTE,
     ])
 
