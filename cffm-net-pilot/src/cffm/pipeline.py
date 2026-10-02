@@ -82,8 +82,9 @@ def find_converted(name: str, env) -> Path | None:
         return local
     for root in INPUT_ROOTS:
         if root.exists():
-            for card in root.glob(f"**/{name}/dataset_card.json"):
-                return card.parent
+            for k in range(0, 6):  # bounded depth: never walks into raw image folders
+                for card in root.glob("*/" * k + f"{name}/dataset_card.json"):
+                    return card.parent
     return None
 
 

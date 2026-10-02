@@ -120,20 +120,25 @@ class GatedCrossScan(nn.Module):
                 + as_cols(y[:, 2]) + as_cols(y[:, 3].flip(-1)))
 
     def forward(self, xv, xt, rv, rt):
+        # the whole SSM path stays in float32: over 10k tokens the state overflows float16
+        with torch.autocast(device_type=xv.device.type, enabled=False):
+            return self._forward(xv.float(), xt.float(), rv.float(), rt.float())
+
+    def _forward(self, xv, xt, rv, rt):
         b, d, h, w = xv.shape
         K, n, r = self.K, self.n, self.r
         seqs = self._orders(torch.stack([xv, xt], dim=-1))           # (b, K, d, L)
         rel = self._orders(torch.stack([rv, rt], dim=-1))            # (b, K, 1, L)
         L = seqs.shape[-1]
 
-        x_dbl = torch.einsum("bkdl,kcd->bkcl", seqs, self.x_proj)   # (b, K, r+2n, L)
+        x_dbl = torch.einsum("bkdl,kcd->bkcl", seqs, self.x_proj.float())   # (b, K, r+2n, L)
         dts, Bs, Cs = torch.split(x_dbl, [r, n, n], dim=2)
-        dts = torch.einsum("bkrl,kdr->bkdl", dts, self.dt_w) + self.dt_b[None, :, :, None]
+        dts = torch.einsum("bkrl,kdr->bkdl", dts, self.dt_w.float()) + self.dt_b.float()[None, :, :, None]
         delta = F.softplus(dts) * rel                                # r -> 0 skips the token, state untouched
 
         A = -torch.exp(self.A_log.float())
         y = selective_scan(seqs.reshape(b, K * d, L), delta.reshape(b, K * d, L), A,
-                           Bs.contiguous(), Cs.contiguous(), self.D, impl=self.impl,
+                           Bs.contiguous(), Cs.contiguous(), self.D.float(), impl=self.impl,
                            **({} if self.impl == "cuda" else
                               {"chunk": self.chunk, "use_checkpoint": self.use_checkpoint}))
         Y = self._merge(y.view(b, K, d, L), h, w)
@@ -193,8 +198,8 @@ class CMFM(nn.Module):
         ft = self.align(fv, ft) if self.align is not None else ft
         pv, pt = self.phi_v(fv), self.phi_t(ft)
         yv, yt = self.mixer(pv, pt, rv, rt)
-        mix = self.proj(torch.cat([self.norm(torch.cat([yv, yt], 1)),
-                                   self.local(torch.cat([pv, pt], 1))], dim=1))
+        mix = self.proj(torch.cat([self.norm(torch.cat([yv, yt], 1)),   # float32 until normalised
+                                   self.local(torch.cat([pv, pt], 1))], dim=1).to(fv.dtype))
         z = (rv * fv + rt * ft) / (rv + rt + EPS) + mix
         self.last = {"rv": rv.detach(), "rt": rt.detach(), "rho": torch.maximum(rv, rt).detach()}
         return z

@@ -113,6 +113,7 @@ def wait(ids, every=120):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(errors="replace")
     cmd, *ids = sys.argv[1:] or ["status"]
     if cmd == "upload":
         upload(" ".join(ids) or "update")

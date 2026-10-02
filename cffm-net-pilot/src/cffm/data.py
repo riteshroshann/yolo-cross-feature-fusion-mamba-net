@@ -108,9 +108,16 @@ def build_dataset(cfg, img_path, batch, data, mode="train", rect=False, stride=3
 def _find_dir(root: Path, names) -> Path | None:
     """First directory under root (any depth) whose name is in `names` (case-insensitive)."""
     names = {n.lower() for n in names}
-    for p in sorted(root.rglob("*")):
-        if p.is_dir() and p.name.lower() in names:
-            return p
+    level = [Path(root)]
+    while level:  # breadth-first over folders only; files are never listed twice
+        nxt = []
+        for d in level:
+            subs = sorted(p for p in d.iterdir() if p.is_dir())
+            for p in subs:
+                if p.name.lower() in names:
+                    return p
+            nxt += subs
+        level = nxt
     return None
 
 
@@ -206,13 +213,13 @@ def convert_llvip(raw: str | Path, out: str | Path, imgsz=640, train_stride=3, v
     ann = _find_dir(raw, ["Annotations", "annotation"])
     if not (vis_root and ir_root and ann):
         raise FileNotFoundError(f"LLVIP folders visible/, infrared/, Annotations/ not found under {raw}")
-    pairs = []
+    pairs, xml = [], {p.stem for p in ann.iterdir()}
     for src_split, dst_split, stride in (("train", "train", train_stride), ("test", "val", val_stride)):
         files = sorted((vis_root / src_split).glob("*.jpg"))[::stride]
+        ir = {p.name for p in (ir_root / src_split).iterdir()}
         for v in files:
-            i, x = ir_root / src_split / v.name, ann / f"{v.stem}.xml"
-            if i.exists() and x.exists():
-                pairs.append((v, i, x, dst_split, v.stem))
+            if v.name in ir and v.stem in xml:
+                pairs.append((v, ir_root / src_split / v.name, ann / f"{v.stem}.xml", dst_split, v.stem))
     meta = {"dataset": "LLVIP", "source": "https://bupt-ai-cz.github.io/LLVIP/",
             "split": f"official train (every {train_stride}th frame) / official test (every {val_stride}th)"}
     return _convert(pairs, out, ["person"], imgsz, workers, meta)
@@ -229,16 +236,15 @@ def convert_m3fd(raw: str | Path, out: str | Path, imgsz=640, val_frac=0.2, seed
     ann = _find_dir(raw, ["Annotation", "Annotations", "Labels"])
     if not (vis_root and ir_root and ann):
         raise FileNotFoundError(f"M3FD folders Vis/, Ir/, Annotation/ not found under {raw}")
-    stems = sorted(p.stem for p in vis_root.iterdir() if p.suffix.lower() in {".png", ".jpg", ".bmp"})
+    exts = {".png", ".jpg", ".bmp"}
+    vis = {p.stem: p for p in vis_root.iterdir() if p.suffix.lower() in exts}   # one listing per folder
+    ir = {p.stem: p for p in ir_root.iterdir() if p.suffix.lower() in exts}
+    xml = {p.stem for p in ann.iterdir() if p.suffix.lower() == ".xml"}
+    stems = sorted(vis)
     rng = random.Random(seed)
     val = set(rng.sample(stems, round(len(stems) * val_frac)))
-    pairs = []
-    for s in stems:
-        v = next(vis_root.glob(f"{s}.*"))
-        i = next(ir_root.glob(f"{s}.*"), None)
-        x = ann / f"{s}.xml"
-        if i is not None and x.exists():
-            pairs.append((v, i, x, "val" if s in val else "train", s))
+    pairs = [(vis[s], ir[s], ann / f"{s}.xml", "val" if s in val else "train", s)
+             for s in stems if s in ir and s in xml]
     meta = {"dataset": "M3FD", "source": "https://github.com/JinyuanLiu-CV/TarDAL",
             "split": f"seeded random {int((1 - val_frac) * 100)}/{int(val_frac * 100)} (seed={seed})"}
     return _convert(pairs, out, M3FD_NAMES, imgsz, workers, meta)

@@ -76,6 +76,30 @@ def test_cmfm_backward():
     assert all(p.grad is not None for n, p in blk.named_parameters() if p.requires_grad and "proj" in n)
 
 
+def test_scan_path_stays_float32_under_autocast():
+    scan = GatedCrossScan(16, directions=4, impl="torch")
+    x = torch.randn(1, 16, 6, 6) * 100
+    r = torch.ones(1, 1, 6, 6)
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        yv, yt = scan(x, x, r, r)
+        z = CMFM(32, impl="torch")(torch.randn(1, 32, 6, 6), torch.randn(1, 32, 6, 6))
+    assert yv.dtype == yt.dtype == torch.float32 and torch.isfinite(yv).all() and torch.isfinite(z).all()
+
+
+def test_half_model_forward():
+    # Ultralytics evaluates with model.half(); every weight and input is float16 then
+    m = CMFM(32, impl="torch").eval().half()
+    fv, ft = torch.randn(1, 32, 6, 6).half(), torch.randn(1, 32, 6, 6).half()
+    try:
+        with torch.no_grad():
+            z = m(fv, ft)
+    except RuntimeError as e:
+        if "not implemented for 'Half'" in str(e):
+            pytest.skip("no float16 kernels on this CPU")
+        raise
+    assert z.dtype == torch.float16 and torch.isfinite(z).all()
+
+
 def test_other_fusers_shapes():
     fv, ft = feats()
     assert ConcatFusion(32)(fv, ft).shape == fv.shape
