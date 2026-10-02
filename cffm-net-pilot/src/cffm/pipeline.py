@@ -1,17 +1,6 @@
-"""
-Glue for running the pilot as a set of notebooks, on Kaggle or locally.
+"""Glue for the pilot notebooks: find data, conversions and checkpoints wherever Kaggle mounted them.
 
-Kaggle gives every notebook a fresh, empty /kaggle/working and mounts inputs
-read-only under /kaggle/input/<name>/. So each notebook has to be able to:
-
-  * find the raw datasets wherever they were mounted        locate_raw()
-  * convert them once, or reuse a conversion already done   prepare()
-  * find checkpoints produced by earlier notebooks          find_checkpoints()
-  * read the run plan, so every notebook trains the same    load_plan(), run_spec()
-    configuration with the same settings
-
-All run settings live in configs/pilot.yaml. Notebooks never hard-code an
-epoch count or a batch size; change the YAML and every notebook follows.
+All run settings come from configs/pilot.yaml; notebooks never hard-code them.
 """
 from __future__ import annotations
 
@@ -26,9 +15,6 @@ from . import data as cdata
 INPUT_ROOTS = [Path("/kaggle/input"), Path("/content/drive/MyDrive")]
 
 
-# --------------------------------------------------------------------------- #
-# the run plan
-# --------------------------------------------------------------------------- #
 def load_plan(project: Path) -> dict:
     return yaml.safe_load((Path(project) / "configs" / "pilot.yaml").read_text())
 
@@ -45,12 +31,8 @@ def runs_for(plan: dict, notebook: str) -> list[dict]:
     return [run_spec(plan, r["name"]) for r in plan["runs"] if str(r.get("notebook")) == str(notebook)]
 
 
-# --------------------------------------------------------------------------- #
-# finding raw data
-# --------------------------------------------------------------------------- #
 def copy_writable(src: Path, dst: Path) -> Path:
-    """Copy a folder out of a read-only input. Plain shutil.copytree keeps the read-only modes, and then
-    the YAMLs cannot be rewritten, Ultralytics cannot write its label caches and a run cannot resume."""
+    """Copy a folder out of a read-only input and make it writable; plain copytree keeps read-only modes."""
     shutil.copytree(src, dst, copy_function=shutil.copyfile, dirs_exist_ok=True)
     for p in [dst, *dst.rglob("*")]:
         p.chmod(p.stat().st_mode | 0o200)
@@ -66,7 +48,7 @@ def _looks_like_llvip(p: Path) -> bool:
 
 
 def _looks_like_m3fd(p: Path) -> bool:
-    if not p.is_dir() or _looks_like_llvip(p):  # LLVIP's visible/infrared/Annotations would pass the test below
+    if not p.is_dir() or _looks_like_llvip(p):  # LLVIP would pass the test below
         return False
     names = {c.name.lower() for c in p.iterdir() if c.is_dir()}
     return bool(names & {"vis", "visible"}) and bool(names & {"ir", "infrared"}) and \
@@ -106,11 +88,7 @@ def find_converted(name: str, env) -> Path | None:
 
 
 def prepare(name: str, env, plan: dict | None = None, force: bool = False) -> Path:
-    """Return a converted dataset folder, converting from raw only if needed.
-
-    A conversion found under /kaggle/input is copied to /kaggle/working first,
-    because data YAMLs carry absolute paths and inputs are read-only.
-    """
+    """Return a converted dataset folder, converting from raw only if needed; inputs are copied out first."""
     opts = ((plan or {}).get("datasets") or {}).get(name, {})
     out = env.data / name
     if not force:
@@ -131,9 +109,6 @@ def prepare(name: str, env, plan: dict | None = None, force: bool = False) -> Pa
     return out
 
 
-# --------------------------------------------------------------------------- #
-# finding checkpoints and results from earlier notebooks
-# --------------------------------------------------------------------------- #
 def find_checkpoints(env) -> dict[str, Path]:
     """{run name: best.pt (or last.pt)} from this session and from attached notebook outputs."""
     found = {}
@@ -144,8 +119,7 @@ def find_checkpoints(env) -> dict[str, Path]:
 
 
 def find_prior_run(name: str) -> Path | None:
-    """The folder of run `name` in an attached input (an earlier version of this notebook), if any.
-    Prefers the copy with the most finished epochs."""
+    """Run `name` in an attached input, if any, preferring the copy with the most finished epochs."""
     best, best_rows = None, -1
     for root in [r for r in INPUT_ROOTS if r.exists()]:
         for w in root.glob(f"**/{name}/weights/last.pt"):
@@ -169,12 +143,7 @@ def find_metrics(env, kind: str = "eval") -> dict[str, dict]:
 
 
 def train_from_spec(spec: dict, env, device=None, evaluate_after: bool = True, **override) -> dict:
-    """Train one run from configs/pilot.yaml, then evaluate it on the full validation set.
-
-    Returns {'run': name, 'weights': path, 'metrics': {...}}. Skips training if
-    a finished checkpoint for this run already exists (re-running a notebook
-    after a Kaggle session ends does not start from zero).
-    """
+    """Train one run from configs/pilot.yaml, reusing or resuming earlier progress, then evaluate it."""
     from .env import save_versions
     from .train import evaluate, train_run
 
@@ -190,7 +159,7 @@ def train_from_spec(spec: dict, env, device=None, evaluate_after: bool = True, *
     run_dir = env.runs / name
     if not run_dir.exists():
         prior = find_prior_run(name)
-        if prior is not None:  # a new Kaggle session, with an earlier version's output attached
+        if prior is not None:  # new Kaggle session with an earlier version's output attached
             print(f"[{name}] continuing from an attached output: {prior}")
             copy_writable(prior, run_dir)
     done = run_dir / "weights" / "best.pt"
@@ -201,7 +170,7 @@ def train_from_spec(spec: dict, env, device=None, evaluate_after: bool = True, *
         keys = ("epochs", "imgsz", "batch", "seed", "workers", "close_mosaic", "patience", "amp", "cache")
         kw = {k: spec[k] for k in keys if k in spec}
         resume_from = run_dir / "weights" / "last.pt"
-        if resume_from.exists():  # a Kaggle session ended mid-run: pick up where it stopped
+        if resume_from.exists():  # a Kaggle session ended mid-run
             print(f"[{name}] resuming from {resume_from}")
             kw = {"resume": str(resume_from)}
         best = train_run(name, model_path, str(data_yaml), pretrained=weights_file(env), device=device,

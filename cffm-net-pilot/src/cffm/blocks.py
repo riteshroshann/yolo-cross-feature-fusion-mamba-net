@@ -1,27 +1,6 @@
-"""
-Fusion blocks of CFFM-Net.
+"""CFFM-Net fusion blocks: CMFM, its parts, and the baseline fusers.
 
-The story of one fusion step, at one pyramid level, in plain words:
-
-  1. Look at the visible and thermal feature maps side by side and decide, at
-     every pixel, how much to trust each one (ReliabilityHead).
-  2. Nudge the thermal features so they line up with the visible ones; real
-     camera pairs are never perfectly registered (OffsetAlign).
-  3. Interleave the two modalities into one token sequence, visible then
-     thermal at every location, and run a selective scan over it in four
-     directions. The step size of every token is multiplied by that token's
-     reliability, so an untrustworthy token can neither write into the state
-     nor wipe it (GatedCrossScan).
-  4. Add a cheap local convolution branch, project back, and add a
-     reliability-weighted average of the inputs as the residual (CMFM).
-
-Everything is shape-annotated: b = batch, c = channels of the backbone level,
-d = channels inside the block, h, w = spatial size, L = sequence length.
-
-Also here, so the ablations share every line of code they can:
-  * ReliabilityWeightedSum   the cheap fuser used at stride 4 (P2)
-  * ConcatFusion             the naive two-stream baseline
-  * GatedConvMixer           the MambaOut-style control: same block, no SSM
+Shapes: b batch, c level channels, d block channels, h w spatial, L sequence length.
 """
 from __future__ import annotations
 
@@ -36,9 +15,6 @@ from .scan import selective_scan
 EPS = 1e-6
 
 
-# --------------------------------------------------------------------------- #
-# small helpers
-# --------------------------------------------------------------------------- #
 class LayerNorm2d(nn.Module):
     """LayerNorm over channels for (b, c, h, w) tensors."""
 
@@ -62,48 +38,26 @@ def conv_bn_act(c_in: int, c_out: int, k: int = 1, groups: int = 1, act: bool = 
     return nn.Sequential(*layers)
 
 
-# --------------------------------------------------------------------------- #
-# 1. how much do we trust each sensor, here?
-# --------------------------------------------------------------------------- #
 class ReliabilityHead(nn.Module):
-    """Per-pixel reliability r in (0, 1) for each modality.
-
-    Input is [F_v, F_t, |F_v - F_t|]: the two views plus where they disagree,
-    because disagreement is the most direct hint that one of them is degraded.
-    The last conv is zero-initialised with bias +2, so at the start of training
-    r = sigmoid(2) = 0.88 everywhere: trust both, then learn when not to.
-
-    `flags` (b, 2) are hard sensor-availability bits from the outside world
-    (1 = frame arrived, 0 = sensor missing). They simply multiply r, so a known
-    outage needs no learning at all.
-    """
+    """Per-pixel reliability r in (0, 1) for each modality, from [F_v, F_t, |F_v - F_t|]."""
 
     def __init__(self, c: int, init_bias: float = 2.0):
         super().__init__()
-        self.body = conv_bn_act(3 * c, 3 * c, k=3, groups=3 * c)    # depthwise, cheap
+        self.body = conv_bn_act(3 * c, 3 * c, k=3, groups=3 * c)
         self.out = nn.Conv2d(3 * c, 2, 1)
         nn.init.zeros_(self.out.weight)
         nn.init.constant_(self.out.bias, init_bias)
 
     def forward(self, fv, ft, flags=None):
-        x = torch.cat([fv, ft, (fv - ft).abs()], dim=1)              # (b, 3c, h, w)
-        r = torch.sigmoid(self.out(self.body(x)))                    # (b, 2, h, w)
+        x = torch.cat([fv, ft, (fv - ft).abs()], dim=1)
+        r = torch.sigmoid(self.out(self.body(x)))                    # starts at sigmoid(2) = 0.88: trust both
         if flags is not None:
             r = r * flags.to(device=r.device, dtype=r.dtype)[:, :, None, None]
-        return r[:, :1], r[:, 1:]                                    # (b, 1, h, w) each
+        return r[:, :1], r[:, 1:]
 
 
-# --------------------------------------------------------------------------- #
-# 2. line the thermal features up with the visible ones
-# --------------------------------------------------------------------------- #
 class OffsetAlign(nn.Module):
-    """Predict a small displacement field and resample thermal onto visible.
-
-    The last conv is zero-initialised and the output goes through tanh, so the
-    block starts as the identity and can never move a feature by more than
-    `max_disp` cells of this pyramid level. This follows the offset guidance of
-    COMO, applied here before the scan.
-    """
+    """Warp thermal onto visible by a learned offset of at most max_disp cells, starting at identity."""
 
     def __init__(self, c: int, max_disp: float = 4.0):
         super().__init__()
@@ -119,34 +73,14 @@ class OffsetAlign(nn.Module):
         ys = torch.linspace(-1, 1, h, device=ft.device, dtype=ft.dtype)
         xs = torch.linspace(-1, 1, w, device=ft.device, dtype=ft.dtype)
         gy, gx = torch.meshgrid(ys, xs, indexing="ij")
-        grid = torch.stack([gx, gy], dim=-1).unsqueeze(0)            # (1, h, w, 2), identity grid
+        grid = torch.stack([gx, gy], dim=-1).unsqueeze(0)
         scale = torch.tensor([2.0 / max(w - 1, 1), 2.0 / max(h - 1, 1)], device=ft.device, dtype=ft.dtype)
         grid = grid + off.permute(0, 2, 3, 1) * scale                # cells -> normalised coords
         return F.grid_sample(ft, grid, mode="bilinear", padding_mode="border", align_corners=True)
 
 
-# --------------------------------------------------------------------------- #
-# 3. the heart of it: interleaved cross-modal scan with reliability-gated steps
-# --------------------------------------------------------------------------- #
 class GatedCrossScan(nn.Module):
-    """Selective scan over interleaved visible/thermal tokens, K directions.
-
-    Token order (direction 0) for an h x w map is
-
-        v(0,0) t(0,0) v(0,1) t(0,1) ... v(h-1,w-1) t(h-1,w-1)
-
-    so the hidden state hops visible -> thermal -> visible at every location:
-    fusion happens *inside* the state, not after it. Directions 1..3 are the
-    reverse, column-major and reverse column-major orders (VMamba's SS2D), each
-    with its own parameters; outputs are mapped back and summed.
-
-    The only change to a standard Mamba scan is one line:
-
-        delta = softplus(dt_proj(x) + bias) * r          # r = token reliability
-
-    With r -> 0 the step goes to 0, so exp(delta*A) -> 1 and delta*B -> 0: the
-    token is skipped and the state carries on untouched.
-    """
+    """Selective scan over interleaved v/t tokens in K directions, step size scaled by token reliability."""
 
     def __init__(self, d: int, d_state: int = 8, directions: int = 4, dt_rank: int | None = None,
                  dt_min: float = 1e-3, dt_max: float = 1e-1, impl: str = "auto",
@@ -158,23 +92,20 @@ class GatedCrossScan(nn.Module):
         self.impl, self.chunk, self.use_checkpoint = impl, chunk, use_checkpoint
         K, r, n = self.K, self.r, self.n
 
-        # x -> (dt, B, C), one projection per direction
         bound = 1.0 / math.sqrt(d)
         self.x_proj = nn.Parameter(torch.empty(K, r + 2 * n, d).uniform_(-bound, bound))
-        # dt -> per-channel step, initialised so softplus(bias) lies in [dt_min, dt_max]
+        # softplus(dt_b) starts in [dt_min, dt_max]
         self.dt_w = nn.Parameter(torch.empty(K, d, r).uniform_(-r ** -0.5, r ** -0.5))
         dt = torch.exp(torch.rand(K, d) * (math.log(dt_max) - math.log(dt_min)) + math.log(dt_min))
         self.dt_b = nn.Parameter(dt + torch.log(-torch.expm1(-dt)))  # inverse softplus
-        # A = -exp(A_log) with the usual 1..n initialisation; D = skip
         self.A_log = nn.Parameter(torch.log(torch.arange(1, n + 1, dtype=torch.float32)).repeat(K * d, 1))
         self.D = nn.Parameter(torch.ones(K * d))
 
-    # -- ordering helpers --------------------------------------------------- #
     def _orders(self, X):
-        """(b, c, h, w, 2) -> (b, K, c, L) with L = 2hw, in the K scan orders."""
+        """(b, c, h, w, 2) -> (b, K, c, L), L = 2hw, v and t interleaved at each location."""
         b, c = X.shape[:2]
-        rows = X.reshape(b, c, -1)                                   # (h, w, m) flattened
-        cols = X.permute(0, 1, 3, 2, 4).reshape(b, c, -1)            # (w, h, m) flattened
+        rows = X.reshape(b, c, -1)
+        cols = X.permute(0, 1, 3, 2, 4).reshape(b, c, -1)
         seqs = [rows, cols] if self.K == 2 else [rows, rows.flip(-1), cols, cols.flip(-1)]
         return torch.stack(seqs, dim=1)
 
@@ -189,7 +120,6 @@ class GatedCrossScan(nn.Module):
                 + as_cols(y[:, 2]) + as_cols(y[:, 3].flip(-1)))
 
     def forward(self, xv, xt, rv, rt):
-        # xv, xt: (b, d, h, w)    rv, rt: (b, 1, h, w)
         b, d, h, w = xv.shape
         K, n, r = self.K, self.n, self.r
         seqs = self._orders(torch.stack([xv, xt], dim=-1))           # (b, K, d, L)
@@ -199,25 +129,19 @@ class GatedCrossScan(nn.Module):
         x_dbl = torch.einsum("bkdl,kcd->bkcl", seqs, self.x_proj)   # (b, K, r+2n, L)
         dts, Bs, Cs = torch.split(x_dbl, [r, n, n], dim=2)
         dts = torch.einsum("bkrl,kdr->bkdl", dts, self.dt_w) + self.dt_b[None, :, :, None]
-        delta = F.softplus(dts) * rel                                # <- the reliability gate
+        delta = F.softplus(dts) * rel                                # r -> 0 skips the token, state untouched
 
-        A = -torch.exp(self.A_log.float())                           # (K*d, n)
+        A = -torch.exp(self.A_log.float())
         y = selective_scan(seqs.reshape(b, K * d, L), delta.reshape(b, K * d, L), A,
                            Bs.contiguous(), Cs.contiguous(), self.D, impl=self.impl,
                            **({} if self.impl == "cuda" else
                               {"chunk": self.chunk, "use_checkpoint": self.use_checkpoint}))
-        Y = self._merge(y.view(b, K, d, L), h, w)                    # (b, d, h, w, 2)
+        Y = self._merge(y.view(b, K, d, L), h, w)
         return Y[..., 0], Y[..., 1]
 
 
 class GatedConvMixer(nn.Module):
-    """The control for contribution C4: same interface, no state-space model.
-
-    Reliability gates the *input* (there is no step size to gate), then a
-    gated depthwise convolution mixes space and a 1x1 conv mixes modalities.
-    `expand` widens the hidden layer so its cost can be matched to the scan;
-    notebook 08 chooses it by measuring GFLOPs of both.
-    """
+    """The C4 control: same interface as GatedCrossScan, gated depthwise conv instead of the SSM."""
 
     def __init__(self, d: int, kernel: int = 7, expand: float = 2.0):
         super().__init__()
@@ -228,23 +152,13 @@ class GatedConvMixer(nn.Module):
         self.out = nn.Conv2d(hid, 2 * d, 1)
 
     def forward(self, xv, xt, rv, rt):
-        x = torch.cat([xv * rv, xt * rt], dim=1)                     # (b, 2d, h, w)
+        x = torch.cat([xv * rv, xt * rt], dim=1)                     # no step size here, so gate the input
         y = self.out(self.dw(self.inp(x)) * torch.sigmoid(self.gate(x)))
         return y.chunk(2, dim=1)
 
 
-# --------------------------------------------------------------------------- #
-# 4. the full Cross-Modal Fusion Mamba block
-# --------------------------------------------------------------------------- #
 class CMFM(nn.Module):
-    """Cross-Modal Fusion Mamba block: (F_v, F_t) -> Z, all (b, c, h, w).
-
-    Arguments that matter for the ablations:
-      mixer  'ssm'   the reliability-gated cross scan (CFFM-Net)
-             'gconv' the gated-convolution control (C4)
-      gate   False forces r = 1 everywhere (gating-off ablation, C1)
-      align  False skips the offset alignment
-    """
+    """Cross-Modal Fusion Mamba block: (F_v, F_t) -> Z, all (b, c, h, w)."""
 
     def __init__(self, c: int, ratio: float = 0.5, d_state: int = 8, directions: int = 4,
                  mixer: str = "ssm", gate: bool = True, align: bool = True, impl: str = "auto",
@@ -254,8 +168,7 @@ class CMFM(nn.Module):
         self.gate, self.c, self.d = gate, c, d
         self.rel = ReliabilityHead(c) if gate else None   # no unused parameters when gating is off
         self.align = OffsetAlign(c) if align else None
-        # per-modality projection into the block: 1x1 conv then a 3x3 depthwise
-        # conv for local context (the role Mamba's short causal conv plays in 1D)
+        # the 3x3 depthwise conv plays the role of Mamba's short causal conv
         self.phi_v = nn.Sequential(conv_bn_act(c, d, 1), conv_bn_act(d, d, 3, groups=d))
         self.phi_t = nn.Sequential(conv_bn_act(c, d, 1), conv_bn_act(d, d, 3, groups=d))
         if mixer == "ssm":
@@ -278,8 +191,8 @@ class CMFM(nn.Module):
         else:
             rv = rt = torch.ones_like(fv[:, :1])
         ft = self.align(fv, ft) if self.align is not None else ft
-        pv, pt = self.phi_v(fv), self.phi_t(ft)                      # (b, d, h, w)
-        yv, yt = self.mixer(pv, pt, rv, rt)                          # (b, d, h, w)
+        pv, pt = self.phi_v(fv), self.phi_t(ft)
+        yv, yt = self.mixer(pv, pt, rv, rt)
         mix = self.proj(torch.cat([self.norm(torch.cat([yv, yt], 1)),
                                    self.local(torch.cat([pv, pt], 1))], dim=1))
         z = (rv * fv + rt * ft) / (rv + rt + EPS) + mix
@@ -288,8 +201,7 @@ class CMFM(nn.Module):
 
 
 class ReliabilityWeightedSum(nn.Module):
-    """Stride-4 fuser: at 160 x 128 a scan would be expensive and buys little,
-    so P2 gets a reliability-weighted average and nothing more."""
+    """P2 fuser: a reliability-weighted average, since a scan at stride 4 is costly and buys little."""
 
     def __init__(self, c: int, gate: bool = True):
         super().__init__()
@@ -318,11 +230,7 @@ class ConcatFusion(nn.Module):
 
 
 def build_fuser(kind: str, c: int, level: int, cfg: dict) -> nn.Module:
-    """One fuser for one pyramid level.
-
-    kind 'concat' gives the baseline everywhere. Otherwise P2 gets the
-    reliability-weighted sum and P3..P5 get CMFM with the configured mixer.
-    """
+    """One fuser per level: concat everywhere, or a weighted sum at P2 and CMFM at P3..P5."""
     if kind == "concat":
         return ConcatFusion(c)
     gate = cfg.get("gate", True)

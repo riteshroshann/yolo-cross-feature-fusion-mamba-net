@@ -1,14 +1,6 @@
-"""
-Generate every pilot notebook from one script.
-
-Why generate notebooks instead of editing them by hand? Because eleven
-notebooks that share a setup cell drift apart the moment one is edited. Here
-the shared parts are written once, the notebooks are rebuilt in a second, and
-a diff of this file is a readable diff of the whole workflow.
+"""Generate every pilot notebook from one script, so the shared cells never drift apart.
 
     python tools/build_notebooks.py
-
-Notebooks are written without outputs; they are meant to be run on Kaggle.
 """
 from pathlib import Path
 
@@ -36,20 +28,8 @@ def write(path, cells):
     print("wrote", path)
 
 
-# --------------------------------------------------------------------------- #
-# the cell every notebook starts with
-# --------------------------------------------------------------------------- #
 SETUP = code('''
-# --------------------------------------------------------------------------------------------
-# Setup: the same cell opens every notebook. It finds the code, installs it, and checks the GPU.
-#
-# On Kaggle the uploaded cffm-net-pilot.zip appears, already unzipped, somewhere under
-# /kaggle/input. Inputs are read-only, so we copy the project to /kaggle/working and install
-# it from there ("pip install -e" makes `import cffm` work in this kernel, in DataLoader
-# workers, and in the extra processes Ultralytics starts when it trains on two GPUs).
-# Locally, notebooks live in cffm-net-pilot/notebooks/<phase>/; the project is the first folder up
-# that contains src/cffm.
-# --------------------------------------------------------------------------------------------
+# Same setup cell in every notebook: find the project, install it, check the GPU.
 import glob, shutil, subprocess, sys
 from pathlib import Path
 
@@ -57,12 +37,10 @@ ON_KAGGLE = Path("/kaggle/working").exists()
 if ON_KAGGLE:
     PROJECT = Path("/kaggle/working/cffm-net-pilot")
     if not PROJECT.exists():
-        # Up to five levels deep: /kaggle/input/<slug>/, /kaggle/input/<slug>/cffm-net-pilot/,
-        # /kaggle/input/datasets/<owner>/<slug>/..., whichever layout this Kaggle version uses.
+        # Kaggle mounts datasets at different depths under /kaggle/input, so search five levels.
         hits = [Path(p).parent for k in range(1, 6) for p in glob.glob("/kaggle/input" + "/*" * k + "/pyproject.toml")
                 if (Path(p).parent / "src" / "cffm").is_dir()]
-        # Saved outputs of earlier notebooks also hold a copy of the code, next to their runs/ or data/.
-        # Prefer the uploaded dataset, so a stale copy can never win.
+        # Earlier notebooks' outputs hold stale copies of the code, so prefer the uploaded dataset.
         hits.sort(key=lambda h: any((h.parent / d).exists() for d in ("runs", "data")))
         zips = [Path(p) for k in range(1, 5) for p in glob.glob("/kaggle/input" + "/*" * k + ".zip")
                 if "cffm" in Path(p).name]
@@ -75,6 +53,7 @@ if ON_KAGGLE:
             p.chmod(p.stat().st_mode | 0o200)
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "ultralytics==8.4.171",
                     "faster-coco-eval>=1.6.7", "cloudpickle", "pytest"], check=True)   # cloudpickle: two-GPU launcher
+    # Editable install, so DataLoader and DDP worker processes can import cffm too.
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "-e", str(PROJECT)], check=True)
 else:
     PROJECT = next(p for p in [Path.cwd().resolve(), *Path.cwd().resolve().parents] if (p / "src" / "cffm").is_dir())
@@ -83,8 +62,8 @@ sys.path.insert(0, str(PROJECT / "src"))
 import cffm
 from cffm import env as cenv, pipeline
 print("cffm", cffm.__version__, "imported from", Path(cffm.__file__).parent)   # must be inside PROJECT
-env = cenv.setup()                       # prints platform, GPUs and paths; moves into the project folder
-plan = pipeline.load_plan(env.project)   # configs/pilot.yaml: every run and its settings
+env = cenv.setup()                       # also moves into the project folder
+plan = pipeline.load_plan(env.project)   # configs/pilot.yaml
 ''')
 
 
@@ -104,7 +83,7 @@ def header(title, purpose, inputs, runtime, outputs):
 
 
 def figure(*names, width=820):
-    # A code cell that shows methodology diagrams from docs/figures (built by docs/figures/build_figures.py).
+    # Diagrams come from docs/figures/build_figures.py.
     return code(f"""
 from IPython.display import Image, display
 for name in {names!r}:
@@ -123,16 +102,12 @@ pd.DataFrame(specs)[cols]
 '''
 
 TRAIN_LOOP = '''
-# Train every run of this notebook, then evaluate each on the FULL validation set.
-# If the Kaggle session dies halfway, just run the notebook again: finished runs are reused
-# and an unfinished run resumes from its last checkpoint (see pipeline.train_from_spec).
+# Finished runs are reused and unfinished ones resume, so just rerun if the Kaggle session dies.
 results = [pipeline.train_from_spec(s, env) for s in specs]
 '''
 
 CURVES = '''
-# Learning curves straight from Ultralytics' results.csv. Two things to look for:
-#   - validation mAP still climbing at the last epoch -> the pilot schedule is short (expected)
-#   - training loss going down while validation mAP goes down too -> overfitting (not expected in 30 epochs)
+# Val mAP still rising at the end is expected; val mAP falling with the loss would mean overfitting.
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -154,8 +129,7 @@ plt.tight_layout(); plt.show()
 '''
 
 SUMMARY = '''
-# The numbers that matter, from the full validation set. AP is COCO AP50-95.
-# AP_vt / AP_t / AP_s are the AI-TOD size bands (<8, 8-16, 16-32 px); mAP_small is COCO's <32 px.
+# AP_vt / AP_t / AP_s are the AI-TOD size bands (<8, 8-16, 16-32 px).
 import pandas as pd
 keys = ["mAP50-95(B)", "mAP50(B)", "mAP_small(B)", "AP_vt(B)", "AP_t(B)", "AP_s(B)", "AP_m(B)", "AP_l(B)"]
 rows = [{"run": r["run"], **{k.replace("(B)", ""): r["metrics"].get(k) for k in keys}} for r in results]
@@ -163,8 +137,7 @@ pd.DataFrame(rows).set_index("run").round(4)
 '''
 
 CLEANUP = code('''
-# On Kaggle everything in /kaggle/working becomes this notebook's saved output. The converted data can be
-# rebuilt in minutes (or attached from notebook 02), so drop it and keep the output to runs and checkpoints.
+# /kaggle/working becomes the saved output, and the data is cheap to rebuild, so keep only the runs.
 if env.platform == "kaggle":
     shutil.rmtree(env.data, ignore_errors=True)
 ''')
@@ -172,29 +145,22 @@ if env.platform == "kaggle":
 SAVE_NOTE = md('''
 ### Keep the results
 
-On Kaggle, click **Save Version → Save & Run All (Commit)**. The notebook then reruns top to bottom in the
-background, and its `runs/` folder becomes an output that notebooks **09** and **15** can attach as an input
-(*Add Input → Your Work → this notebook*). Without a saved version, the checkpoints vanish when the session ends.
+On Kaggle, click **Save Version → Save & Run All (Commit)** so `runs/` becomes an output that notebooks **09**
+and **15** can attach (*Add Input → Your Work → this notebook*). Without a saved version the checkpoints vanish.
 ''')
 
 
-# --------------------------------------------------------------------------- #
-# Phase 0
-# --------------------------------------------------------------------------- #
 def nb00():
     write("notebooks/phase0_environment/00_environment_setup.ipynb", [
         header("00 · Environment setup and checks",
-               "Phase 0 of the CFFM-Net pilot. Before spending a single GPU-hour on training we prove, on this "
-               "exact machine, that every moving part works: the libraries, the GPUs, the selective scan, the "
-               "model, the paired data loader, two-GPU training, evaluation and the degradation probe. If "
-               "something is broken this is the cheapest place to find out: everything downstream would have "
-               "failed too.",
+               "Phase 0 of the CFFM-Net pilot: before any training, prove that every moving part works on this "
+               "exact machine. If something is broken, this is the cheapest place to find out.",
                "`cffm-net-pilot` (the uploaded zip)", "about 10 to 15 minutes",
                "a go / no-go answer, measured scan speed and memory, and `weights/yolo26n.pt`"),
         SETUP,
-        md("## 0. The pilot at a glance\n\nEleven notebooks in two phases. Solid arrows carry data and checkpoints; "
-           "dashed arrows carry metrics. The four training notebooks (04, 05, 07, 08) are independent Kaggle "
-           "sessions. Notebooks 09 and 15 read their saved outputs, and 15 decides the five pre-registered hypotheses."),
+        md("## 0. The pilot at a glance\n\nEleven notebooks in two phases; solid arrows carry data and checkpoints, "
+           "dashed arrows metrics. The training notebooks (04, 05, 07, 08) are separate Kaggle sessions whose "
+           "saved outputs 09 and 15 read."),
         figure("fig_workflow", width=900),
         md("## 1. What are we running on?"),
         code('''
@@ -203,14 +169,11 @@ print(json.dumps(cenv.versions(), indent=2))
 for i in range(torch.cuda.device_count()):
     p = torch.cuda.get_device_properties(i)
     print(f"GPU {i}: {p.name}, {p.total_memory / 2**30:.1f} GB, compute capability {p.major}.{p.minor}")
-# A T4 is compute capability 7.5. It has no bfloat16, so mixed precision uses float16, which is why
-# cffm/scan.py always runs the recurrence itself in float32 (half precision loses long products of
-# numbers below 1 very quickly).
+# A T4 has no bfloat16, so AMP uses float16 and cffm/scan.py keeps the recurrence in float32.
 assert torch.cuda.is_available(), "No GPU: set Accelerator to 'GPU T4 x2' in the notebook settings."
 '''),
-        md("## 2. COCO-pretrained YOLO26-n weights\n\nBoth backbones of every dual-stream model start from "
-           "these weights, and the single-sensor baselines fine-tune them. We put one copy in `weights/` so "
-           "every run uses the identical file."),
+        md("## 2. COCO-pretrained YOLO26-n weights\n\nEvery model starts from these weights, so one copy goes "
+           "in `weights/` and every run uses the identical file."),
         code('''
 import torch
 w = env.weights / "yolo26n.pt"
@@ -221,10 +184,9 @@ print(w, f"{w.stat().st_size / 1e6:.1f} MB")
         md('''
 ## 3. (Optional) the fused Mamba kernel
 
-The pilot does **not** need it. `cffm/scan.py` contains a pure-PyTorch selective scan that runs on any GPU
-and is tested against a naive loop. The fused `mamba_ssm` kernel is faster, but it compiles from source
-(20+ minutes) and may not support this PyTorch build or the T4. Leave the flag `False` unless you want to
-try; if it installs, restart the kernel and the code picks it up automatically (`scan_impl: auto`).
+The pilot does **not** need it: the tested pure-PyTorch scan runs anywhere, and `mamba_ssm` takes 20+ minutes
+to compile and may not support the T4. Leave the flag `False` unless you want to try; if it installs, restart
+the kernel and it is picked up automatically.
 '''),
         code('''
 TRY_FUSED_SCAN = False
@@ -234,21 +196,13 @@ if TRY_FUSED_SCAN:
     print(r.stdout[-3000:], r.stderr[-3000:])
     print("Now restart the kernel and run the notebook again from the top.")
 from cffm import scan
-print("fused kernel available:", scan.HAS_MAMBA_SSM)
+print("mamba_ssm kernel:", scan.HAS_MAMBA_SSM, "| Triton kernel:", scan.HAS_TRITON)
 '''),
         md('''
 ## 4. Unit tests
 
-Sixty-two small tests, each checking one claim the method depends on. Two need the optional fused kernel and
-four are an opt-in smoke run (section 7 below does that run itself), so expect 56 passed and 6 skipped.
-
-* the chunked scan equals the textbook recurrence, values *and* gradients;
-* a token with step 0 cannot write into the state (the property reliability gating relies on);
-* the scan's token order really interleaves visible and thermal, and every direction maps back exactly;
-* a fresh CMFM block is exactly a reliability-weighted average (its output projection starts at zero);
-* every model config builds and runs, and COCO weights fill **both** backbones;
-* paired loading returns 4 registered channels;
-* the Phase 2 Temporal State Memory holds, resets and warps as specified.
+Small tests, each checking one claim the method depends on. Two need the optional fused kernel and four are
+an opt-in smoke run (section 7 does that run itself), so expect 6 skipped.
 '''),
         code('''
 r = subprocess.run([sys.executable, "-m", "pytest", "-q", "tests"], cwd=env.project, capture_output=True, text=True)
@@ -258,9 +212,8 @@ assert r.returncode == 0, r.stderr[-4000:]
         md('''
 ## 5. How fast is the scan here?
 
-The biggest scan in CFFM-Net sits at stride 8. A 640 x 640 training crop gives an 80 x 80 map; interleaving
-visible and thermal doubles it to **12 800 tokens**; four directions of 64 channels make **256 scan
-channels**; and Kaggle trains **8 images per GPU**. That is the size we time below, forward and backward.
+Forward and backward at the size of CFFM-Net's biggest scan: stride 8 on a 640 crop, so **12 800 interleaved
+tokens**, **256 scan channels** and **8 images per GPU**.
 '''),
         code('''
 import time, torch
@@ -280,19 +233,16 @@ def time_scan(b=8, d=256, L=12800, n=8, groups=4, impl="torch", reps=3):
         y.sum().backward(); torch.cuda.synchronize(); times.append(time.time() - t)
     return 1000 * sorted(times[1:])[len(times[1:]) // 2], torch.cuda.max_memory_allocated() / 2**30
 
-ms, gb = time_scan()
-print(f"PyTorch scan, stride-8 size, batch 8: {ms:.0f} ms forward+backward, peak {gb:.2f} GB")
-if scan.HAS_MAMBA_SSM:
-    ms, gb = time_scan(impl="cuda")
-    print(f"fused kernel, same size:            {ms:.0f} ms forward+backward, peak {gb:.2f} GB")
+for impl, ok in (("torch", True), ("triton", scan.HAS_TRITON), ("cuda", scan.HAS_MAMBA_SSM)):
+    if ok:
+        ms, gb = time_scan(impl=impl)
+        print(f"{impl:6s} scan, stride-8 size, batch 8: {ms:7.1f} ms forward+backward, peak {gb:.2f} GB")
 '''),
         md('''
 ## 6. Do the planned batch sizes fit?
 
-One forward and backward pass per model at its planned batch per GPU (from `configs/pilot.yaml`), with mixed
-precision and random inputs. This is not training: it only measures memory and step time, so we know before
-the real runs whether a batch size has to come down. The last column projects one 30-epoch run on LLVIP's
-~4 000 training pairs.
+One mixed-precision forward and backward pass per model at its planned batch per GPU, measuring only memory and
+step time. The last column projects one 30-epoch run on LLVIP's ~4 000 training pairs.
 '''),
         code('''
 import time, torch, pandas as pd
@@ -339,9 +289,8 @@ assert (df["peak GB"] < limit - 1.0).all(), "A batch is too large for this GPU: 
         md('''
 ## 7. The whole pipeline, end to end, on fake data and both GPUs
 
-A tiny synthetic paired dataset (bright squares that are hot in thermal), one epoch per model, with the
-real trainer, the two-GPU (DDP) launcher, the validator with size-binned COCO metrics, and the degradation
-probe. The numbers mean nothing; the point is that no step crashes on this machine.
+One epoch per model on a tiny synthetic dataset, through the real trainer, two-GPU launcher, validator and
+probe. The numbers mean nothing; the point is that no step crashes.
 '''),
         code('''
 from cffm.data import make_synthetic
@@ -366,8 +315,7 @@ for kind, flagged in [("clean", False), ("thermal_drop", False), ("thermal_drop"
         md('''
 ## 8. Verdict
 
-If every cell above ran without an error, the environment is ready and the code is verified on this
-hardware. Clean up the smoke runs (they are not results), then continue with
+If every cell above ran without an error, the environment is ready. Clean up the smoke runs, then continue with
 **01 · Data acquisition**.
 '''),
         code('''
@@ -383,10 +331,9 @@ print("Phase 0 checks passed. Next: 01_data_acquisition.ipynb")
 def nb01():
     write("notebooks/phase0_environment/01_data_acquisition.ipynb", [
         header("01 · Data acquisition",
-               "The pilot uses the two paired visible-thermal benchmarks that are freely available: **LLVIP** "
-               "(15 488 aligned pairs of pedestrians, mostly at night) and **M3FD** (4 200 aligned pairs, six "
-               "classes, mixed scenes). This notebook gets them onto the machine and checks they are complete. "
-               "Both are licensed for non-commercial research; do not make your Kaggle copies public.",
+               "Gets **LLVIP** (15 488 pedestrian pairs, mostly at night) and **M3FD** (4 200 pairs, six classes) "
+               "onto the machine and checks they are complete. Both are for non-commercial research only, so do "
+               "not make your Kaggle copies public.",
                "`cffm-net-pilot`, plus LLVIP and M3FD (see below)", "a few minutes (longer if downloading)",
                "verified raw datasets"),
         md('''
@@ -396,21 +343,19 @@ def nb01():
 Kaggle dataset (*Datasets → New Dataset → upload the zip*; Kaggle unzips it). Then attach both here
 (*Add Input → Your Work*).
 
-* LLVIP: official page <https://bupt-ai-cz.github.io/LLVIP/> (links to the GitHub release). Use the
-  annotations corrected in February 2023 (the current release has them).
-* M3FD: from the TarDAL repository <https://github.com/JinyuanLiu-CV/TarDAL> (the *M3FD_Detection* part:
-  `Vis/`, `Ir/`, `Annotation/`).
+* LLVIP: <https://bupt-ai-cz.github.io/LLVIP/>, with the February 2023 corrected annotations.
+* M3FD: the *M3FD_Detection* part (`Vis/`, `Ir/`, `Annotation/`) of <https://github.com/JinyuanLiu-CV/TarDAL>.
 
-**Option B.** Attach an existing public Kaggle copy (search for "LLVIP" / "M3FD"). Check that it has the
-official folder layout and the corrected LLVIP labels.
+**Option B.** Attach a public Kaggle copy (search for "LLVIP" / "M3FD") with the official folder layout and
+the corrected LLVIP labels.
 
 **Option C.** Paste a public Google Drive link or file ID below and download inside this notebook.
 
-The code finds the datasets by their folder layout, wherever they are mounted, so names do not matter.
+Datasets are found by folder layout, so their names do not matter.
 '''),
         SETUP,
         code('''
-# Option C only: paste Google Drive links or file IDs of the official archives (leave empty otherwise).
+# Option C only: paste Google Drive links or file IDs (leave empty otherwise).
 LLVIP_GDRIVE = ""
 M3FD_GDRIVE = ""
 if LLVIP_GDRIVE:
@@ -424,8 +369,8 @@ found = {name: pipeline.locate_raw(name, env) for name in ("llvip", "m3fd")}
 for name, p in found.items():
     print(f"{name:6s} -> {p if p else 'NOT FOUND: attach it as an input (see the options above)'}")
 '''),
-        md("## Are they complete?\n\nCounts per folder, whether every image has its partner and its "
-           "annotation, and one parsed annotation to see that the class names are what the converter expects."),
+        md("## Are they complete?\n\nCounts per folder, complete pairs, and one parsed annotation to check the "
+           "class names."),
         code('''
 from cffm.data import M3FD_NAMES, _parse_voc
 
@@ -451,8 +396,7 @@ def report_m3fd(root):
 if found["llvip"]: report_llvip(found["llvip"])
 if found["m3fd"]: report_m3fd(found["m3fd"])
 '''),
-        md("## One pair from each\n\nIf the two images below do not show the same scene, the pairing is "
-           "wrong and every result downstream would be meaningless."),
+        md("## One pair from each\n\nIf the two images do not show the same scene, the pairing is wrong."),
         code('''
 import cv2, matplotlib.pyplot as plt
 from cffm.data import _find_dir
@@ -478,16 +422,13 @@ if found["m3fd"]:
 def nb02():
     write("notebooks/phase0_environment/02_data_conversion.ipynb", [
         header("02 · Data conversion",
-               "Turns the raw datasets into one paired layout that Ultralytics can read: two folders of images "
-               "with identical file names (`images/visible/...`, `images/infrared/...`), YOLO labels, and three "
-               "data YAMLs per dataset (paired 4-channel, visible-only, thermal-only). Images are stored with "
-               "their long side at 640 px, the resolution the models train at, which also makes loading fast. "
-               "Every choice is written into a `dataset_card.json`.",
+               "Converts the raw datasets into a paired layout Ultralytics can read: same-named visible and "
+               "infrared images at 640 px, YOLO labels and three data YAMLs per dataset. Every choice is recorded "
+               "in `dataset_card.json`.",
                "`cffm-net-pilot`, raw LLVIP and M3FD", "about 5 minutes",
                "`data/llvip/`, `data/m3fd/` (and, if you save a version, an attachable output)"),
         SETUP,
-        md("## Convert\n\nThe options (which LLVIP frames to keep, the M3FD split seed) come from "
-           "`configs/pilot.yaml`, so this notebook and every training notebook make the identical dataset."),
+        md("## Convert\n\nOptions come from `configs/pilot.yaml`, so every notebook builds the identical dataset."),
         code('''
 cards = {}
 for name in ("llvip", "m3fd"):
@@ -495,8 +436,7 @@ for name in ("llvip", "m3fd"):
     cards[name] = __import__("json").loads((out / "dataset_card.json").read_text())
     print(name, "->", out)
 '''),
-        md("## What we made\n\nThe object-size histogram is the first look at how small these objects really "
-           "are at the resolution the network sees."),
+        md("## What we made\n\nThe object-size bins show how small the objects are at training resolution."),
         code('''
 import pandas as pd
 rows = [{"dataset": n, "train": c["images"]["train"], "val (full)": c["images"]["val"], "objects": c["objects"],
@@ -506,8 +446,8 @@ pd.DataFrame(rows).set_index("dataset")
         code('''
 print((env.data / "llvip" / "data_paired.yaml").read_text())
 '''),
-        md("## Sanity checks\n\nEvery visible image has a thermal partner of the same size and a label file; "
-           "every box lies inside the image."),
+        md("## Sanity checks\n\nEvery visible image has a same-size thermal partner and a label file, and every "
+           "box lies inside the image."),
         code('''
 import cv2, numpy as np
 for name in ("llvip", "m3fd"):
@@ -519,16 +459,15 @@ for name in ("llvip", "m3fd"):
         boxes = np.array([list(map(float, l.split()[1:])) for f in (root / "labels" / "visible" / split).glob("*.txt")
                           for l in f.read_text().splitlines() if l.strip()], dtype=float).reshape(-1, 4)
         inside = ((boxes[:, :2] - boxes[:, 2:] / 2 >= -1e-6) & (boxes[:, :2] + boxes[:, 2:] / 2 <= 1 + 1e-6)).all()
-        # sizes: reading every image takes minutes, every 25th pair is plenty to catch a converter bug
+        # every 25th pair is enough to catch a converter bug
         size_ok = all(cv2.imread(str(v)).shape[:2] == cv2.imread(str(root / "images" / "infrared" / split / v.name)).shape[:2]
                       for v in vis[::25])
         print(f"{name} {split}: {len(vis)} pairs, {len(missing)} incomplete, {len(boxes)} boxes, "
               f"all inside image: {bool(inside)}, pair sizes match: {size_ok}")
         assert vis and not missing and inside and size_ok
 '''),
-        md("## Look at a few converted pairs, with their labels\n\nGreen boxes on both images. If a box sits "
-           "on a person in the visible image but beside them in the thermal one, the dataset is misregistered "
-           "(notebook 03 measures this properly)."),
+        md("## Look at a few converted pairs, with their labels\n\nA box beside the person in the thermal image "
+           "means misregistration (notebook 03 measures it)."),
         code('''
 import matplotlib.pyplot as plt
 from cffm.data import read_pair
@@ -554,16 +493,11 @@ show("llvip"); show("m3fd")
     ])
 
 
-# --------------------------------------------------------------------------- #
-# Phase 1
-# --------------------------------------------------------------------------- #
 def nb03():
     write("notebooks/phase1_still_images/03_data_audit.ipynb", [
         header("03 · Data audit",
-               "Three questions about the data, answered with numbers before any model sees it. How small are "
-               "the objects? How dark are the scenes? And, most important for a fusion paper, how well are the "
-               "two cameras really aligned? The alignment result also tells us how large the synthetic shifts in "
-               "the degradation probe (notebook 09) should be.",
+               "How small are the objects, how dark are the scenes, and how well are the two cameras aligned? "
+               "The alignment result also sets the synthetic shifts of the probe in notebook 09.",
                "`cffm-net-pilot`, raw LLVIP and M3FD (or the output of 02)", "about 5 minutes",
                "`runs/audit/audit.json` and the figures below"),
         SETUP,
@@ -571,9 +505,8 @@ def nb03():
 for name in ("llvip", "m3fd"):
     pipeline.prepare(name, env, plan)
 '''),
-        md("## 1. Object sizes at training resolution\n\nSize is the square root of box area in pixels, after "
-           "the long side was scaled to 640. The dashed lines are the AI-TOD bands (8, 16, 32 px) and COCO's "
-           "small/medium boundary (96 px)."),
+        md("## 1. Object sizes at training resolution\n\nSize is the square root of box area at 640 px; dashed "
+           "lines mark the AI-TOD bands (8, 16, 32 px) and COCO's 96 px boundary."),
         code('''
 import cv2, json, numpy as np, matplotlib.pyplot as plt
 audit = {}
@@ -599,8 +532,8 @@ for ax, name in zip(axes, ("llvip", "m3fd")):
 plt.tight_layout(); plt.show()
 print(json.dumps(audit, indent=2))
 '''),
-        md("## 2. How dark are the scenes?\n\nMean brightness of the visible image. LLVIP is mostly night, which "
-           "is exactly where a thermal camera should earn its place."),
+        md("## 2. How dark are the scenes?\n\nMean visible brightness; LLVIP is mostly night, where thermal should "
+           "earn its place."),
         code('''
 import cv2
 fig, axes = plt.subplots(1, 2, figsize=(14, 3.2))
@@ -614,10 +547,8 @@ plt.tight_layout(); plt.show()
         md('''
 ## 3. How well are the cameras aligned?
 
-For each pair we compute edge maps (Sobel magnitude) of the visible and thermal images and find the shift
-that best lines them up, by phase correlation. A perfectly registered pair gives a shift of (0, 0). Edges are
-used, not raw intensities, because the two sensors see different things in the same place (a cold, bright
-shirt; a hot, dark road), but object outlines appear in both.
+Phase correlation of Sobel edge maps gives the shift that best lines up each pair, (0, 0) if registered.
+Edges are used because outlines appear in both sensors even where intensities differ.
 '''),
         code('''
 def edges(img):
@@ -634,7 +565,7 @@ for ax, name in zip(axes, ("llvip", "m3fd")):
         t = edges(cv2.imread(str(env.data / name / "images" / "infrared" / "val" / f.name), cv2.IMREAD_GRAYSCALE))
         win = cv2.createHanningWindow(v.shape[::-1], cv2.CV_32F)
         (dx, dy), resp = cv2.phaseCorrelate(v, t, win)
-        if resp > 0.05:                       # ignore pairs with too little shared structure to measure
+        if resp > 0.05:                       # too little shared structure to measure
             shifts.append(np.hypot(dx, dy))
     shifts = np.array(shifts)
     ax.hist(shifts, bins=40, color="#3B8B66", alpha=0.85)
@@ -643,9 +574,8 @@ for ax, name in zip(axes, ("llvip", "m3fd")):
 plt.tight_layout(); plt.show()
 print({n: a["misalignment_px"] for n, a in audit.items()})
 '''),
-        md("**Reading it.** If the 90th percentile is a couple of pixels, the benchmark is registered and real "
-           "misalignment cannot be studied on it: the synthetic shifts of 4, 8 and 16 px in notebook 09 then "
-           "test robustness well beyond what the data contain. That limitation is stated in the pilot note."),
+        md("**Reading it.** If the 90th percentile is a couple of pixels, the benchmark is registered, and the "
+           "4, 8 and 16 px shifts of notebook 09 test robustness well beyond the data."),
         code('''
 (env.runs / "audit").mkdir(parents=True, exist_ok=True)
 (env.runs / "audit" / "audit.json").write_text(json.dumps(audit, indent=2))
@@ -663,7 +593,7 @@ def train_nb(path, title, purpose, notebook_id, runtime, extra_cells=(), optiona
     ]
     if optional_filter:
         cells.append(code(f'''
-INCLUDE_OPTIONAL = False    # True also trains runs marked optional (e.g. the no-stride-4-head ablation)
+INCLUDE_OPTIONAL = False    # True also trains optional runs (the no-stride-4-head ablation)
 specs = [s for s in pipeline.runs_for(plan, "{notebook_id}") if INCLUDE_OPTIONAL or not s.get("optional")]
 ''' + TRAIN_RUNS))
     else:
@@ -685,51 +615,42 @@ specs = [s for s in pipeline.runs_for(plan, "{notebook_id}") if INCLUDE_OPTIONAL
 def nb04():
     train_nb("notebooks/phase1_still_images/04_baselines_single_modality.ipynb",
              "04 · Single-sensor baselines",
-             "What can one camera do alone? Stock YOLO26-n, fine-tuned from COCO, on LLVIP's visible images and, "
-             "separately, on its thermal images. These two numbers set the bar every fusion model must clear: "
-             "fusion that does not beat the better single sensor (at night, almost certainly thermal) is not "
-             "worth its second backbone. This is the reference for hypothesis PH1.",
+             "Stock YOLO26-n, fine-tuned from COCO, on LLVIP's visible images and separately on its thermal "
+             "images. Fusion must beat the better of the two to be worth its second backbone (PH1).",
              "04", "about 1.5 to 2 hours on 2 x T4")
 
 
 def nb05():
     train_nb("notebooks/phase1_still_images/05_baseline_two_stream.ipynb",
              "05 · Two-stream baseline",
-             "The simplest fusion: two YOLO26-n backbones, their features concatenated and squeezed by a 1x1 "
-             "convolution at strides 8, 16 and 32, and the standard YOLO26 head. Same initialisation, data, "
-             "schedule and evaluation as CFFM-Net, so any difference later comes from the fusion design and the "
-             "stride-4 pathway, not from training. Trained on LLVIP and on M3FD.",
+             "The simplest fusion: two YOLO26-n backbones, features concatenated and squeezed by a 1x1 conv at "
+             "strides 8, 16 and 32, and the standard head. Everything else matches CFFM-Net, on LLVIP and M3FD.",
              "05", "about 2 to 2.5 hours on 2 x T4")
 
 
 def nb06():
     write("notebooks/phase1_still_images/06_inside_cmfm.ipynb", [
         header("06 · Inside the CMFM block",
-               "No training here. We open up the Cross-Modal Fusion Mamba block and check, with tensors in "
-               "hand, the properties the method claims: how big each part is, what a fresh block computes, that a "
-               "zero-reliability sensor really cannot write into the scan's state, how the tokens are ordered, "
-               "and that the gated-convolution control is matched to CFFM-Net in compute.",
+               "No training: we open the Cross-Modal Fusion Mamba block and check its claimed properties with "
+               "tensors in hand.",
                "`cffm-net-pilot`", "about 2 minutes", "nothing; this notebook is for understanding and checking"),
         SETUP,
         md('''
 ## 0. The method in three pictures
 
-**CFFM-Net.** There are two YOLO26-n backbones, one per sensor, with separate weights; both start from COCO.
-They are fused at four levels, from P2 (stride 4) to P5 (stride 32). P2 uses a reliability-weighted sum, and
-P3 to P5 use CMFM. The fused maps feed YOLO26's stride-4 PAN neck and its NMS-free heads.
+**CFFM-Net.** Two YOLO26-n backbones, one per sensor, fused at P2 by a reliability-weighted sum and at P3 to
+P5 by CMFM. The fused maps feed YOLO26's stride-4 PAN neck and its NMS-free heads.
 '''),
         figure("fig_architecture", width=700),
         md('''
-**CMFM.** One reliability head scores each sensor at each location, and that score has two jobs: it gates
-the scan and it weights the residual. Thermal features are first shifted by a learned offset field. The two
-streams are then interleaved token by token and scanned in four directions. The output projection starts at
-zero, so a fresh block is exactly the reliability-weighted average.
+**CMFM.** A per-location reliability score gates the scan and weights the residual, after thermal is aligned
+by a learned offset. The two streams are interleaved token by token and scanned in four directions.
 '''),
         figure("fig_cmfm", width=640),
         md(r'''
 **The gated recurrence.** Each token's step $\Delta_k$ is multiplied by the reliability $r_k$ of its sensor.
 As $r_k \to 0$, $\bar A_k \to 1$ and $\bar B_k \to 0$, so the token neither writes into the state nor
-erases it. Section 3 below checks this numerically.
+erases it.
 '''),
         figure("fig_gated_scan", width=640),
         md("## 1. Where the parameters go\n\nOne CMFM block at the stride-8 level of YOLO26-n (128 channels)."),
@@ -742,8 +663,7 @@ rows = [{"part": n, "params": sum(p.numel() for p in m.parameters())} for n, m i
 df = pd.DataFrame(rows); df.loc[len(df)] = {"part": "total", "params": df["params"].sum()}; df
 '''),
         md("## 2. A fresh block is a reliability-weighted average\n\nThe output projection starts at zero and both "
-           "reliabilities start at sigmoid(2) = 0.88, so before training CMFM returns exactly (F_v + F_t) / 2. "
-           "Training can only *add* to that safe starting point."),
+           "reliabilities at sigmoid(2), so before training CMFM returns exactly (F_v + F_t) / 2."),
         code('''
 fv, ft = torch.randn(2, 128, 40, 40), torch.randn(2, 128, 40, 40)
 z = blk(fv, ft)
@@ -752,9 +672,8 @@ print("max |z - (fv + ft)/2| =", (z - (fv + ft) / 2).abs().max().item())
         md('''
 ## 3. The property everything rests on
 
-Set the thermal reliability to zero. Every thermal token then gets a step of zero, so it can neither write
-into the scan's state nor erase it, and the outputs at visible positions must not change however much we
-perturb the thermal features. With reliability one, the same perturbation must change them.
+With thermal reliability zero, perturbing the thermal features must not move the visible outputs at all; with
+reliability one, it must.
 '''),
         code('''
 scan = GatedCrossScan(16, directions=4, impl="torch").eval()
@@ -766,8 +685,8 @@ d_on = (scan(xv, xt, ones, ones)[0] - scan(xv, xt + noise, ones, ones)[0]).abs()
 print(f"r_thermal = 0: visible outputs move by {d_off:.2e}   (should be ~0)")
 print(f"r_thermal = 1: visible outputs move by {d_on:.2e}   (should be clearly > 0)")
 '''),
-        md("## 4. Token order\n\nThe first scan direction on a 2 x 3 map, written as (row, column, modality). "
-           "Visible (v) and thermal (t) alternate at every location: fusion happens inside the state."),
+        md("## 4. Token order\n\nThe first scan direction on a 2 x 3 map as (row, column, modality): visible (v) "
+           "and thermal (t) alternate at every location."),
         code('''
 X = torch.zeros(1, 1, 2, 3, 2)
 for r in range(2):
@@ -776,9 +695,8 @@ for r in range(2):
 seq = GatedCrossScan(1, directions=4)._orders(X)[0, 0, 0].int().tolist()
 print(" ".join(f"{'t' if s >= 100 else 'v'}({(s % 100) // 10},{s % 10})" for s in seq))
 '''),
-        md("## 5. Compute of every model, and the matched control\n\nGFLOPs at 640 x 640 include the element-wise "
-           "work inside the scans (profilers do not count it; see `cffm.train.gflops`). The gated-convolution "
-           "control (C4) should sit within a few percent of CFFM-Net."),
+        md("## 5. Compute of every model, and the matched control\n\nGFLOPs at 640 x 640 include the scans' "
+           "element-wise work; the gated-convolution control (C4) should sit within a few percent of CFFM-Net."),
         code('''
 from cffm.model import DualStreamDetectionModel
 from cffm.train import gflops, scan_gflops
@@ -796,9 +714,8 @@ print(f"control / CFFM-Net GFLOPs = {ratio:.3f}"); assert abs(ratio - 1) < 0.05
 
 def nb07():
     extra = [
-        md("## What it sees\n\nPredictions (green) against ground truth (red) on night scenes from the validation "
-           "set, then the reliability maps at stride 8: where the model trusts visible, and where thermal. In a "
-           "dark scene, thermal reliability should be high on people and visible reliability should drop."),
+        md("## What it sees\n\nPredictions (green) against ground truth (red) on night scenes, then the stride-8 "
+           "reliability maps. In a dark scene, thermal reliability should be high on people and visible low."),
         code('''
 import matplotlib.pyplot as plt
 from cffm.train import _load
@@ -824,32 +741,25 @@ for v in val[300:1500:600]:
     ]
     train_nb("notebooks/phase1_still_images/07_train_cffm_net.ipynb",
              "07 · Train CFFM-Net",
-             "The method itself, in image mode: two YOLO26-n backbones, a reliability-weighted sum at stride 4, "
-             "CMFM blocks (reliability-gated cross-modal selective scan, offset alignment, local branch) at "
-             "strides 8, 16 and 32, and the YOLO26 neck with a stride-4 detection head. Trained on LLVIP and on "
-             "M3FD with exactly the settings of the baselines.",
+             "The method in image mode: two YOLO26-n backbones, a reliability-weighted sum at stride 4, CMFM at "
+             "strides 8 to 32 and a stride-4 detection head. Trained on LLVIP and M3FD with the baselines' settings.",
              "07", "about 3 to 3.5 hours on 2 x T4", extra_cells=extra)
 
 
 def nb08():
     train_nb("notebooks/phase1_still_images/08_ablations.ipynb",
              "08 · Ablations",
-             "Each run changes one thing in CFFM-Net, so a difference in results can only come from that one "
-             "thing. **Gating off** (r = 1 everywhere) tests whether reliability gating adds value (C1, PH2). "
-             "**Gated convolution** replaces the selective scan with a gated depthwise convolution of matched "
-             "compute, the MambaOut-style control (C4, PH4). **No stride-4 head** (optional) isolates the "
-             "small-object pathway (C2).",
+             "Each run changes one thing in CFFM-Net: **gating off** (C1, PH2), a **gated convolution** of "
+             "matched compute instead of the scan (C4, PH4), and optionally **no stride-4 head** (C2).",
              "08", "about 4 to 5 hours on 2 x T4 (about 6 with the optional run)", optional_filter=True)
 
 
 def nb09():
     write("notebooks/phase1_still_images/09_probe_and_latency.ipynb", [
         header("09 · Degradation probe and latency",
-               "Two measurements that need finished checkpoints but no training. **The probe** asks what happens "
-               "when a sensor misbehaves at test time: the visible image goes dark or black, the thermal image "
-               "goes black, or the thermal image shifts by 4, 8 or 16 pixels. A model whose fusion is truly "
-               "selective should lose less (PH2). **Latency** measures every model on one T4 at batch 1 in FP16, "
-               "with parameters and GFLOPs (PH5, contribution C5).",
+               "**The probe** measures how much each model loses when a sensor goes dark, black or misaligned at "
+               "test time (PH2). **Latency** times every model on one T4 at batch 1 in FP16, with parameters and "
+               "GFLOPs (PH5).",
                "`cffm-net-pilot`, raw LLVIP (or the output of 02), and the **saved outputs of notebooks 04, 05, 07 "
                "and 08** (*Add Input → Your Work*)",
                "about 1 to 1.5 hours on 1 T4", "`runs/probe/*/metrics.json`, `runs/latency/latency.json`"),
@@ -865,10 +775,8 @@ assert not missing, f"attach the saved outputs of the notebooks that trained {mi
         md('''
 ## 1. The probe
 
-Each degradation is applied to the input batch inside the model's forward pass, with a fixed seed, so every
-model sees identical corrupted images. *Flagged* drops also tell the model which sensor is missing (as a
-deployed system would know); unflagged ones make it work that out from the images alone. Only CFFM-Net can use
-the flag; the others must cope.
+Each degradation is applied inside the forward pass with a fixed seed, so every model sees identical images.
+*Flagged* drops also tell the model which sensor is missing, which only CFFM-Net can use.
 '''),
         code('''
 import pandas as pd
@@ -893,9 +801,8 @@ ax = piv.plot(kind="barh", figsize=(10, 6), width=0.8)
 ax.set_xlabel("COCO AP50-95 on LLVIP (full validation set)"); ax.invert_yaxis(); ax.grid(alpha=0.3, axis="x")
 plt.tight_layout(); plt.show()
 '''),
-        md("## 2. Parameters, GFLOPs and latency\n\nAll on GPU 0, FP16, batch 1, a 640 x 512 input (LLVIP's shape), "
-           "50 warm-up passes then 300 timed ones with a short pause between them so the GPU does not throttle. "
-           "This times the PyTorch model; the full protocol of the dossier adds TensorRT export (Phase 3)."),
+        md("## 2. Parameters, GFLOPs and latency\n\nGPU 0, FP16, batch 1, a 640 x 512 input, 50 warm-up and 300 "
+           "timed passes with a short pause against throttling. TensorRT export is left to Phase 3."),
         code('''
 import json, torch
 from cffm.train import _load, gflops, latency_ms
@@ -919,18 +826,16 @@ for run, w in sorted(ckpts.items()):
 def nb15():
     write("notebooks/phase1_still_images/15_results_and_figures.ipynb", [
         header("15 · Results, hypotheses and figures",
-               "The only route from experiments to the write-up. It reads every logged metric, builds the results "
-               "tables, decides each pilot hypothesis with the rule fixed in advance in the pilot note, and draws "
-               "the figures. No number is typed by hand: if a run changes, rerun this notebook and every table "
-               "changes with it. The decision rules live in `cffm/report.py`, where they are unit-tested.",
+               "Reads every logged metric, builds the tables, decides each pilot hypothesis by its pre-registered "
+               "rule and draws the figures. No number is typed by hand, so rerun this notebook whenever a run changes.",
                "`cffm-net-pilot` and the **saved outputs of notebooks 04, 05, 07, 08 and 09**",
                "a few minutes", "`results/` with tables (Markdown, LaTeX, CSV) and figures (PNG, PDF)"),
         SETUP,
         code('''
 import json
 from cffm import report
-ev = pipeline.find_metrics(env, "eval")       # full-validation-set metrics of every trained run
-pr = pipeline.find_metrics(env, "probe")      # metrics under each test-time degradation
+ev = pipeline.find_metrics(env, "eval")
+pr = pipeline.find_metrics(env, "probe")
 lat = {}
 for root in [env.runs, *[r for r in pipeline.INPUT_ROOTS if r.exists()]]:
     for f in root.glob("**/latency/latency.json"):
@@ -938,8 +843,8 @@ for root in [env.runs, *[r for r in pipeline.INPUT_ROOTS if r.exists()]]:
 print(len(ev), "evaluated runs,", len(pr), "probe results,", len(lat), "latency entries")
 out = env.project / "results"; out.mkdir(exist_ok=True)
 '''),
-        md("## 1. Main results\n\nAP is COCO AP50-95 on the full validation set. AP_vt / AP_t / AP_s are the AI-TOD "
-           "bands (<8, 8-16, 16-32 px); AP_small is COCO's <32 px. Cost is measured on one T4, FP16, batch 1."),
+        md("## 1. Main results\n\nAP is COCO AP50-95 on the full validation set, AP_vt / AP_t / AP_s the AI-TOD "
+           "bands (<8, 8-16, 16-32 px). Cost is one T4, FP16, batch 1."),
         code('''
 main = report.main_table(ev, lat)
 main.round(4)
@@ -947,9 +852,8 @@ main.round(4)
         md('''
 ## 2. The hypotheses, decided by the rules written down before training
 
-From the pilot note (Table 4). Thresholds are in AP points (0.015 = 1.5 points). A difference inside the
-threshold is **inconclusive**, not a win: with one seed per configuration, run-to-run variation is about 1 to
-1.5 points. *Against* means the difference is as large as the threshold in the wrong direction.
+Thresholds are in AP points (0.015 = 1.5 points). A difference inside the threshold is **inconclusive**, since
+one seed per configuration varies by about 1 to 1.5 points.
 '''),
         code('''
 hyp = report.decide(ev, pr, lat, plan["probe"]["kinds"])
@@ -980,8 +884,7 @@ if len(probe):
     plt.tight_layout(); plt.savefig(out / "fig_probe.png", dpi=200); plt.savefig(out / "fig_probe.pdf"); plt.show()
 probe.round(4)
 '''),
-        md("## 4. Tables for the write-up\n\nMarkdown for notes, CSV for spreadsheets, and LaTeX in the dossier's "
-           "rule-free style for the paper."),
+        md("## 4. Tables for the write-up\n\nMarkdown for notes, CSV for spreadsheets and rule-free LaTeX for the paper."),
         code('''
 main.round(4).to_csv(out / "main_results.csv")
 hyp.to_csv(out / "hypotheses.csv")

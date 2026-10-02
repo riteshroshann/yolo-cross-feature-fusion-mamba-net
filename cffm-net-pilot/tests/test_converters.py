@@ -68,7 +68,7 @@ def test_llvip_found_converted_and_loadable(fake_llvip):
     d = yaml.safe_load((out / "data_paired.yaml").read_text())
     assert d["paired"] and d["channels"] == 4 and d["test"] == "images/visible/val"
     assert (out / "val_mini_visible.txt").read_text().startswith("./images/visible/val/")
-    # a second prepare reuses the conversion instead of redoing it
+    # a second prepare reuses the conversion
     mtime = (out / "dataset_card.json").stat().st_mtime
     pipeline.prepare("llvip", env)
     assert (out / "dataset_card.json").stat().st_mtime == mtime

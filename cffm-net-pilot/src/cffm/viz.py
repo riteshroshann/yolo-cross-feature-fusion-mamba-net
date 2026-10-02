@@ -1,14 +1,4 @@
-"""
-Looking at what the model does.
-
-Two questions we always want answered with pictures, not just numbers:
-  1. What did it detect, and what did it miss?           -> predict_pair, draw_pair
-  2. Where did it trust visible, and where thermal?      -> reliability_maps, plot_reliability
-
-The reliability maps are the most direct evidence that gating works: in a night
-scene the thermal map should light up where people are and the visible map
-should fade. If it doesn't, the numbers are lying to us somewhere.
-"""
+"""Pictures of what the model does: its detections, and where it trusted visible versus thermal."""
 from __future__ import annotations
 
 import cv2
@@ -23,7 +13,7 @@ from .data import read_pair
 
 def load_pair(visible_path, imgsz=640, device="cpu"):
     """Read a pair, letterbox it like the validator does, return (tensor, pair_image)."""
-    pair = read_pair(visible_path)                                 # (H, W, 4) uint8
+    pair = read_pair(visible_path)
     if pair is None:
         raise FileNotFoundError(visible_path)
     lb = LetterBox(new_shape=(imgsz, imgsz), auto=False, scaleup=False)(image=pair)
@@ -64,11 +54,7 @@ def draw_pair(pair, det, names, gt=None):
 
 @torch.no_grad()
 def reliability_maps(model, visible_path, imgsz=640):
-    """Run one pair through the model and collect r_v, r_t at every fused level.
-
-    Returns {level: (r_visible, r_thermal)} as float arrays at the letterboxed
-    image size, plus the letterboxed pair for plotting underneath.
-    """
+    """{level: (r_visible, r_thermal)} for one pair at the letterboxed size, plus the letterboxed pair."""
     device = next(model.parameters()).device
     x, _ = load_pair(visible_path, imgsz, device)
     model(x.to(next(model.parameters()).dtype))

@@ -1,11 +1,6 @@
-"""End-to-end wiring check: train one epoch on a fake dataset, evaluate, probe.
+"""End-to-end plumbing check: train one epoch on fake data, evaluate, probe (about a minute).
 
-Not a result, a plumbing test. It proves that the Ultralytics trainer,
-DataLoader workers (spawned on Windows), validator, size-binned COCO evaluation
-and the degradation probe all work with our model and data. Slow-ish (about a
-minute), so it only runs when CFFM_SMOKE=1:
-
-    CFFM_SMOKE=1 python -m pytest tests/test_smoke_train.py -q
+Run with: CFFM_SMOKE=1 python -m pytest tests/test_smoke_train.py -q
 """
 import os
 from pathlib import Path

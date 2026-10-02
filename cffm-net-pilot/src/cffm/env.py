@@ -1,10 +1,6 @@
-"""
-Where am I running, and where do things live?
+"""Platform detection (Kaggle, Colab or local), data/run paths and the GPU report.
 
-Every notebook starts with `env = cffm.env.setup()`. It works out whether we
-are on Kaggle, Colab or a local machine, picks the folders for data, runs and
-weights, and reports the GPU so that batch sizes can be chosen sensibly.
-Nothing else in the code base hard-codes a path.
+Every notebook starts with `env = cffm.env.setup()`; nothing else hard-codes a path.
 """
 from __future__ import annotations
 
@@ -19,11 +15,11 @@ from pathlib import Path
 @dataclass
 class Env:
     platform: str                      # 'kaggle' | 'colab' | 'local'
-    project: Path                      # the cffm-net-pilot folder
-    data: Path                         # converted datasets
-    raw: Path                          # downloaded archives and raw folders
-    runs: Path                         # training and evaluation outputs
-    weights: Path                      # pretrained checkpoints (yolo26n.pt)
+    project: Path
+    data: Path
+    raw: Path
+    runs: Path
+    weights: Path
     device: str                        # '0', '0,1' or 'cpu'
     gpus: list = field(default_factory=list)   # [(name, total GiB), ...]
     scan_impl: str = "torch"           # 'cuda' if the fused mamba_ssm kernel is usable
@@ -56,7 +52,7 @@ def setup(verbose: bool = True) -> Env:
 
     plat = _platform()
     project = find_project()
-    if plat == "kaggle":            # /kaggle/input is read-only; everything we write goes to /kaggle/working
+    if plat == "kaggle":            # /kaggle/input is read-only, so everything goes to /kaggle/working
         root = Path("/kaggle/working")
         data, raw, runs = root / "data", root / "raw", root / "runs"
     else:
@@ -75,19 +71,14 @@ def setup(verbose: bool = True) -> Env:
     from . import scan
     scan_impl = "cuda" if (scan.HAS_MAMBA_SSM and gpus) else "torch"
     env = Env(plat, project, data, raw, runs, weights, device, gpus, scan_impl)
-    os.chdir(project)               # relative paths in configs resolve from the project folder
+    os.chdir(project)               # config paths are relative to the project folder
     if verbose:
         print(env.summary())
     return env
 
 
 def suggested_batch(env: Env, dual: bool, imgsz: int = 640) -> int:
-    """A safe starting batch size for YOLO26-n at 640 px. Ultralytics' batch=-1 can refine it.
-
-    Rough rule from GPU memory: a single-stream YOLO26-n at 640 needs about
-    0.25 GB per image in training with AMP; the dual-stream CFFM-Net with the
-    stride-4 head about 0.6 GB per image with the PyTorch scan.
-    """
+    """A safe starting batch size: about 0.25 GB per image single-stream, 0.6 GB dual, at 640 px with AMP."""
     if not env.gpus:
         return 2
     mem = min(m for _, m in env.gpus) - 1.0                 # leave 1 GB for the CUDA context

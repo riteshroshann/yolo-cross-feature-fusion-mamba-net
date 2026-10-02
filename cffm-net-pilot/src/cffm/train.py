@@ -1,21 +1,6 @@
-"""
-Training, evaluation and the test-time degradation probe.
+"""Training, evaluation and the test-time degradation probe.
 
-One trainer and one validator for every run in the pilot, so that baselines and
-CFFM-Net are trained and scored by exactly the same code (contribution C5):
-
-  * DualTrainer    Ultralytics' DetectionTrainer, plus: builds the dual-stream
-                   model when the model YAML says `dual_stream: true`, and
-                   builds paired datasets when the data YAML says `paired: true`.
-                   Single-modality runs pass straight through.
-  * DualValidator  Ultralytics' DetectionValidator, plus: paired datasets, and
-                   COCO AP in the AI-TOD size bands (2-8, 8-16, 16-32 px) next
-                   to the usual small / medium / large.
-
-Then three functions the notebooks call:
-  train_run(...)   one training run, every knob explicit, logs to runs/<name>
-  evaluate(...)    full COCO-style evaluation of a checkpoint, returns a dict
-  probe(...)       evaluate under a test-time sensor degradation (no retraining)
+One trainer and one validator score every run, so baselines and CFFM-Net share all the code (C5).
 """
 from __future__ import annotations
 
@@ -33,19 +18,16 @@ from ultralytics.utils import LOGGER, RANK
 from . import data as cdata  # also installs the paired image reader
 from .model import DualStreamDetectionModel
 
-SIZE_BINS = {  # label: (min area, max area) in pixels^2, at the resolution the model sees
+SIZE_BINS = {  # (min, max) area in pixels^2, at the resolution the model sees
     "all": (0, 1e10),
-    "vt": (0, 8 ** 2),          # AI-TOD "very tiny"   2-8 px
-    "t": (8 ** 2, 16 ** 2),     # AI-TOD "tiny"        8-16 px
-    "s": (16 ** 2, 32 ** 2),    # AI-TOD "small"      16-32 px
+    "vt": (0, 8 ** 2),          # AI-TOD "very tiny"
+    "t": (8 ** 2, 16 ** 2),     # AI-TOD "tiny"
+    "s": (16 ** 2, 32 ** 2),    # AI-TOD "small"
     "m": (32 ** 2, 96 ** 2),    # COCO medium
     "l": (96 ** 2, 1e10),       # COCO large
 }
 
 
-# --------------------------------------------------------------------------- #
-# trainer and validator
-# --------------------------------------------------------------------------- #
 class DualValidator(DetectionValidator):
     def build_dataset(self, img_path, mode="val", batch=None):
         return cdata.build_dataset(self.args, img_path, batch, self.data, mode=mode, stride=self.stride)
@@ -54,7 +36,7 @@ class DualValidator(DetectionValidator):
         stats = super().coco_evaluate(stats, pred_json, anno_json, iou_types, suffix)
         if not (self.args.save_json and self.gdict and len(self.jdict)):
             return stats
-        try:  # AP in the AI-TOD size bands, computed from the same matched predictions
+        try:  # AP in the AI-TOD size bands, from the same matched predictions
             from faster_coco_eval import COCOeval_faster
 
             anno = self._coco_api
@@ -97,26 +79,14 @@ class DualTrainer(DetectionTrainer):
         return DualValidator(self.test_loader, save_dir=self.save_dir, args=copy(self.args), _callbacks=self.callbacks)
 
 
-# --------------------------------------------------------------------------- #
-# the three entry points used by the notebooks
-# --------------------------------------------------------------------------- #
 def train_run(name: str, model: str, data: str, *, pretrained: str = "yolo26n.pt", epochs: int = 30,
               imgsz: int = 640, batch: int = 16, device=None, project: str = "runs", seed: int = 0,
               workers: int = 4, **overrides):
-    """One training run. Returns the path of the best checkpoint.
-
-    model:      a dual-stream YAML (configs/models/*.yaml) or a stock Ultralytics
-                name such as 'yolo26n.yaml' for single-modality baselines
-    data:       a data YAML written by the converters (data_paired / data_visible
-                / data_infrared)
-    pretrained: COCO weights; for dual models they initialise both backbones
-    Everything else is a normal Ultralytics training argument and is logged
-    with the run, so a result can always be traced to its settings.
-    """
+    """One training run; returns the best checkpoint. Extra kwargs go straight to Ultralytics."""
     args = dict(model=str(model), data=str(data), pretrained=pretrained, epochs=epochs, imgsz=imgsz,
                 batch=batch, device=device, project=str(project), name=name, exist_ok=True, seed=seed,
                 deterministic=True, workers=workers, plots=True, val=True)
-    args.update(overrides)  # anything passed explicitly wins over the defaults above
+    args.update(overrides)
     trainer = DualTrainer(overrides=args)
     trainer.train()
     best = Path(trainer.save_dir) / "weights" / "best.pt"
@@ -135,11 +105,7 @@ def _load(weights):
 
 def evaluate(weights, data, *, imgsz=640, batch=16, device=None, project="runs/eval", name=None, model=None,
              split="test"):
-    """COCO-style evaluation with size bins on the full validation set. Returns a flat dict of metrics.
-
-    split='test' is the full validation set in our data YAMLs (see data.write_yamls);
-    split='val' is the quarter-size list used for per-epoch monitoring.
-    """
+    """COCO-style evaluation with size bins; split='test' is the full val set, 'val' the per-epoch quarter."""
     name = name or Path(weights).parent.parent.name
     v = DualValidator(args=_validator_args(data, imgsz, batch, device, project, name, split))
     stats = v(model=model if model is not None else _load(weights))
@@ -149,9 +115,6 @@ def evaluate(weights, data, *, imgsz=640, batch=16, device=None, project="runs/e
     return out
 
 
-# --------------------------------------------------------------------------- #
-# test-time degradation probe (contribution C1, no retraining needed)
-# --------------------------------------------------------------------------- #
 PROBES = ("clean", "visible_dark", "visible_drop", "thermal_drop", "thermal_shift_4", "thermal_shift_8",
           "thermal_shift_16")
 
@@ -163,11 +126,11 @@ def _degrade(x: torch.Tensor, kind: str) -> torch.Tensor:
         return x
     if kind == "visible_dark":          # night: 15% of the light plus sensor noise
         x[:, :3] = (x[:, :3] * 0.15 + 0.02 * torch.randn_like(x[:, :3])).clamp(0, 1)
-    elif kind == "visible_drop":        # visible camera delivers black frames
+    elif kind == "visible_drop":
         x[:, :3] = 0
-    elif kind == "thermal_drop":        # thermal camera delivers black frames
+    elif kind == "thermal_drop":
         x[:, 3:] = 0
-    elif kind.startswith("thermal_shift_"):  # misregistration: thermal moved by k pixels right and down
+    elif kind.startswith("thermal_shift_"):  # misregistration: thermal moved k pixels right and down
         k = int(kind.rsplit("_", 1)[1])
         x[:, 3:] = torch.roll(x[:, 3:], shifts=(k, k), dims=(2, 3))
     else:
@@ -177,12 +140,7 @@ def _degrade(x: torch.Tensor, kind: str) -> torch.Tensor:
 
 def probe(weights, data, kind: str, *, flagged: bool = False, imgsz=640, batch=16, device=None,
           project="runs/probe", seed=0, split="test"):
-    """Evaluate a paired model under a test-time degradation.
-
-    flagged=False  the model must notice the problem from the images alone
-    flagged=True   for drops, the model is also told which sensor is missing
-                   (sensor flags), as a deployed system would know
-    """
+    """Evaluate a paired model under a test-time degradation; flagged=True also says which sensor dropped."""
     torch.manual_seed(seed)
     model = _load(weights)
     if not getattr(model, "_dual", False):
@@ -201,13 +159,7 @@ def probe(weights, data, kind: str, *, flagged: bool = False, imgsz=640, batch=1
 
 
 def gflops(model, imgsz=640, include_scan=True) -> float:
-    """GFLOPs at imgsz x imgsz: Ultralytics' profiler count, plus the selective scans.
-
-    Profilers count convolutions and matrix products but not the element-wise
-    work inside a selective scan (exp, multiply, add per state per token). We
-    add it analytically so the scan is not made to look free, and so the
-    gated-convolution control can be matched to CFFM-Net honestly.
-    """
+    """GFLOPs at imgsz: Ultralytics' profiler count plus the selective scans, which profilers miss."""
     from ultralytics.utils.torch_utils import get_flops
 
     total = float(get_flops(model, imgsz))
@@ -215,11 +167,7 @@ def gflops(model, imgsz=640, include_scan=True) -> float:
 
 
 def scan_gflops(model, imgsz=640) -> float:
-    """Element-wise FLOPs of every GatedCrossScan in the model, at imgsz x imgsz.
-
-    Per token, channel and state: pass 1 (exp, 2 mul, add, decay product: 5),
-    pass 2 (the same 4 plus readout mul and add: 6), so about 11 FLOPs.
-    """
+    """Element-wise GFLOPs of every GatedCrossScan: about 11 per token, channel and state (5 + 6 over two passes)."""
     from .blocks import GatedCrossScan
 
     fusers = getattr(model, "fusers", {})
@@ -235,12 +183,7 @@ def scan_gflops(model, imgsz=640) -> float:
 
 def latency_ms(model, imgsz=(512, 640), channels=4, device="cuda", half=True, warmup=50, iters=300,
                pause_s=0.0) -> dict:
-    """Batch-1 forward latency (median and p95, ms), measured with CUDA events.
-
-    The protocol of the dossier (Section 8.6) adds TensorRT export and a 200 ms
-    pause between passes; for the pilot we time the PyTorch model, which ranks
-    the models fairly on one GPU. Set pause_s=0.2 to follow the full protocol.
-    """
+    """Batch-1 forward latency (median and p95, ms) with CUDA events; pause_s=0.2 follows the dossier protocol."""
     import time
 
     m = model.to(device).eval()

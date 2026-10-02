@@ -1,23 +1,6 @@
-"""
-Paired visible-thermal data for Ultralytics, plus converters for LLVIP and M3FD.
+"""Paired visible-thermal data for Ultralytics, plus converters for LLVIP and M3FD.
 
-How a pair gets into the network (the whole idea in five lines):
-
-  * On disk, a pair is two files with the same name:
-        images/visible/train/0001.jpg     images/infrared/train/0001.jpg
-    and one label file, labels/visible/train/0001.txt (YOLO format).
-  * Ultralytics lists the *visible* images and reads labels as usual.
-  * When it reads an image, PairedYOLODataset makes the reader return a
-    4-channel array: visible BGR (3) + thermal grey (1).
-  * From then on every geometric augmentation (mosaic, affine, flip,
-    letterbox) is applied to all 4 channels at once, so the pair can never
-    drift apart. Colour jitter goes to the visible channels only.
-  * The model splits the 4 channels back into two streams (model.py).
-
-Why patch the reader instead of copying Ultralytics' load_image? Because the
-patch is 20 lines that survive version changes, and it is installed when this
-module is imported, which also happens inside every DataLoader worker (they
-import `cffm.data` to unpickle the dataset), including on Windows.
+A pair loads as one 4-channel image (BGR + thermal grey), so geometric augmentations never split it.
 """
 from __future__ import annotations
 
@@ -39,9 +22,6 @@ import ultralytics.data.build as _ul_build
 from ultralytics.data.augment import RandomHSV
 from ultralytics.data.dataset import YOLODataset
 
-# --------------------------------------------------------------------------- #
-# 1. a pair-aware image reader, switched on only inside PairedYOLODataset
-# --------------------------------------------------------------------------- #
 _PAIRED = contextvars.ContextVar("cffm_paired_read", default=False)
 _ORIG_IMREAD = getattr(_ul_base.imread, "_cffm_original", _ul_base.imread)
 SEP_VIS = (f"{os.sep}images{os.sep}visible{os.sep}", "/images/visible/")
@@ -76,19 +56,11 @@ def _imread(filename, flags=cv2.IMREAD_COLOR):
 
 
 _imread._cffm_original = _ORIG_IMREAD
-_ul_base.imread = _imread  # installed on import, in the main process and in every worker
+_ul_base.imread = _imread  # patched on import, so every DataLoader worker gets it too
 
 
-# --------------------------------------------------------------------------- #
-# 2. the dataset
-# --------------------------------------------------------------------------- #
 class VisibleHSV:
-    """Ultralytics' HSV jitter, applied to the visible channels of a 4-channel image.
-
-    (Stock RandomHSV skips anything that is not 3-channel, so without this the
-    paired models would train with no colour augmentation at all, while the
-    single-modality baselines would get it: an unfair comparison.)
-    """
+    """Ultralytics' HSV jitter on the visible channels, since stock RandomHSV skips 4-channel images."""
 
     def __init__(self, hgain: float, sgain: float, vgain: float):
         self.hsv = RandomHSV(hgain, sgain, vgain)
@@ -133,9 +105,6 @@ def build_dataset(cfg, img_path, batch, data, mode="train", rect=False, stride=3
         _ul_build.YOLODataset = original
 
 
-# --------------------------------------------------------------------------- #
-# 3. converters: raw dataset folders -> the paired YOLO layout above
-# --------------------------------------------------------------------------- #
 def _find_dir(root: Path, names) -> Path | None:
     """First directory under root (any depth) whose name is in `names` (case-insensitive)."""
     names = {n.lower() for n in names}
@@ -213,15 +182,7 @@ def _convert(pairs, out: Path, names, imgsz, workers, meta):
 
 
 def write_yamls(out: Path, names, mini_every: int = 4):
-    """Three views of one dataset: paired (4 ch), visible only, thermal only.
-
-    Splits inside every YAML:
-      train  all training images
-      val    every `mini_every`-th validation image: checked after each epoch,
-             cheap enough not to dominate training time
-      test   the full validation set: what every reported number uses
-             (cffm.train.evaluate runs on split='test')
-    """
+    """Paired, visible and thermal YAMLs; val is every `mini_every`-th val image, test the full val set."""
     base = {"path": str(out.resolve()), "names": dict(enumerate(names))}
     for mod in ("visible", "infrared"):
         files = sorted((out / "images" / mod / "val").glob("*.jpg"))[::mini_every]
@@ -239,14 +200,7 @@ def write_yamls(out: Path, names, mini_every: int = 4):
 
 
 def convert_llvip(raw: str | Path, out: str | Path, imgsz=640, train_stride=3, val_stride=1, workers=8):
-    """LLVIP (Jia et al., ICCVW 2021) -> paired YOLO layout.
-
-    Expected raw layout (the official release):
-        LLVIP/visible/{train,test}/*.jpg  LLVIP/infrared/{train,test}/*.jpg  LLVIP/Annotations/*.xml
-    The official test split becomes our val split. LLVIP frames come from
-    videos, so neighbours are nearly identical: `train_stride=3` keeps every
-    third training frame (about 4 000 pairs) for the pilot, losing little.
-    """
+    """LLVIP -> paired YOLO layout; test becomes val, and train keeps every `train_stride`-th video frame."""
     raw, out = Path(raw), Path(out)
     vis_root, ir_root = _find_dir(raw, ["visible"]), _find_dir(raw, ["infrared"])
     ann = _find_dir(raw, ["Annotations", "annotation"])
@@ -268,13 +222,7 @@ M3FD_NAMES = ["People", "Car", "Bus", "Motorcycle", "Lamp", "Truck"]
 
 
 def convert_m3fd(raw: str | Path, out: str | Path, imgsz=640, val_frac=0.2, seed=0, workers=8):
-    """M3FD (Liu et al., CVPR 2022) -> paired YOLO layout.
-
-    Expected raw layout (TarDAL release): Vis/*.png, Ir/*.png, Annotation/*.xml.
-    M3FD has no official detection split, so we make a fixed, seeded 80/20
-    split and record it in the dataset card. Every paper does something
-    similar; the point is that ours is written down and reproducible.
-    """
+    """M3FD -> paired YOLO layout, with a seeded 80/20 split since there is no official one."""
     raw, out = Path(raw), Path(out)
     vis_root = _find_dir(raw, ["Vis", "visible"])
     ir_root = _find_dir(raw, ["Ir", "infrared"])
@@ -297,11 +245,7 @@ def convert_m3fd(raw: str | Path, out: str | Path, imgsz=640, val_frac=0.2, seed
 
 
 def make_synthetic(out: str | Path, n_train=8, n_val=4, imgsz=320, seed=0):
-    """A tiny fake paired dataset (bright squares, hotter in thermal) for smoke tests.
-
-    Used only to check that the pipeline runs end to end without downloading
-    anything. Nothing trained on it means anything.
-    """
+    """A tiny fake paired dataset (bright squares, hotter in thermal) for smoke tests."""
     out, rng = Path(out), np.random.default_rng(seed)
     if out.exists():
         shutil.rmtree(out)

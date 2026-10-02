@@ -1,13 +1,6 @@
-"""Write the ablation and baseline model YAMLs from cffm-net-n.yaml.
+"""Write the ablation and baseline model YAMLs from cffm-net-n.yaml, each changing one thing.
 
-Every variant changes one thing, so a difference in results can only come
-from that one thing. Run once; the YAMLs are committed so they can be read.
-
-    cffm-net-n.yaml             CFFM-Net: stride-4 head, CMFM with gated scan
-    cffm-net-n-nogate.yaml      same, reliability gating off (r = 1)       C1
-    cffm-net-n-gconv.yaml       same, scan replaced by gated convolution   C4
-    cffm-net-n-nop2.yaml        same, no stride-4 head (YOLO26 head)       C2
-    two-stream-concat-n.yaml    two backbones, concatenation, YOLO26 head  baseline
+Variants: nogate (C1), gconv (C4), nop2 (C2) and the two-stream concat baseline.
 """
 from pathlib import Path
 

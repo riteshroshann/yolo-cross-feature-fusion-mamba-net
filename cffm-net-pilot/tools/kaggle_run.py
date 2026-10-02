@@ -1,15 +1,6 @@
-"""
-Run the pilot notebooks on Kaggle from this machine, through the Kaggle CLI.
+"""Run the pilot notebooks on Kaggle through its CLI (kaggle>=1.8, token in ~/.kaggle/access_token).
 
-    pip install "kaggle>=1.8"      # and put an API token in ~/.kaggle/access_token
-    python tools/kaggle_run.py upload               # code dataset from ../dist/cffm-net-pilot.zip (create or new version)
-    python tools/kaggle_run.py push 00              # push a notebook; Kaggle starts running it right away
-    python tools/kaggle_run.py status 00 02 ...     # state of each notebook's latest run
-    python tools/kaggle_run.py logs 00              # its execution log
-    python tools/kaggle_run.py wait 04 05           # block until all of them have finished
-
-A push always runs the notebook as a committed version, so push in dependency order: each entry below
-lists the datasets it reads and the notebooks whose saved outputs it needs.
+    python tools/kaggle_run.py upload | push 00 | status [00 02 ...] | logs 00 | wait 04 05
 """
 import json
 import re
@@ -23,11 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 STAGE = ROOT.parent / "dist" / "kaggle"
 KAGGLE = shutil.which("kaggle") or str(Path(sys.executable).parent / "kaggle")
 
-LLVIP = "afradhossain/llvip-dataset"      # public copy of the official release: LLVIP/{visible,infrared,Annotations}
-M3FD = "nus1998/m3fd-dataset"             # public copy of M3FD_Detection: Vis/, Ir/, Annotation/
+LLVIP = "afradhossain/llvip-dataset"      # public mirror of the official release
+M3FD = "nus1998/m3fd-dataset"             # public mirror of M3FD_Detection
 P0, P1 = "notebooks/phase0_environment", "notebooks/phase1_still_images"
 
-# id: (notebook, machine, public datasets, notebooks whose outputs it attaches)
+# id: (notebook, machine, datasets, notebooks whose outputs it needs), in push order
 NOTEBOOKS = {
     "00": (f"{P0}/00_environment_setup.ipynb", "gpu", [], []),
     "01": (f"{P0}/01_data_acquisition.ipynb", "cpu", [LLVIP, M3FD], []),
@@ -75,7 +66,7 @@ def upload(message="update"):
     exists = "cffm-net-pilot" in kaggle("datasets", "list", "--mine", check=False)
     print(kaggle("datasets", "version", "-p", str(d), "-m", message) if exists else
           kaggle("datasets", "create", "-p", str(d)))       # create makes it private by default
-    for _ in range(60):                                      # wait until Kaggle has processed the upload
+    for _ in range(60):                                      # wait for Kaggle to process the upload
         if "ready" in kaggle("datasets", "status", ref, check=False):
             print(ref, "ready")
             return

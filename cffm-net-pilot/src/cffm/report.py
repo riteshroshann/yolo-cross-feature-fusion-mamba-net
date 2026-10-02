@@ -1,9 +1,6 @@
-"""
-Turning logged metrics into tables and verdicts.
+"""Metric tables and pilot verdicts.
 
-Kept out of the notebooks on purpose: the decision rules for the pilot
-hypotheses were fixed before any training (pilot note, Table 4), and code that
-decides whether a hypothesis holds deserves unit tests, not a notebook cell.
+The decision rules were fixed before training, so they live here under unit tests, not in a notebook.
 """
 from __future__ import annotations
 
@@ -57,11 +54,7 @@ def verdict(diff: float, threshold: float) -> str:
 
 
 def mean_degradation_advantage(pr: dict, model: str, reference: str, kinds) -> float:
-    """How much less `model` loses than `reference` under degradation, averaged over probes.
-
-    loss(x) = AP(x, clean) - AP(x, probe); advantage = loss(reference) - loss(model).
-    Positive means `model` degrades less.
-    """
+    """Mean over probes of AP lost by `reference` minus AP lost by `model`; positive means `model` degrades less."""
     vals = []
     for k in kinds:
         if k == "clean":
@@ -102,9 +95,7 @@ def decide(ev: dict, pr: dict, lat: dict, kinds) -> pd.DataFrame:
     return pd.DataFrame(H, columns=["id", "hypothesis", "evidence", "verdict"]).set_index("id")
 
 
-# --------------------------------------------------------------------------- #
-# writers (no extra dependencies: no tabulate, no jinja2)
-# --------------------------------------------------------------------------- #
+# hand-rolled writers, so there is no tabulate or jinja2 dependency
 def _fmt(v, digits):
     if isinstance(v, float):
         return "" if math.isnan(v) else f"{v:.{digits}f}"

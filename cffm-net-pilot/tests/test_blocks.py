@@ -32,7 +32,7 @@ def test_offset_align_starts_as_identity():
 def test_scan_orders_are_invertible(K):
     scan = GatedCrossScan(8, directions=K)
     X = torch.randn(2, 8, 5, 7, 2)
-    seqs = scan._orders(X)                                  # (b, K, d, L)
+    seqs = scan._orders(X)
     assert seqs.shape == (2, K, 8, 2 * 5 * 7)
     assert torch.allclose(scan._merge(seqs, 5, 7), K * X)   # every direction maps back to X
 
@@ -40,8 +40,8 @@ def test_scan_orders_are_invertible(K):
 def test_cross_scan_interleaves_modalities():
     scan = GatedCrossScan(4, directions=2)
     xv, xt = torch.zeros(1, 4, 2, 2), torch.ones(1, 4, 2, 2)
-    seq = scan._orders(torch.stack([xv, xt], -1))[0, 0, 0]  # row-major sequence of channel 0
-    assert seq.tolist() == [0, 1, 0, 1, 0, 1, 0, 1]          # v t v t ...
+    seq = scan._orders(torch.stack([xv, xt], -1))[0, 0, 0]  # direction 0, channel 0
+    assert seq.tolist() == [0, 1, 0, 1, 0, 1, 0, 1]
 
 
 def test_zero_reliability_thermal_cannot_change_visible_outputs():
@@ -52,7 +52,7 @@ def test_zero_reliability_thermal_cannot_change_visible_outputs():
     yv1, _ = scan(xv, xt, rv, rt)
     yv2, _ = scan(xv, xt + 3 * torch.randn_like(xt), rv, rt)
     assert torch.allclose(yv1, yv2, atol=1e-5)
-    # ...whereas with r_t = 1 the thermal tokens do reach the visible outputs
+    # with r_t = 1 thermal does reach the visible outputs
     yv3, _ = scan(xv, xt, rv, torch.ones_like(rt))
     yv4, _ = scan(xv, xt + 3 * torch.randn_like(xt), rv, torch.ones_like(rt))
     assert not torch.allclose(yv3, yv4, atol=1e-3)

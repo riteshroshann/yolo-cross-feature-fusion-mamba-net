@@ -1,11 +1,6 @@
-"""
-Pack the project into cffm-net-pilot.zip, the file you upload to Kaggle as a dataset.
+"""Pack the project into ../dist/cffm-net-pilot.zip, under one cffm-net-pilot/ folder, for Kaggle.
 
-    python tools/make_zip.py            # writes ../dist/cffm-net-pilot.zip
-
-Everything inside the zip sits under one top folder, cffm-net-pilot/, so the notebooks find it at
-/kaggle/input/<dataset>/cffm-net-pilot/. Anything generated (data, runs, caches, build files) is left out,
-and the novelty PDF from ../docs/novelty is added under docs/ so the zip is self-contained.
+    python tools/make_zip.py
 """
 import fnmatch
 import zipfile
