@@ -1,6 +1,6 @@
 import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
 
-const DEFAULT_BACKEND = "http://127.0.0.1:7860/";
+const DEFAULT_BACKEND = "https://bbac94ca05251fde7e.gradio.live/";
 const SAMPLES = [
   ["llvip_190311", "Night pedestrians · LLVIP"], ["llvip_190009", "Night pedestrians · LLVIP"],
   ["llvip_190505", "Night pedestrians · LLVIP"], ["llvip_190648", "Night pedestrians · LLVIP"],
