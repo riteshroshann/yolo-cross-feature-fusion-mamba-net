@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ET
 ROOT = os.path.dirname(os.path.abspath(__file__))
 UA = "cffm-net-paper-fetch/1.0 (research dossier; polite single-thread client)"
 API = "http://export.arxiv.org/api/query?"
-DELAY = 3.2  # arXiv asks for at least 3 seconds between requests
+DELAY = 3.2
 ATOM = {"a": "http://www.w3.org/2005/Atom"}
 
 CATS = {
@@ -46,7 +46,6 @@ def E(key, cat, name, check=None, arxiv=None, url=None, search=None, year=None, 
 
 
 PAPERS = [
-    # ---- detectors -------------------------------------------------------
     E("yolo26_2026", "01", "YOLO26", "YOLO26", arxiv="2606.03748"),
     E("wang2024yolov10", "01", "YOLOv10", "YOLOv10", arxiv="2405.14458"),
     E("tian2025yolov12", "01", "YOLOv12", "YOLOv12", arxiv="2502.12524"),
@@ -62,7 +61,6 @@ PAPERS = [
     E("lin2017fpn", "01", "FPN", "Feature Pyramid Networks", arxiv="1612.03144"),
     E("liu2018panet", "01", "PANet", "Path Aggregation", arxiv="1803.01534"),
     E("yolo11_2024", "01", "YOLO11", note="software release, no paper: https://github.com/ultralytics/ultralytics"),
-    # ---- state space models ----------------------------------------------
     E("gu2022s4", "02", "S4", "Structured State Spaces", arxiv="2111.00396"),
     E("smith2023s5", "02", "S5", "Simplified State Space", arxiv="2208.04933"),
     E("gu2023mamba", "02", "Mamba", "Mamba", arxiv="2312.00752"),
@@ -84,7 +82,6 @@ PAPERS = [
     E("hatamizadeh2025mambavision", "02", "MambaVision", "MambaVision", arxiv="2407.08083"),
     E("xie2024quadmamba", "02", "QuadMamba", "QuadMamba", search='ti:QuadMamba'),
     E("objm2025", "02", "ObjM", "Objectness", search='all:objectness AND all:mamba AND all:scan'),
-    # ---- mamba detectors -------------------------------------------------
     E("wang2025mambayolo", "03", "Mamba-YOLO", "Mamba YOLO", arxiv="2406.05835"),
     E("mambapsa2026", "03", "MambaPSA", "MambaPSA", arxiv="2607.12681"),
     E("yolo12mambascan2026", "03", "YOLO12-MambaScan", "Mamba", arxiv="2609.13647"),
@@ -93,7 +90,6 @@ PAPERS = [
     E("akcmamba2026", "03", "AKCMamba-YOLO", "AKCMamba", search='all:AKCMamba'),
     E("mambanextyolo2025", "03", "MambaNeXt-YOLO", "MambaNeXt", arxiv="2506.03654"),
     E("lcmamnet2026", "03", "LCMamNet", "LCMamNet", arxiv="2607.24184"),
-    # ---- small objects ---------------------------------------------------
     E("sfdnet2026", "04", "SFDNet", "SFDNet", arxiv="2606.29029"),
     E("dernet2026", "04", "DERNet", "DERNet", arxiv="2606.23825"),
     E("o2deim2026", "04", "O2-DEIM", "Oriented", arxiv="2603.15497"),
@@ -112,7 +108,6 @@ PAPERS = [
     E("akyon2022sahi", "04", "SAHI", "Slicing Aided", arxiv="2202.06934"),
     E("wang2025hpsdetr", "04", "HPS-DETR", note="IEEE TGRS, not open access; the copy supplied is in 00_source_papers"),
     E("yang2026uavdet", "04", "UAVDet", note="CVIU, not open access; the copy supplied is in 00_source_papers"),
-    # ---- RGB-thermal fusion ----------------------------------------------
     E("dong2025fusionmamba", "05", "Fusion-Mamba", "Fusion-Mamba", arxiv="2404.09146"),
     E("li2025cfmw", "05", "CFMW-preprint", "Fusion Mamba", arxiv="2404.16302"),
     E("como2024", "05", "COMO", "COMO", arxiv="2412.18076"),
@@ -131,7 +126,6 @@ PAPERS = [
     E("qingyun2021cft", "05", "CFT", "Cross-Modality Fusion Transformer", arxiv="2111.00273"),
     E("shen2024icafusion", "05", "ICAFusion", "ICAFusion", arxiv="2308.07504"),
     E("chen2022proben", "05", "ProbEn", "Probabilistic Ensembling", arxiv="2104.02904"),
-    # ---- video, tracking, streaming --------------------------------------
     E("zubic2024ssmevent", "06", "SSMs-for-event-cameras", "Event Cameras", arxiv="2402.15584"),
     E("gehrig2023rvt", "06", "RVT", "Recurrent Vision Transformers", arxiv="2212.05598"),
     E("tmambadet2026", "06", "TMambaDet", "TMambaDet", search='all:TMambaDet'),
@@ -163,7 +157,6 @@ PAPERS = [
     E("hgttrack2024", "06", "HGT-Track-VT-Tiny-MOT", "Tiny", arxiv="2412.10861"),
     E("ballas2016convgru", "06", "ConvGRU", "Delving Deeper", arxiv="1511.06432"),
     E("williams1990tbptt", "06", "TBPTT", note="Neural Computation 2(4), 1990; not open access"),
-    # ---- datasets ----------------------------------------------------------
     E("lin2014coco", "07", "COCO", "Common Objects in Context", arxiv="1405.0312"),
     E("singh2024cocorem", "07", "COCO-ReM", "COCO", arxiv="2403.18819"),
     E("gupta2019lvis", "07", "LVIS", "LVIS", arxiv="1908.03195"),
@@ -208,12 +201,10 @@ PAPERS = [
     E("fan2019lasot", "07", "LaSOT", "LaSOT", arxiv="1809.07845"),
     E("corona2021meva", "07", "MEVA", "MEVA", arxiv="2012.00914"),
     E("robicheaux2025rf100vl", "07", "RF100-VL", "Roboflow100", arxiv="2505.20612"),
-    # ---- foundation models -------------------------------------------------
     E("oquab2024dinov2", "08", "DINOv2", "DINOv2", arxiv="2304.07193"),
     E("simeoni2025dinov3", "08", "DINOv3", "DINOv3", arxiv="2508.10104"),
     E("sam3_2025", "08", "SAM3", "SAM 3", arxiv="2511.16719"),
     E("wang2025yoloe", "08", "YOLOE", "YOLOE", arxiv="2503.07465"),
-    # ---- other methods -----------------------------------------------------
     E("chen2023fasternet", "09", "FasterNet", "FLOPS", arxiv="2303.03667"),
     E("liu2023efficientvit", "09", "EfficientViT", "EfficientViT", arxiv="2305.07027"),
     E("liu2023dysample", "09", "DySample", "Learning to Upsample", arxiv="2308.15085"),
@@ -223,7 +214,6 @@ PAPERS = [
     E("ho2020ddpm", "09", "DDPM", "Denoising Diffusion Probabilistic", arxiv="2006.11239"),
     E("song2021ddim", "09", "DDIM", "Denoising Diffusion Implicit", arxiv="2010.02502"),
     E("ozdenizci2023weatherdiff", "09", "WeatherDiff", "Adverse Weather", arxiv="2207.14626"),
-    # ---- law and ethics ----------------------------------------------------
     E("euaiact2024", "10", "EU-AI-Act-Regulation-2024-1689",
       url="https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=CELEX:32024R1689", year=2024,
       title="Regulation (EU) 2024/1689 (Artificial Intelligence Act)"),
@@ -235,7 +225,6 @@ PAPERS = [
     E("dpdprules2025", "10", "India-DPDP-Rules-2025", note="notified November 2025; official text on meity.gov.in and egazette.gov.in"),
     E("puttaswamy2017", "10", "Puttaswamy-2017", note="Supreme Court of India judgment, (2017) 10 SCC 1"),
     E("poi2011", "10", "Person-of-Interest", note="television series, not a paper"),
-    # ---- software and documentation (listed, not downloaded) ---------------
     E("mambassm_repo", "02", "mamba_ssm", note="software: https://github.com/state-spaces/mamba"),
     E("mambapy_repo", "02", "mamba.py", note="software: https://github.com/alxndrTL/mamba.py"),
     E("trackeval_repo", "06", "TrackEval", note="software: https://github.com/JonathonLuiten/TrackEval"),
@@ -275,7 +264,7 @@ def pdf_first_page(data):
     page = doc[0]
     text = " ".join(page.get_text().split())
     spans = [s for b in page.get_text("dict")["blocks"] for l in b.get("lines", [])
-             if abs(l["dir"][0]) > 0.9  # skip the rotated arXiv stamp in the margin
+             if abs(l["dir"][0]) > 0.9
              for s in l["spans"] if s["text"].strip() and s["bbox"][1] < page.rect.height * 0.5
              and not s["text"].strip().lower().startswith("arxiv:")]
     if not spans:
@@ -359,7 +348,7 @@ def refresh_titles(rows):
             for aid, title in arxiv_query({"id_list": ",".join(keys[i:i + 50]), "max_results": 50}):
                 if aid in ids:
                     ids[aid]["title"] = title
-        except Exception as exc:  # titles from the PDFs remain in place
+        except Exception as exc:
             print("title refresh skipped:", exc)
 
 
@@ -429,7 +418,7 @@ def main():
             else:
                 done = [f for f in os.listdir(folder) if f.startswith(f"{p['year'] or ''}") and
                         f"_{p['name']}_" in f] if os.path.isdir(folder) else []
-                if done:  # already fetched on an earlier run
+                if done:
                     path = os.path.join(folder, done[0])
                     with open(path, "rb") as fh:
                         title, _ = pdf_first_page(fh.read())
@@ -447,7 +436,7 @@ def main():
                         row.update(status="downloaded", file=os.path.relpath(path, ROOT).replace(os.sep, "/"),
                                    title=title, source=f"https://arxiv.org/abs/{aid}",
                                    note=(note + "; " + row["note"]).strip("; "))
-        except Exception as exc:  # keep going; the index records the failure
+        except Exception as exc:
             row.update(status="failed", note=f"{type(exc).__name__}: {exc}")
         rows.append(row)
         print(f"[{i:3d}/{len(PAPERS)}] {row['status']:14s} {p['key']:28s} {row['title'][:60]}", flush=True)

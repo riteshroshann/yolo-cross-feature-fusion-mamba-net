@@ -1,13 +1,3 @@
-# CFFM-Net (image mode), nano scale.
-#
-# The network below is exactly Ultralytics' yolo26-p2.yaml (YOLO26 with a
-# stride-4 detection head, Ultralytics 8.4.171). The three keys after `scale`
-# are ours: they tell cffm.model.DualStreamDetectionModel to build a second
-# (thermal) backbone and to fuse the two streams at every level the neck reads.
-#
-#   fusion: cffm    P2 <- reliability-weighted sum, P3..P5 <- CMFM
-#   fusion: concat  every level <- concatenation + 1x1 conv (baseline)
-
 nc: 80
 end2end: True
 reg_max: 1
@@ -19,47 +9,46 @@ scales:
 dual_stream: true
 fusion: cffm
 fusion_cfg:
-  mixer: ssm          # ssm = reliability-gated cross scan | gconv = gated-convolution control (C4)
-  gate: true          # false = reliability gating off (C1 ablation)
-  align: true         # offset-guided alignment of thermal onto visible
-  ratio: 0.5          # channels inside CMFM = ratio * channels of the level
-  d_state: 8          # state size N per channel
-  directions: 4       # scan orders: 4 = rows and columns, both ways
-  scan_impl: auto     # auto | cuda | torch
-  scan_checkpoint: true   # recompute the scan in backward instead of storing it (saves GPU memory)
-  gconv_expand: 0.5   # width of the gated-conv control (used only when mixer: gconv);
-                      # 0.5 gives 18.30 GFLOPs vs 18.39 for CFFM-Net (scan cost included)
+  mixer: ssm
+  gate: true
+  align: true
+  ratio: 0.5
+  d_state: 8
+  directions: 4
+  scan_impl: auto
+  scan_checkpoint: true
+  gconv_expand: 0.5
 
 backbone:
-  - [-1, 1, Conv, [64, 3, 2]] # 0-P1/2
-  - [-1, 1, Conv, [128, 3, 2]] # 1-P2/4
-  - [-1, 2, C3k2, [256, False, 0.25]] # 2 <- fused (P2)
-  - [-1, 1, Conv, [256, 3, 2]] # 3-P3/8
-  - [-1, 2, C3k2, [512, False, 0.25]] # 4 <- fused (P3)
-  - [-1, 1, Conv, [512, 3, 2]] # 5-P4/16
-  - [-1, 2, C3k2, [512, True]] # 6 <- fused (P4)
-  - [-1, 1, Conv, [1024, 3, 2]] # 7-P5/32
+  - [-1, 1, Conv, [64, 3, 2]]
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [-1, 2, C3k2, [256, False, 0.25]]
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [-1, 2, C3k2, [512, False, 0.25]]
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [-1, 2, C3k2, [512, True]]
+  - [-1, 1, Conv, [1024, 3, 2]]
   - [-1, 2, C3k2, [1024, True]]
-  - [-1, 1, SPPF, [1024, 5, 3, True]] # 9
-  - [-1, 2, C2PSA, [1024]] # 10 <- fused (P5)
+  - [-1, 1, SPPF, [1024, 5, 3, True]]
+  - [-1, 2, C2PSA, [1024]]
 
 head:
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 6], 1, Concat, [1]] # cat backbone P4
-  - [-1, 2, C3k2, [512, True]] # 13
+  - [[-1, 6], 1, Concat, [1]]
+  - [-1, 2, C3k2, [512, True]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 4], 1, Concat, [1]] # cat backbone P3
-  - [-1, 2, C3k2, [256, True]] # 16 (P3/8-small)
+  - [[-1, 4], 1, Concat, [1]]
+  - [-1, 2, C3k2, [256, True]]
   - [-1, 1, nn.Upsample, [None, 2, "nearest"]]
-  - [[-1, 2], 1, Concat, [1]] # cat backbone P2
-  - [-1, 2, C3k2, [128, True]] # 19 (P2/4-xsmall)
+  - [[-1, 2], 1, Concat, [1]]
+  - [-1, 2, C3k2, [128, True]]
   - [-1, 1, Conv, [128, 3, 2]]
-  - [[-1, 16], 1, Concat, [1]] # cat head P3
-  - [-1, 2, C3k2, [256, True]] # 22 (P3/8-small)
+  - [[-1, 16], 1, Concat, [1]]
+  - [-1, 2, C3k2, [256, True]]
   - [-1, 1, Conv, [256, 3, 2]]
-  - [[-1, 13], 1, Concat, [1]] # cat head P4
-  - [-1, 2, C3k2, [512, True]] # 25 (P4/16-medium)
+  - [[-1, 13], 1, Concat, [1]]
+  - [-1, 2, C3k2, [512, True]]
   - [-1, 1, Conv, [512, 3, 2]]
-  - [[-1, 10], 1, Concat, [1]] # cat head P5
-  - [-1, 1, C3k2, [1024, True, 0.5, True]] # 28 (P5/32-large)
-  - [[19, 22, 25, 28], 1, Detect, [nc]] # Detect(P2, P3, P4, P5)
+  - [[-1, 10], 1, Concat, [1]]
+  - [-1, 1, C3k2, [1024, True, 0.5, True]]
+  - [[19, 22, 25, 28], 1, Detect, [nc]]

@@ -2,6 +2,9 @@
 
     python tools/build_notebooks.py
 """
+import io
+import re
+import tokenize
 from pathlib import Path
 
 import nbformat as nbf
@@ -13,8 +16,22 @@ def md(text):
     return nbf.v4.new_markdown_cell(text.strip("\n"))
 
 
+def uncomment(src):
+    """Drop every comment; lines that held only a comment disappear."""
+    cuts = {t.start[0] - 1: t.start[1] for t in tokenize.generate_tokens(io.StringIO(src).readline)
+            if t.type == tokenize.COMMENT}
+    out = []
+    for i, line in enumerate(src.splitlines()):
+        if i in cuts:
+            if not line[:cuts[i]].strip():
+                continue
+            line = line[:cuts[i]].rstrip()
+        out.append(line)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out))
+
+
 def code(text):
-    return nbf.v4.new_code_cell(text.strip("\n"))
+    return nbf.v4.new_code_cell(uncomment(text.strip("\n")))
 
 
 def write(path, cells):
@@ -52,7 +69,7 @@ if ON_KAGGLE:
         for p in [PROJECT, *PROJECT.rglob("*")]:     # inputs are read-only; our copy must be writable
             p.chmod(p.stat().st_mode | 0o200)
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "ultralytics==8.4.171",
-                    "faster-coco-eval>=1.6.7", "cloudpickle", "pytest"], check=True)   # cloudpickle: two-GPU launcher
+                    "faster-coco-eval>=1.6.7", "cloudpickle", "pytest", "lap>=0.5.12", "imageio-ffmpeg"], check=True)   # cloudpickle: two-GPU launcher
     # Editable install, so DataLoader and DDP worker processes can import cffm too.
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "-e", str(PROJECT)], check=True)
 else:
@@ -83,7 +100,6 @@ def header(title, purpose, inputs, runtime, outputs):
 
 
 def figure(*names, width=820):
-    # Diagrams come from docs/figures/build_figures.py.
     return code(f"""
 from IPython.display import Image, display
 for name in {names!r}:
@@ -284,7 +300,11 @@ for s in (pipeline.run_spec(plan, r["name"]) for r in plan["runs"]):
     del model; torch.cuda.empty_cache()
 df = pd.DataFrame(rows); print(df.to_string(index=False))
 limit = min(torch.cuda.get_device_properties(i).total_memory for i in range(n_gpu)) / 2**30
-assert (df["peak GB"] < limit - 1.0).all(), "A batch is too large for this GPU: lower it in configs/pilot.yaml."
+fits = (df["peak GB"] < limit - 1.0).all()
+if env.platform == "kaggle":
+    assert fits, "A batch is too large for this GPU: lower it in configs/pilot.yaml."
+elif not fits:
+    print(f"Some planned batches exceed this {limit:.0f} GB GPU; they are sized for a 15 GB T4.")
 '''),
         md('''
 ## 7. The whole pipeline, end to end, on fake data and both GPUs
@@ -581,6 +601,21 @@ print({n: a["misalignment_px"] for n, a in audit.items()})
 (env.runs / "audit" / "audit.json").write_text(json.dumps(audit, indent=2))
 print(json.dumps(audit, indent=2))
 '''),
+        md("## 4. What the labels look like\n\nThe four most crowded test scenes of each dataset with their human "
+           "labels, visible and thermal side by side."),
+        code('''
+from cffm import hud, showcase as sc
+from cffm.viz import make_pair
+for name in ("llvip", "m3fd"):
+    names = json.loads((env.data / name / "dataset_card.json").read_text())["names"]
+    boards = []
+    for stem in sc.crowded(env.data / name, k=4):
+        pair = make_pair(*sc.pair_paths(env, name, stem))
+        gt = sc.gt_boxes(env, name, stem, pair.shape)
+        boards.append(hud.render(pair, gt, names, panels=("visible", "thermal"), show_conf=False,
+                                 title=name.upper(), subtitle=f"GROUND TRUTH · {len(gt)} LABELS", frame=int(stem) % 10000))
+    sc.show(hud.grid(boards, cols=2))
+'''),
     ])
 
 
@@ -714,29 +749,22 @@ print(f"control / CFFM-Net GFLOPs = {ratio:.3f}"); assert abs(ratio - 1) < 0.05
 
 def nb07():
     extra = [
-        md("## What it sees\n\nPredictions (green) against ground truth (red) on night scenes, then the stride-8 "
-           "reliability maps. In a dark scene, thermal reliability should be high on people and visible low."),
+        md("## What it sees\n\nThe model's detections on night scenes, with the thermal view and the fusion trust "
+           "map (blue: visible weighted, orange: thermal weighted), and a log of every subject."),
         code('''
-import matplotlib.pyplot as plt
+from IPython.display import display
+from cffm import hud, showcase as sc
 from cffm.train import _load
-from cffm.viz import draw_pair, plot_reliability, predict_pair, reliability_maps
-
 model = _load(env.runs / "llvip_cffm" / "weights" / "best.pt").to("cuda:0")
-names = model.names
-val = sorted((env.data / "llvip" / "images" / "visible" / "val").glob("*.jpg"))
-for v in val[200:2000:450]:
-    det, pair = predict_pair(model, str(v), conf=0.3)
-    h, w = pair.shape[:2]; gt = []
-    for line in (env.data / "llvip" / "labels" / "visible" / "val" / (v.stem + ".txt")).read_text().splitlines():
-        c, x, y, bw, bh = map(float, line.split())
-        gt.append([(x - bw / 2) * w, (y - bh / 2) * h, (x + bw / 2) * w, (y + bh / 2) * h])
-    plt.figure(figsize=(14, 4.5)); plt.imshow(draw_pair(pair, det, names, gt)); plt.axis("off"); plt.title(v.name)
-    plt.show()
+for stem in sc.crowded(env.data / "llvip", k=3):
+    a = hud.analyze(model, *sc.pair_paths(env, "llvip", stem), frame=int(stem) % 10000)
+    sc.show(a.board)
+    display(sc.subject_log(a.det, a.names, a.share))
 '''),
         code('''
-for v in val[300:1500:600]:
-    maps, lb = reliability_maps(model, str(v))
-    plot_reliability(maps, lb, level=3); plt.show()
+model = _load(env.runs / "m3fd_cffm" / "weights" / "best.pt").to("cuda:0")
+for stem in sc.crowded(env.data / "m3fd", k=2):
+    sc.show(hud.analyze(model, *sc.pair_paths(env, "m3fd", stem), frame=int(stem) % 10000).board)
 '''),
     ]
     train_nb("notebooks/phase1_still_images/07_train_cffm_net.ipynb",
@@ -754,13 +782,29 @@ def nb08():
              "08", "about 4 to 5 hours on 2 x T4 (about 6 with the optional run)", optional_filter=True)
 
 
-
 def nb08b():
     train_nb("notebooks/phase1_still_images/08b_head_control.ipynb",
              "08b · Head control",
              "CFFM-Net uses YOLO26's stride-4 head and the concat baseline does not. Here concat gets the stride-4 "
              "head and CFFM-Net the standard one, so fusion and head can be compared separately.",
              "08b", "about 1.5 hours on 2 x T4")
+
+
+
+def nb08c():
+    train_nb("notebooks/phase1_still_images/08c_round2_llvip.ipynb",
+             "08c · Round 2 on LLVIP: standard head and modality dropout",
+             "CFFM-Net v2 drops the stride-4 head, which cost 1.8 AP on LLVIP, and trains with modality dropout: "
+             "each image loses its visible or thermal camera with probability 0.15, flagged half of the time. The "
+             "concat baseline gets the same augmentation, so the comparison stays fair.",
+             "08c", "about 1.5 hours on 2 x T4")
+
+
+def nb08d():
+    train_nb("notebooks/phase1_still_images/08d_round2_m3fd.ipynb",
+             "08d · Round 2 on M3FD: standard head and modality dropout",
+             "The same pair of runs as 08c on M3FD's six classes and much smaller objects.",
+             "08d", "about 1.5 hours on 2 x T4")
 
 
 def nb09():
@@ -780,6 +824,24 @@ for k, v in sorted(ckpts.items()):
     print(f"{k:24s} {v}")
 missing = [r for r in plan["probe"]["runs"] if r not in ckpts]
 assert not missing, f"attach the saved outputs of the notebooks that trained {missing}"
+'''),
+        md("## 0. What the probe does to the input\n\nOne test pair under each degradation, exactly as the model "
+           "receives it: the visible camera darkened or dropped, the thermal camera dropped or shifted."),
+        code('''
+import cv2, numpy as np
+from cffm import hud, showcase as sc
+from cffm.viz import make_pair
+stem = sc.crowded(env.data / "llvip", k=2)[1]
+pair = make_pair(*sc.pair_paths(env, "llvip", stem))
+tiles = []
+for kind in ("clean", "visible_dark", "visible_drop", "thermal_drop", "thermal_shift"):
+    p = pair if kind == "clean" else sc.degrade(pair, kind)
+    v = cv2.cvtColor(hud.enhance(p[..., :3])[0] if kind == "clean" else p[..., :3], cv2.COLOR_BGR2RGB)
+    t = hud.thermal_rgb(p[..., 3]) if p[..., 3].any() else np.zeros_like(v)
+    tile = np.concatenate([v, t], 0)
+    cv2.putText(tile, kind.upper(), (20, 60), cv2.FONT_HERSHEY_DUPLEX, 1.6, (255, 204, 0), 3, cv2.LINE_AA)
+    tiles.append(tile)
+sc.show(hud.grid(tiles, cols=5, gap=8))
 '''),
         md('''
 ## 1. The probe
@@ -852,6 +914,13 @@ for root in [env.runs, *[r for r in pipeline.INPUT_ROOTS if r.exists()]]:
 print(len(ev), "evaluated runs,", len(pr), "probe results,", len(lat), "latency entries")
 out = env.project / "results"; out.mkdir(exist_ok=True)
 '''),
+        code('''
+import cv2
+from cffm import showcase as sc
+hero = out / "showcase" / "hero_llvip.jpg"
+if hero.exists():
+    sc.show(cv2.cvtColor(cv2.imread(str(hero)), cv2.COLOR_BGR2RGB))
+'''),
         md("## 1. Main results\n\nAP is COCO AP50-95 on the full validation set, AP_vt / AP_t / AP_s the AI-TOD "
            "bands (<8, 8-16, 16-32 px). Cost is one T4, FP16, batch 1."),
         code('''
@@ -908,6 +977,178 @@ print(sorted(p.name for p in out.iterdir()))
         SAVE_NOTE,
     ])
 
+def nb16():
+    write("notebooks/phase1_still_images/16_showcase.ipynb", [
+        header("16 · Showcase: the Machine's view",
+               "What the trained models see, drawn the way a surveillance system shows it: every subject bracketed "
+               "and numbered, the thermal view beside the visible one, and a trust map of where CFFM-Net leaned on "
+               "each camera. Then camera failures, a tracked street crossing, and your own images.",
+               "`cffm-net-pilot`, LLVIP and M3FD, and the saved outputs of notebooks 05 and 07",
+               "about 10 minutes on one GPU", "`results/showcase/`: every board as JPEG, a tracked clip as MP4 and GIF"),
+        SETUP,
+        code('''
+from pathlib import Path
+
+import numpy as np, torch
+from cffm import hud, showcase as sc
+from cffm.train import _load
+from cffm.viz import make_pair
+
+for name in ("llvip", "m3fd"):
+    pipeline.prepare(name, env, plan)
+ckpts = pipeline.find_checkpoints(env)
+dev = "cuda:0" if torch.cuda.is_available() else "cpu"
+cffm = {n: _load(ckpts[f"{n}_cffm"]).to(dev) for n in ("llvip", "m3fd")}
+concat = _load(ckpts["llvip_concat"]).to(dev)
+from ultralytics import YOLO
+coco = YOLO(str(env.weights / "yolo26n.pt"))
+out = env.project / "results" / "showcase"
+out.mkdir(parents=True, exist_ok=True)
+print("device:", torch.cuda.get_device_name(0) if dev != "cpu" else "cpu")
+'''),
+        md("## 1. One scene, three views\n\nThe most crowded night frame in LLVIP's test set. Left, the visible "
+           "camera (brightened for display only); centre, thermal; right, the fusion trust map, blue where "
+           "CFFM-Net weighted the visible stream and orange where it weighted thermal."),
+        code('''
+stem = sc.crowded(env.data / "llvip", k=1)[0]
+a = hud.analyze(cffm["llvip"], *sc.pair_paths(env, "llvip", stem), frame=int(stem) % 10000)
+sc.show(a.board)
+sc.save(a.board, out / "hero_llvip.jpg")
+sc.subject_log(a.det, a.names, a.share)
+'''),
+        md("## 2. Gallery\n\nThe four most crowded scenes of each test set, one per video sequence: night "
+           "crossings from LLVIP and city traffic from M3FD (people, cars, buses, motorcycles, lamps, trucks)."),
+        code('''
+boards = []
+for name in ("llvip", "m3fd"):
+    for stem in sc.crowded(env.data / name, k=4):
+        a = hud.analyze(cffm[name], *sc.pair_paths(env, name, stem), frame=int(stem) % 10000,
+                        panels=("visible", "thermal"))
+        sc.save(a.board, out / f"{name}_{stem}.jpg")
+        boards.append(a.board)
+sc.show(hud.grid(boards[:4], cols=2))
+sc.show(hud.grid(boards[4:], cols=2))
+'''),
+        md("## 3. Checked against the labels\n\nColoured brackets are detections, thin white boxes the human "
+           "labels. A detection counts as a match at IoU 0.5 or more."),
+        code('''
+from scipy.optimize import linear_sum_assignment
+boards = []
+for name in ("llvip", "m3fd"):
+    stem = sc.crowded(env.data / name, k=6)[5]
+    pair = make_pair(*sc.pair_paths(env, name, stem))
+    gt = sc.gt_boxes(env, name, stem, pair.shape)
+    a = hud.analyze(cffm[name], pair, gt=gt, panels=("visible",), subtitle="DETECTIONS VS LABELS")
+    iou = hud._iou(a.det[:, :4], gt[:, :4]) if len(a.det) and len(gt) else np.zeros((len(a.det), len(gt)))
+    r, c = linear_sum_assignment(-iou) if iou.size else ([], [])
+    tp = int(sum(iou[i, j] >= 0.5 for i, j in zip(r, c)))
+    print(f"{name} {stem}: {len(gt)} labels, {len(a.det)} detections, {tp} matched, "
+          f"{len(gt) - tp} missed, {len(a.det) - tp} extra")
+    boards.append(a.board)
+sc.show(hud.grid(boards, cols=2))
+'''),
+        md("## 4. What the Machine trusts, by light level\n\nMean thermal share of the fusion weights against "
+           "scene brightness, over 150 random test frames per dataset. If the gate works as intended, darker "
+           "scenes should lean on thermal."),
+        code('''
+import cv2, matplotlib.pyplot as plt
+from cffm.viz import reliability_maps
+rng = np.random.default_rng(0)
+pts = {}
+for name in ("llvip", "m3fd"):
+    files = sorted((env.data / name / "images" / "visible" / "val").glob("*.jpg"))
+    xs, ys = [], []
+    for f in rng.choice(files, size=min(150, len(files)), replace=False):
+        pair = make_pair(str(f))
+        share = hud.trust_share(reliability_maps(cffm[name], pair)[0], pair.shape)
+        xs.append(cv2.cvtColor(pair[..., :3], cv2.COLOR_BGR2GRAY).mean())
+        ys.append(float(share.mean()))
+    pts[name] = (np.array(xs), np.array(ys))
+plt.rcParams.update({"font.family": "serif", "axes.spines.top": False, "axes.spines.right": False})
+fig, ax = plt.subplots(figsize=(8, 4))
+for name, col in (("llvip", "#C0622B"), ("m3fd", "#2F6DB5")):
+    x, y = pts[name]
+    ax.scatter(x, y, s=14, alpha=0.55, color=col, label=name.upper())
+    print(f"{name}: mean thermal share {y.mean():.3f}; corr(brightness, share) = {np.corrcoef(x, y)[0, 1]:+.2f}")
+ax.axhline(0.5, color="gray", lw=0.8, ls="--")
+ax.set_xlabel("mean visible brightness (0-255)"); ax.set_ylabel("thermal share of fusion weight")
+ax.legend(frameon=False); plt.tight_layout(); plt.savefig(out / "trust_vs_brightness.png", dpi=200); plt.show()
+'''),
+        md("## 5. When a camera fails\n\nThe same night scene under four conditions, CFFM-Net on the left and "
+           "the concat baseline on the right. For the dropped thermal camera, CFFM-Net is told which sensor is "
+           "gone through its availability flag; concat has no way to use that."),
+        code('''
+stem = sc.crowded(env.data / "llvip", k=2)[1]
+pair = make_pair(*sc.pair_paths(env, "llvip", stem))
+cases = [("clean", None, None), ("visible camera off", "visible_drop", [[0.0, 1.0]]),
+         ("thermal camera off", "thermal_drop", [[1.0, 0.0]]), ("thermal misaligned 8 px", "thermal_shift", None)]
+boards = []
+for title, kind, flags in cases:
+    p = pair if kind is None else sc.degrade(pair, kind)
+    for model, label in ((cffm["llvip"], "CFFM-NET"), (concat, "CONCAT")):
+        model.sensor_flags = None if flags is None or model is concat else torch.tensor(flags)
+        a = hud.analyze(model, p, panels=("visible", "thermal"), title=label, subtitle=title.upper())
+        model.sensor_flags = None
+        boards.append(a.board)
+        print(f"{title:26s} {label:9s} {len(a.det)} subjects")
+sc.show(hud.grid(boards, cols=2))
+_ = sc.save(hud.grid(boards, cols=2), out / "sensor_failures.jpg")
+'''),
+        md("## 6. Tracking a crowd\n\nLLVIP's test frames are sampled seconds apart, with different people in "
+           "each, so they cannot be tracked. Tracking needs real video: MOT17-04, a pedestrian street at night "
+           "filmed at 30 fps (MOT Challenge, CC BY-NC-SA 3.0). The footage is visible only, so it goes to the "
+           "general YOLO26-n at 1280 px. Each subject keeps its number, a trail of where it walked and an arrow "
+           "for where it is heading."),
+        code('''
+seq = sc.find_sequence(env, "MOT17-04")
+frames = sorted(seq.glob("*.jpg"))[:300:2]
+boards, n_ids = sc.track(coco, frames, title="YOLO26-N", subtitle="COCO · TRACKING · MOT17-04", panel_w=1280)
+mp4 = hud.save_video(boards, out / "tracking_mot17.mp4", fps=15, width=1600)
+gif = hud.save_video(boards[::3], out / "tracking_mot17.gif", fps=5, width=760)
+print(f"{len(frames)} frames (10 s at 15 fps), {n_ids} track IDs; saved {Path(mp4).name}, {Path(gif).name}")
+sc.show(hud.grid([boards[i] for i in (0, len(boards) // 3, 2 * len(boards) // 3, len(boards) - 1)], cols=2))
+'''),
+        md("## 7. Any photo\n\nCFFM-Net needs a visible and a thermal camera. For an ordinary photo we use the "
+           "general YOLO26-n trained on COCO's 80 classes, drawn the same way and labelled as such."),
+        code('''
+from ultralytics.utils import ASSETS
+boards = []
+for f in sorted(ASSETS.glob("*.jpg")) + sorted((env.project / "demo" / "samples").glob("*.jpg")):
+    a = hud.analyze(coco, f, title="YOLO26-N", subtitle="COCO, 80 CLASSES (NOT CFFM-NET)")
+    sc.save(a.board, out / f"photo_{f.stem}.jpg")
+    boards.append(a.board)
+sc.show(hud.grid(boards, cols=len(boards)))
+'''),
+        md("## 8. Your own images\n\nSet the paths and run: a visible + thermal pair goes to CFFM-Net, a single "
+           "photo to the COCO model. Running interactively, the upload box below does the same."),
+        code('''
+MY_VISIBLE, MY_THERMAL, MY_PHOTO = "", "", ""
+if MY_VISIBLE and MY_THERMAL:
+    sc.show(hud.analyze(cffm["llvip"], MY_VISIBLE, MY_THERMAL).board)
+if MY_PHOTO:
+    sc.show(hud.analyze(coco, MY_PHOTO, title="YOLO26-N", subtitle="COCO, 80 CLASSES").board)
+try:
+    import ipywidgets as w
+    from IPython.display import display
+    up = w.FileUpload(accept="image/*", multiple=True, description="upload")
+    def on_upload(change):
+        files = [np.frombuffer(bytes(f["content"]), np.uint8) for f in up.value]
+        ims = [cv2.imdecode(b, cv2.IMREAD_COLOR) for b in files]
+        a = hud.analyze(cffm["llvip"], ims[0], cv2.cvtColor(ims[1], cv2.COLOR_BGR2GRAY)) if len(ims) == 2 else \\
+            hud.analyze(coco, ims[0], title="YOLO26-N", subtitle="COCO, 80 CLASSES")
+        sc.show(a.board)
+    up.observe(on_upload, names="value")
+    display(up)
+except ImportError:
+    print("ipywidgets not installed; use the paths above")
+'''),
+    ])
+
+
 if __name__ == "__main__":
-    for f in (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb09, nb15):
-        f()
+    import sys
+    every = (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb08c, nb08d, nb09, nb15, nb16)
+    pick = set(sys.argv[1:])
+    for f in every:
+        if not pick or f.__name__[2:] in pick:
+            f()

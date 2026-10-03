@@ -1,5 +1,3 @@
-# PyTorch is not pinned here: Kaggle ships its own CUDA build, and locally it comes from
-# https://download.pytorch.org/whl/cu126 (see README). Everything else:
 ultralytics==8.4.171
 faster-coco-eval>=1.6.7
 cloudpickle
@@ -8,7 +6,11 @@ pyyaml
 numpy
 pandas
 matplotlib
-# development and notebooks
+scipy
+pillow
+imageio
+imageio-ffmpeg
+lap>=0.5.12
 pytest
 nbformat
 jupyter

@@ -12,7 +12,7 @@ def _fake_run(root, name, epochs):
     (run / "results.csv").write_text("epoch\n" + "".join(f"{i}\n" for i in range(epochs)))
     for p in [*run.rglob("*")]:
         if p.is_file():
-            os.chmod(p, stat.S_IREAD)                    # inputs on Kaggle are read-only
+            os.chmod(p, stat.S_IREAD)
     return run
 
 
@@ -20,7 +20,7 @@ def test_prior_run_prefers_most_epochs(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "INPUT_ROOTS", [tmp_path])
     _fake_run(tmp_path / "v1" / "runs", "llvip_cffm", 12)
     longest = _fake_run(tmp_path / "v2" / "runs", "llvip_cffm", 20)
-    _fake_run(tmp_path / "v3" / "runs", "llvip_cffm_nogate", 30)  # another run, must not match
+    _fake_run(tmp_path / "v3" / "runs", "llvip_cffm_nogate", 30)
     assert pipeline.find_prior_run("llvip_cffm") == longest
     assert pipeline.find_prior_run("m3fd_cffm") is None
 

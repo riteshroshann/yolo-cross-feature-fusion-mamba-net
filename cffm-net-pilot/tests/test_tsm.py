@@ -50,7 +50,7 @@ def test_reset_clears_only_the_flagged_samples():
 def test_identity_homography_is_a_no_op_and_shift_moves_the_state():
     S = torch.randn(1, 6, 8, 3, 2)
     assert torch.allclose(warp_state(S, torch.eye(3)[None]), S, atol=1e-5)
-    H = torch.tensor([[[1.0, 0, 1], [0, 1, 0], [0, 0, 1]]])                     # one cell to the right
+    H = torch.tensor([[[1.0, 0, 1], [0, 1, 0], [0, 0, 1]]])
     W = warp_state(S, H)
     assert torch.allclose(W[:, :, 1:], S[:, :, :-1], atol=1e-5)
-    assert W[:, :, 0].abs().max() < 1e-5                                        # new column has no memory
+    assert W[:, :, 0].abs().max() < 1e-5

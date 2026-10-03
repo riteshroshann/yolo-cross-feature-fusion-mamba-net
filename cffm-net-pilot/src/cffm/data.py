@@ -46,7 +46,7 @@ def read_pair(visible_path: str) -> np.ndarray | None:
         return None
     if ir.ndim == 3:
         ir = ir[..., 0]
-    if ir.shape[:2] != vis.shape[:2]:  # converters write equal sizes; be forgiving anyway
+    if ir.shape[:2] != vis.shape[:2]:
         ir = cv2.resize(ir, (vis.shape[1], vis.shape[0]), interpolation=cv2.INTER_LINEAR)
     return np.concatenate([vis, ir[..., None]], axis=2)
 
@@ -56,7 +56,7 @@ def _imread(filename, flags=cv2.IMREAD_COLOR):
 
 
 _imread._cffm_original = _ORIG_IMREAD
-_ul_base.imread = _imread  # patched on import, so every DataLoader worker gets it too
+_ul_base.imread = _imread
 
 
 class VisibleHSV:
@@ -87,7 +87,7 @@ class PairedYOLODataset(YOLODataset):
     def build_transforms(self, hyp=None):
         t = super().build_transforms(hyp)
         if self.augment and hyp is not None and (hyp.hsv_h or hyp.hsv_s or hyp.hsv_v):
-            t.insert(len(t.transforms) - 1, VisibleHSV(hyp.hsv_h, hyp.hsv_s, hyp.hsv_v))  # before Format
+            t.insert(len(t.transforms) - 1, VisibleHSV(hyp.hsv_h, hyp.hsv_s, hyp.hsv_v))
         return t
 
 
@@ -98,7 +98,7 @@ def build_dataset(cfg, img_path, batch, data, mode="train", rect=False, stride=3
     if getattr(cfg, "cache", None) == "disk":
         raise ValueError("cache='disk' stores single images; use cache=False or cache='ram' for paired data")
     original = _ul_build.YOLODataset
-    _ul_build.YOLODataset = PairedYOLODataset  # build_yolo_dataset looks the class up by this module name
+    _ul_build.YOLODataset = PairedYOLODataset
     try:
         return _ul_build.build_yolo_dataset(cfg, img_path, batch, data, mode=mode, rect=rect, stride=stride)
     finally:
@@ -109,7 +109,7 @@ def _find_dir(root: Path, names) -> Path | None:
     """First directory under root (any depth) whose name is in `names` (case-insensitive)."""
     names = {n.lower() for n in names}
     level = [Path(root)]
-    while level:  # breadth-first over folders only; files are never listed twice
+    while level:
         nxt = []
         for d in level:
             subs = sorted(p for p in d.iterdir() if p.is_dir())
@@ -157,7 +157,7 @@ def _write_pair(job):
         if x2 - x1 < 1 or y2 - y1 < 1:
             continue
         lines.append(f"{c} {(x1 + x2) / 2 / w:.6f} {(y1 + y2) / 2 / h:.6f} {(x2 - x1) / w:.6f} {(y2 - y1) / h:.6f}")
-        sizes.append(((x2 - x1) * (y2 - y1)) ** 0.5 * min(r, 1.0))  # object size in pixels after resizing
+        sizes.append(((x2 - x1) * (y2 - y1)) ** 0.5 * min(r, 1.0))
     for mod, im in (("visible", vis), ("infrared", ir)):
         dst = out / "images" / mod / split / f"{stem}.jpg"
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -173,7 +173,7 @@ def _convert(pairs, out: Path, names, imgsz, workers, meta):
     if out.exists():
         shutil.rmtree(out)
     jobs = [(v, i, x, out, s, stem, names, imgsz) for (v, i, x, s, stem) in pairs]
-    with ThreadPoolExecutor(workers) as ex:  # OpenCV releases the GIL, threads are enough
+    with ThreadPoolExecutor(workers) as ex:
         results = list(ex.map(_write_pair, jobs))
     sizes = [s for r in results if r for s in r]
     n_ok = {s: sum(1 for (j, r) in zip(jobs, results) if r is not None and j[4] == s) for s in ("train", "val")}
@@ -237,7 +237,7 @@ def convert_m3fd(raw: str | Path, out: str | Path, imgsz=640, val_frac=0.2, seed
     if not (vis_root and ir_root and ann):
         raise FileNotFoundError(f"M3FD folders Vis/, Ir/, Annotation/ not found under {raw}")
     exts = {".png", ".jpg", ".bmp"}
-    vis = {p.stem: p for p in vis_root.iterdir() if p.suffix.lower() in exts}   # one listing per folder
+    vis = {p.stem: p for p in vis_root.iterdir() if p.suffix.lower() in exts}
     ir = {p.stem: p for p in ir_root.iterdir() if p.suffix.lower() in exts}
     xml = {p.stem for p in ann.iterdir() if p.suffix.lower() == ".xml"}
     stems = sorted(vis)

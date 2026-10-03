@@ -14,15 +14,15 @@ from pathlib import Path
 
 @dataclass
 class Env:
-    platform: str                      # 'kaggle' | 'colab' | 'local'
+    platform: str
     project: Path
     data: Path
     raw: Path
     runs: Path
     weights: Path
-    device: str                        # '0', '0,1' or 'cpu'
-    gpus: list = field(default_factory=list)   # [(name, total GiB), ...]
-    scan_impl: str = "torch"           # 'cuda' if the fused mamba_ssm kernel is usable
+    device: str
+    gpus: list = field(default_factory=list)
+    scan_impl: str = "torch"
 
     def summary(self) -> str:
         g = ", ".join(f"{n} ({m:.0f} GB)" for n, m in self.gpus) or "no GPU"
@@ -52,7 +52,7 @@ def setup(verbose: bool = True) -> Env:
 
     plat = _platform()
     project = find_project()
-    if plat == "kaggle":            # /kaggle/input is read-only, so everything goes to /kaggle/working
+    if plat == "kaggle":
         root = Path("/kaggle/working")
         data, raw, runs = root / "data", root / "raw", root / "runs"
     else:
@@ -71,7 +71,7 @@ def setup(verbose: bool = True) -> Env:
     from . import scan
     scan_impl = "cuda" if (scan.HAS_MAMBA_SSM and gpus) else "torch"
     env = Env(plat, project, data, raw, runs, weights, device, gpus, scan_impl)
-    os.chdir(project)               # config paths are relative to the project folder
+    os.chdir(project)
     if verbose:
         print(env.summary())
     return env
@@ -81,11 +81,11 @@ def suggested_batch(env: Env, dual: bool, imgsz: int = 640) -> int:
     """A safe starting batch size: about 0.25 GB per image single-stream, 0.6 GB dual, at 640 px with AMP."""
     if not env.gpus:
         return 2
-    mem = min(m for _, m in env.gpus) - 1.0                 # leave 1 GB for the CUDA context
+    mem = min(m for _, m in env.gpus) - 1.0
     per_img = (0.6 if dual else 0.25) * (imgsz / 640) ** 2
     b = max(2, int(mem / per_img))
-    b = 2 ** int(b).bit_length() // 2 if b & (b - 1) else b  # round down to a power of two
-    return min(b, 64) * max(1, len(env.gpus))               # Ultralytics splits the batch over GPUs
+    b = 2 ** int(b).bit_length() // 2 if b & (b - 1) else b
+    return min(b, 64) * max(1, len(env.gpus))
 
 
 def versions() -> dict:

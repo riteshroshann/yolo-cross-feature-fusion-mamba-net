@@ -52,3 +52,27 @@ def test_coco_weights_fill_both_backbones():
     m.load(torch.load(WEIGHTS, map_location="cpu", weights_only=False))
     v, t = m.model[: m.nb + 1].state_dict(), m.thermal.state_dict()
     assert v.keys() == t.keys() and all(torch.equal(v[k], t[k]) for k in v)
+
+
+def test_modality_dropout_blacks_out_one_sensor_and_flags_half():
+    torch.manual_seed(0)
+    x = torch.rand(4000, 4, 2, 2) + 0.1
+    y, flags = DualStreamDetectionModel.drop_modalities(x, 0.15)
+    vis_off = (y[:, :3] == 0).flatten(1).all(1)
+    ir_off = (y[:, 3:] == 0).flatten(1).all(1)
+    assert not (vis_off & ir_off).any()
+    assert abs(vis_off.float().mean() - 0.15) < 0.03 and abs(ir_off.float().mean() - 0.15) < 0.03
+    assert (flags[~vis_off & ~ir_off] == 1).all()
+    told = flags[vis_off | ir_off].min(1).values == 0
+    assert 0.4 < told.float().mean() < 0.6
+
+
+def test_modality_dropout_only_in_training():
+    m = DualStreamDetectionModel(str(ROOT / "configs/models/cffm-net-n-v2.yaml"), nc=1, verbose=False)
+    assert m.modality_dropout == 0.15
+    m.eval()
+    x = torch.rand(2, 4, 128, 160)
+    with torch.no_grad():
+        a, b = m(x), m(x)
+    a, b = (a[0] if isinstance(a, (tuple, list)) else a), (b[0] if isinstance(b, (tuple, list)) else b)
+    assert torch.equal(a, b)

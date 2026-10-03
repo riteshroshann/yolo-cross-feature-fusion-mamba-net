@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 .ipynb_checkpoints/
 weights/*.pt
+results/showcase/*.mp4
+demo/weights/

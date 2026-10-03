@@ -1,0 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchvision
+ultralytics==8.4.171
+gradio>=6
+opencv-python-headless
+scipy
+pandas
+matplotlib
+pillow
+lap>=0.5.12

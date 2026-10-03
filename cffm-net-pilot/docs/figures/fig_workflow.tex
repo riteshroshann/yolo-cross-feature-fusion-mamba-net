@@ -2,7 +2,6 @@
 \input{style}
 \begin{document}
 \begin{tikzpicture}[nb/.style={blk, minimum width=2.75cm, minimum height=1.25cm, font=\small}]
-  % ---------------- Phase 0 ----------------
   \node[font=\small\scshape, text=muted, anchor=west] at (-1.5,1.35) {Phase 0 · environment and data};
   \node[nb, neu] (n00) at (0,0)   {\textbf{00}\\[-1pt] setup and checks\\[-1pt]\footnotesize tests, memory, DDP};
   \node[nb, dat] (n01) at (3.5,0) {\textbf{01}\\[-1pt] data acquisition\\[-1pt]\footnotesize LLVIP, M3FD};
@@ -10,7 +9,6 @@
   \node[nb, neu] (n03) at (10.5,0){\textbf{03}\\[-1pt] data audit\\[-1pt]\footnotesize sizes, alignment};
   \draw[ar] (n00) -- (n01); \draw[ar] (n01) -- (n02); \draw[ar] (n02) -- (n03);
 
-  % ---------------- Phase 1 training, in parallel ----------------
   \node[font=\small\scshape, text=muted, anchor=west] at (-1.5,-1.75) {Phase 1 · training, four independent Kaggle sessions};
   \node[nb, vis] (n04) at (0,-3.1)   {\textbf{04}\\[-1pt] single sensor\\[-1pt]\footnotesize visible, thermal};
   \node[nb, neu] (n05) at (3.5,-3.1) {\textbf{05}\\[-1pt] two-stream\\[-1pt]\footnotesize concat baseline};
@@ -23,7 +21,6 @@
 
   \node[nb, neu, minimum width=2.4cm] (n06) at (14.0,-3.1) {\textbf{06}\\[-1pt] inside CMFM\\[-1pt]\footnotesize checks only};
 
-  % ---------------- Phase 1 analysis ----------------
   \node[nb, hed] (n09) at (5.25,-6.0) {\textbf{09}\\[-1pt] probe and latency\\[-1pt]\footnotesize degradations, T4};
   \node[nb, fus, minimum width=3.4cm] (n15) at (10.5,-6.0) {\textbf{15}\\[-1pt] results\\[-1pt]\footnotesize tables, verdicts, figures};
   \foreach \n in {n05, n07, n08} \draw[ar] (\n.south) -- (\n.south |- 0,-4.55) -| (n09.north);
@@ -32,7 +29,6 @@
   \draw[dar] ($(n07.south)+(0.6,0)$) -- (7.6,-4.95) -- (9.5,-4.95) -- (9.5,0 |- n15.north);
   \draw[dar] ($(n08.south)+(0.6,0)$) -- (11.1,0 |- n15.north);
 
-  % hypotheses
   \node[note, anchor=north west, text width=15cm] (hyp) at (-1.5,-7.5)
     {\textbf{Hypotheses decided in 15:}\enspace
      PH1 fusion beats thermal alone (04 vs 07)\enspace·\enspace

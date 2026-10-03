@@ -28,9 +28,6 @@ except Exception:
     HAS_TRITON = False
 
 
-# --------------------------------------------------------------------------- #
-# PyTorch reference
-# --------------------------------------------------------------------------- #
 def _grouped(u, delta, A, B, C, D):
     """Split d channels into g groups that share B and C: (b, d, l) -> (b, g, dg, l)."""
     b, d, l = u.shape
@@ -50,14 +47,14 @@ def _scan_two_pass(u, delta, A, B, C, chunk):
     T = chunk
     K = math.ceil(l / T)
     pad = K * T - l
-    if pad:  # padded steps have delta = 0, so they keep the state
+    if pad:
         u, delta = F.pad(u, (0, pad)), F.pad(delta, (0, pad))
         B, C = F.pad(B, (0, pad)), F.pad(C, (0, pad))
     u = u.view(b, g, dg, K, T)
     delta = delta.view(b, g, dg, K, T)
-    B = B.view(b, g, n, K, T).permute(0, 1, 3, 4, 2).unsqueeze(2)    # (b, g, 1, K, T, n)
+    B = B.view(b, g, n, K, T).permute(0, 1, 3, 4, 2).unsqueeze(2)
     C = C.view(b, g, n, K, T).permute(0, 1, 3, 4, 2).unsqueeze(2)
-    A = A[None, :, :, None, :]                                        # (1, g, dg, 1, n)
+    A = A[None, :, :, None, :]
 
     def step(t, h):
         dt = delta[..., t].unsqueeze(-1)
@@ -103,9 +100,6 @@ def selective_scan_torch(u, delta, A, B, C, D=None, chunk: int | None = None,
     return y.reshape(b, d, l).to(dtype)
 
 
-# --------------------------------------------------------------------------- #
-# fused Triton kernel: one program per (batch, group, block of channels) walks the sequence
-# --------------------------------------------------------------------------- #
 if HAS_TRITON:
     @triton.jit
     def _fwd_kernel(u_ptr, dt_ptr, A_ptr, B_ptr, C_ptr, y_ptr, h_ptr, L, D, G, DG,
@@ -118,9 +112,9 @@ if HAS_TRITON:
         ch = gi * DG + od
         m2 = md[:, None] & mn[None, :]
         A = tl.load(A_ptr + ch[:, None] * N + on[None, :], mask=m2, other=0.0)
-        x_off = bi * L * D + ch                       # u, delta, y: (b, L, D)
-        bc_off = (bi * G + gi) * L * N + on           # B, C: (b, G, L, N)
-        h_off = bi * L * D * N + ch[:, None] * N + on[None, :]   # h: (b, L, D, N)
+        x_off = bi * L * D + ch
+        bc_off = (bi * G + gi) * L * N + on
+        h_off = bi * L * D * N + ch[:, None] * N + on[None, :]
         h = tl.zeros((BD, NP), dtype=tl.float32)
         for t in range(L):
             u = tl.load(u_ptr + x_off + t * D, mask=md, other=0.0)
@@ -147,7 +141,7 @@ if HAS_TRITON:
         x_off = bi * L * D + ch
         bc_off = (bi * G + gi) * L * N + on
         h_off = bi * L * D * N + ch[:, None] * N + on[None, :]
-        part_off = ((bi * G + gi) * NBLK + pid_d) * L * N + on   # per-block partial dB, dC
+        part_off = ((bi * G + gi) * NBLK + pid_d) * L * N + on
         dh = tl.zeros((BD, NP), dtype=tl.float32)
         dA_next = tl.zeros((BD, NP), dtype=tl.float32)
         dA_acc = tl.zeros((BD, NP), dtype=tl.float32)
@@ -161,10 +155,10 @@ if HAS_TRITON:
             h_t = tl.load(h_ptr + h_off + t * D * N, mask=m2, other=0.0)
             h_prev = tl.load(h_ptr + h_off + (t - 1) * D * N, mask=m2 & (t > 0), other=0.0)
             dA = tl.exp(dt[:, None] * A)
-            dh = dh * dA_next + g[:, None] * c_t[None, :]           # dL/dh_t
+            dh = dh * dA_next + g[:, None] * c_t[None, :]
             tl.store(dC_ptr + part_off + t * N, tl.sum(g[:, None] * h_t, axis=0), mask=mn)
             tl.store(dB_ptr + part_off + t * N, tl.sum(dh * (dt * u)[:, None], axis=0), mask=mn)
-            hd = dh * h_prev * dA                                   # through exp(delta A)
+            hd = dh * h_prev * dA
             dhb = tl.sum(dh * b_t[None, :], axis=1)
             tl.store(ddt_ptr + x_off + t * D, dhb * u + tl.sum(hd * A, axis=1), mask=md)
             tl.store(du_ptr + x_off + t * D, dhb * dt, mask=md)
@@ -225,9 +219,6 @@ def selective_scan_triton(u, delta, A, B, C, D=None):
     return y.to(dtype)
 
 
-# --------------------------------------------------------------------------- #
-# mamba_ssm kernel and dispatch
-# --------------------------------------------------------------------------- #
 def selective_scan_cuda(u, delta, A, B, C, D=None):
     """mamba_ssm's fused kernel; delta is already positive, so no softplus inside."""
     if not HAS_MAMBA_SSM:

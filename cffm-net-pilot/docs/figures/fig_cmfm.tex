@@ -2,26 +2,21 @@
 \input{style}
 \begin{document}
 \begin{tikzpicture}
-  % ---------------- inputs ----------------
   \node[io] (fv) at (0,0) {$F^{v}_\ell$};
   \node[io] (ft) at (5.2,0) {$F^{\theta}_\ell$};
 
-  % reliability head between the inputs
   \node[fus, minimum width=2.9cm] (rel) at (2.6,1.25) {Reliability head $g$\\[-1pt] \footnotesize on $[F^v, F^\theta, |F^v{-}F^\theta|]$};
   \draw[ar] (fv) |- ($(rel.west)+(0,-0.1)$);
   \draw[ar] (ft) |- ($(rel.east)+(0,-0.1)$);
 
-  % thermal alignment
   \node[thr, minimum width=2.4cm] (al) at (5.2,2.75) {Offset align\\[-1pt] \footnotesize $\tilde F^\theta = \mathcal{S}(F^\theta, o)$};
   \draw[ar, over] (ft) -- (al);
 
-  % projections
   \node[vis, minimum width=2.4cm] (pv) at (0,4.15) {$1{\times}1$ conv,\\[-1pt] DW $3{\times}3$, SiLU};
   \node[thr, minimum width=2.4cm] (pt) at (5.2,4.15) {$1{\times}1$ conv,\\[-1pt] DW $3{\times}3$, SiLU};
   \draw[ar, over] (fv) -- (pv);
   \draw[ar] (al) -- (pt);
 
-  % interleave and scan
   \node[neu, minimum width=4.2cm] (il) at (2.6,5.55) {Interleave tokens\\[-1pt] \footnotesize $x^v_1, x^\theta_1, x^v_2, x^\theta_2, \dots$};
   \draw[ar] (pv.north) |- (il.west);
   \draw[ar] (pt.north) |- (il.east);
@@ -29,7 +24,6 @@
        {Gated selective scan\\[-1pt] \footnotesize 4 directions, $\Delta_k \leftarrow \Delta_k \cdot r^{m(k)}_{p(k)}$};
   \draw[ar] (il) -- (sc);
 
-  % merge and local branch
   \node[neu, minimum width=4.2cm] (mg) at (2.6,8.35) {Merge directions, LayerNorm};
   \draw[ar] (sc) -- (mg);
   \node[neu, minimum width=2.1cm] (lc) at (7.1,8.35) {Local\\[-1pt] DW $3{\times}3$};
@@ -40,11 +34,9 @@
   \node[neu, minimum width=4.2cm] (wo) at (2.6,10.45) {Linear $W_o$ \footnotesize(zero-initialised)};
   \draw[ar] (cat) -- (wo);
 
-  % reliability-weighted residual
   \node[op] (add) at (2.6,11.55) {$+$};
   \draw[ar] (wo) -- (add);
   \node[fus, minimum width=2.6cm] (res) at (-1.9,10.45) {$\dfrac{r^v F^v + r^\theta \tilde F^\theta}{r^v + r^\theta}$};
-  % one reliability signal feeds both the scan gate and the residual weights
   \draw[gar] ($(rel.west)+(0,0.2)$) -| (res.south);
   \draw[gar] (res.south |- sc.west) -- (sc.west) node[pos=0.5, lab, above] {$r^v, r^\theta$};
   \fill[cData] (res.south |- sc.west) circle (1.2pt);

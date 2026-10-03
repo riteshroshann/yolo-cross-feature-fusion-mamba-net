@@ -60,15 +60,14 @@ def test_llvip_found_converted_and_loadable(fake_llvip):
     assert pipeline.locate_raw("llvip", env) == fake_llvip / "raw" / "LLVIP"
     out = pipeline.prepare("llvip", env, {"datasets": {"llvip": {"train_stride": 2, "val_stride": 1}}})
     card = json.loads((out / "dataset_card.json").read_text())
-    assert card["images"] == {"train": 3, "val": 3}                     # every 2nd of 6 train frames
+    assert card["images"] == {"train": 3, "val": 3}
     im = cv2.imread(str(next((out / "images" / "visible" / "train").glob("*.jpg"))))
-    assert im.shape[:2] == (512, 640)                                   # long side 640, aspect kept
+    assert im.shape[:2] == (512, 640)
     label = next((out / "labels" / "visible" / "train").glob("*.txt")).read_text().split()
-    assert label[0] == "0" and abs(float(label[3]) - 60 / 1280) < 1e-4  # normalised width survives resize
+    assert label[0] == "0" and abs(float(label[3]) - 60 / 1280) < 1e-4
     d = yaml.safe_load((out / "data_paired.yaml").read_text())
     assert d["paired"] and d["channels"] == 4 and d["test"] == "images/visible/val"
     assert (out / "val_mini_visible.txt").read_text().startswith("./images/visible/val/")
-    # a second prepare reuses the conversion
     mtime = (out / "dataset_card.json").stat().st_mtime
     pipeline.prepare("llvip", env)
     assert (out / "dataset_card.json").stat().st_mtime == mtime
@@ -80,11 +79,11 @@ def test_m3fd_split_classes_and_unknowns(fake_m3fd):
     card = json.loads((out / "dataset_card.json").read_text())
     assert card["images"] == {"train": 8, "val": 2} and card["names"] == cdata.M3FD_NAMES
     labels = [l.split()[0] for f in (out / "labels" / "visible").rglob("*.txt") for l in f.read_text().splitlines()]
-    assert set(labels) == {"0", "1"}                                    # 'Unknown' objects are dropped
+    assert set(labels) == {"0", "1"}
 
 
 def test_locate_raw_tells_llvip_and_m3fd_apart(fake_llvip, fake_m3fd):
-    env = make_env(fake_llvip)                                          # both datasets attached at once
+    env = make_env(fake_llvip)
     assert pipeline.locate_raw("llvip", env) == fake_llvip / "raw" / "LLVIP"
     assert pipeline.locate_raw("m3fd", env) == fake_m3fd / "raw" / "M3FD_Detection"
 

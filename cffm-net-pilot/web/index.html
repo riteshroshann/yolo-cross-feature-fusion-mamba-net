@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CFFM-Net · The Machine's View</title>
+<meta name="description" content="Visible + thermal object detection with a reliability-gated selective scan. Upload a pair or any photo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <a class="logo" href="#top"><span class="bar"></span>CFFM-NET</a>
+  <div class="links"><a href="#demo">Demo</a><a href="#tracking">Tracking</a><a href="#findings">Findings</a><a href="#results">Results</a><a href="#method">Method</a></div>
+</nav>
+
+<header id="top">
+  <p class="kicker">// MULTISPECTRAL SCENE ANALYSIS</p>
+  <h1>The Machine's view</h1>
+  <p class="lede">Two cameras, one picture. CFFM-Net fuses a visible and a thermal camera with a selective
+    state-space scan, and decides, at every location, which camera to trust. Every subject is bracketed,
+    numbered and logged.</p>
+  <div class="hero"><img src="assets/hero_llvip.jpg" alt="Night street crossing: eleven people detected in the visible and thermal views, with the fusion trust map"><div class="scan"></div></div>
+  <div class="chips">
+    <div><b>11</b><span>people, one night frame</span></div>
+    <div><b>0.629</b><span>AP50-95 on LLVIP</span></div>
+    <div><b>~160 ms</b><span>per pair, laptop GPU</span></div>
+    <div><b>2</b><span>cameras fused at 4 scales</span></div>
+  </div>
+</header>
+
+<section id="demo">
+  <h2><span>01</span> Try it</h2>
+  <p class="sub">Drop a visible and a thermal image of the same scene, or click a sample. Ordinary photos go to the general YOLO26-n (80 COCO classes), drawn the same way.</p>
+  <div class="tabs" role="tablist">
+    <button class="tab on" data-mode="pair">Visible + thermal · CFFM-Net</button>
+    <button class="tab" data-mode="photo">Any photo · YOLO26-n</button>
+  </div>
+  <div class="panel">
+    <div class="drops">
+      <label class="drop" id="dropVis"><input type="file" accept="image/*"><img alt=""><span>visible camera<small>drop or click</small></span></label>
+      <label class="drop pair-only" id="dropIr"><input type="file" accept="image/*"><img alt=""><span>thermal camera<small>drop or click</small></span></label>
+      <div class="controls">
+        <label class="pair-only">model
+          <select id="model"><option>Night pedestrians · LLVIP</option><option>City traffic · M3FD</option></select>
+        </label>
+        <label>confidence <output id="confOut">0.30</output>
+          <input id="conf" type="range" min="0.05" max="0.9" step="0.05" value="0.3">
+        </label>
+        <button id="go" class="primary">Analyze</button>
+        <p id="status" class="status">ready</p>
+      </div>
+    </div>
+    <div class="samples" id="samples"></div>
+    <figure class="result" id="result" hidden><img id="board" alt="analysis board"><figcaption id="caption"></figcaption></figure>
+    <div class="log" id="log"></div>
+    <details class="backend"><summary>backend</summary>
+      <p>The page calls a Gradio app (<code>demo/app.py</code>). Run it locally or point this at a Hugging Face Space.</p>
+      <input id="backend" spellcheck="false">
+    </details>
+  </div>
+</section>
+
+<section id="tracking">
+  <h2><span>02</span> Tracking a crowd</h2>
+  <p class="sub">MOT17-04, a pedestrian street at night filmed at 30 fps, with ByteTrack. Each subject keeps its number, a trail of where it walked and an arrow for where it is heading. Visible footage, so the general YOLO26-n runs here.</p>
+  <img class="wide" src="assets/tracking_mot17.gif" alt="Crowd tracking with IDs, trails and heading arrows">
+</section>
+
+<section id="findings">
+  <h2><span>03</span> What we found</h2>
+  <div class="grid2">
+    <figure><img src="assets/sensor_failures.jpg" alt="The same scene under four sensor conditions, CFFM-Net left and concat baseline right">
+      <figcaption>The same night scene with each camera failing. Both fusion models keep working on thermal alone.
+        With the thermal camera off, <b>both find no one</b>, although the people are plainly visible. This is the
+        main weakness to fix next.</figcaption></figure>
+    <div class="facts">
+      <div class="fact"><b>Holds up when thermal drifts</b><p>With the thermal image shifted 4 or 8 px, CFFM-Net keeps
+        <b>+1.7 and +2.9 AP</b> over the concat baseline. Told that thermal is gone, it still scores 0.17, where concat
+        collapses to 0.003.</p></div>
+      <div class="fact"><b>Trust follows the light, weakly</b><p>Across 300 test frames, darker scenes lean on thermal
+        (correlation <b>−0.50</b> on both datasets). The fusion weights stay between 0.46 and 0.52, so the gate learned
+        the right direction but responds weakly.</p></div>
+      <div class="fact warn"><b>Behind on clean images</b><p>On clean data CFFM-Net trails simple concatenation by
+        <b>2.1 AP</b> (LLVIP) and <b>2.6 AP</b> (M3FD). A head-control experiment and a longer schedule are running now.</p></div>
+      <img src="assets/trust_vs_brightness.jpg" alt="Thermal share of the fusion weight against scene brightness" class="plot">
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <h2><span>04</span> Pilot results</h2>
+  <p class="sub">COCO AP50-95 on the full test sets, one seed, YOLO26-n backbones, 30 epochs. Higher is better.</p>
+  <table>
+    <thead><tr><th>model</th><th>LLVIP</th><th>M3FD</th><th>params</th><th>latency (T4)</th></tr></thead>
+    <tbody>
+      <tr><td>visible camera only</td><td>0.520</td><td>–</td><td>2.5 M</td><td>17 ms</td></tr>
+      <tr><td>thermal camera only</td><td>0.641</td><td>–</td><td>2.5 M</td><td>17 ms</td></tr>
+      <tr class="best"><td>two-stream concat</td><td>0.650</td><td>0.505</td><td>4.1 M</td><td>23 ms</td></tr>
+      <tr class="ours"><td>CFFM-Net</td><td>0.629</td><td>0.479</td><td>6.0 M</td><td>42 ms</td></tr>
+      <tr><td>CFFM-Net, no reliability gate</td><td>0.626</td><td>–</td><td>6.0 M</td><td>41 ms</td></tr>
+      <tr><td>CFFM-Net, gated conv instead of scan</td><td>0.628</td><td>–</td><td>6.2 M</td><td>35 ms</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="method">
+  <h2><span>05</span> How it works</h2>
+  <div class="grid3">
+    <figure><img src="assets/fig_architecture.png" alt="CFFM-Net architecture"><figcaption>Two YOLO26 backbones, fused at four scales, one NMS-free head.</figcaption></figure>
+    <figure><img src="assets/fig_cmfm.png" alt="CMFM block"><figcaption>The fusion block: reliability head, alignment, interleaved tokens, gated scan.</figcaption></figure>
+    <figure><img src="assets/fig_gated_scan.png" alt="Gated selective scan"><figcaption>Reliability scales each token's step: an unreliable sensor cannot overwrite the state.</figcaption></figure>
+  </div>
+</section>
+
+<footer>CFFM-Net pilot · Roshan · data: LLVIP, M3FD (research use) · built with YOLO26 and a reliability-gated selective scan</footer>
+<script type="module" src="app.js"></script>
+</body>
+</html>

@@ -48,7 +48,7 @@ def _looks_like_llvip(p: Path) -> bool:
 
 
 def _looks_like_m3fd(p: Path) -> bool:
-    if not p.is_dir() or _looks_like_llvip(p):  # LLVIP would pass the test below
+    if not p.is_dir() or _looks_like_llvip(p):
         return False
     names = {c.name.lower() for c in p.iterdir() if c.is_dir()}
     return bool(names & {"vis", "visible"}) and bool(names & {"ir", "infrared"}) and \
@@ -82,7 +82,7 @@ def find_converted(name: str, env) -> Path | None:
         return local
     for root in INPUT_ROOTS:
         if root.exists():
-            for k in range(0, 6):  # bounded depth: never walks into raw image folders
+            for k in range(0, 6):
                 for card in root.glob("*/" * k + f"{name}/dataset_card.json"):
                     return card.parent
     return None
@@ -97,7 +97,7 @@ def prepare(name: str, env, plan: dict | None = None, force: bool = False) -> Pa
         if found is not None:
             if found != out:
                 copy_writable(found, out)
-            cdata.write_yamls(out, json.loads((out / "dataset_card.json").read_text())["names"])  # refresh paths
+            cdata.write_yamls(out, json.loads((out / "dataset_card.json").read_text())["names"])
             return out
     raw = locate_raw(name, env)
     if raw is None:
@@ -160,7 +160,7 @@ def train_from_spec(spec: dict, env, device=None, evaluate_after: bool = True, *
     run_dir = env.runs / name
     if not run_dir.exists():
         prior = find_prior_run(name)
-        if prior is not None:  # new Kaggle session with an earlier version's output attached
+        if prior is not None:
             print(f"[{name}] continuing from an attached output: {prior}")
             copy_writable(prior, run_dir)
     done = run_dir / "weights" / "best.pt"
@@ -171,7 +171,7 @@ def train_from_spec(spec: dict, env, device=None, evaluate_after: bool = True, *
         keys = ("epochs", "imgsz", "batch", "seed", "workers", "close_mosaic", "patience", "amp", "cache")
         kw = {k: spec[k] for k in keys if k in spec}
         resume_from = run_dir / "weights" / "last.pt"
-        if resume_from.exists():  # a Kaggle session ended mid-run
+        if resume_from.exists():
             print(f"[{name}] resuming from {resume_from}")
             kw = {"resume": str(resume_from)}
         best = train_run(name, model_path, str(data_yaml), pretrained=weights_file(env), device=device,

@@ -27,18 +27,17 @@ def test_verdict_bands():
 
 
 def test_degradation_advantage():
-    # cffm loses 0.23, nogate loses 0.325 -> cffm degrades less by 0.095
     adv = report.mean_degradation_advantage(PR, "llvip_cffm", "llvip_cffm_nogate", ["clean", "thermal_drop"])
     assert abs(adv - 0.095) < 1e-9
 
 
 def test_decide():
     h = report.decide(EV, PR, LAT, ["clean", "thermal_drop"])
-    assert h.loc["PH1", "verdict"] == "supported"        # +0.030
-    assert h.loc["PH2", "verdict"] == "supported"        # clean +0.005, probe +0.095
-    assert h.loc["PH3", "verdict"] == "supported"        # +0.020
-    assert h.loc["PH4", "verdict"] == "against"          # -0.010 at threshold 0.010
-    assert h.loc["PH5", "verdict"] == "supported"        # 1.8x
+    assert h.loc["PH1", "verdict"] == "supported"
+    assert h.loc["PH2", "verdict"] == "supported"
+    assert h.loc["PH3", "verdict"] == "supported"
+    assert h.loc["PH4", "verdict"] == "against"
+    assert h.loc["PH5", "verdict"] == "supported"
 
 
 def test_probe_table_does_not_confuse_prefixes():

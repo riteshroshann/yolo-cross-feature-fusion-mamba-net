@@ -95,7 +95,6 @@ def decide(ev: dict, pr: dict, lat: dict, kinds) -> pd.DataFrame:
     return pd.DataFrame(H, columns=["id", "hypothesis", "evidence", "verdict"]).set_index("id")
 
 
-# hand-rolled writers, so there is no tabulate or jinja2 dependency
 def _fmt(v, digits):
     if isinstance(v, float):
         return "" if math.isnan(v) else f"{v:.{digits}f}"

@@ -11,23 +11,49 @@ from ultralytics.utils.ops import scale_boxes
 from .data import read_pair
 
 
-def load_pair(visible_path, imgsz=640, device="cpu"):
-    """Read a pair, letterbox it like the validator does, return (tensor, pair_image)."""
-    pair = read_pair(visible_path)
-    if pair is None:
-        raise FileNotFoundError(visible_path)
+def _read(x, flags):
+    if isinstance(x, np.ndarray):
+        return x
+    im = cv2.imread(str(x), flags)
+    if im is None:
+        raise FileNotFoundError(x)
+    return im
+
+
+def make_pair(visible, thermal=None):
+    """(H, W, 4) visible BGR + thermal grey from a dataset path, or from two paths / arrays."""
+    if isinstance(visible, np.ndarray) and visible.ndim == 3 and visible.shape[2] == 4:
+        return visible
+    if thermal is None:
+        pair = read_pair(visible)
+        if pair is None:
+            raise FileNotFoundError(visible)
+        return pair
+    vis, ir = _read(visible, cv2.IMREAD_COLOR), _read(thermal, cv2.IMREAD_GRAYSCALE)
+    if vis.ndim == 2:
+        vis = cv2.cvtColor(vis, cv2.COLOR_GRAY2BGR)
+    if ir.ndim == 3:
+        ir = cv2.cvtColor(ir, cv2.COLOR_BGR2GRAY)
+    if ir.shape[:2] != vis.shape[:2]:
+        ir = cv2.resize(ir, (vis.shape[1], vis.shape[0]), interpolation=cv2.INTER_LINEAR)
+    return np.concatenate([vis, ir[..., None]], axis=2)
+
+
+def load_pair(visible, imgsz=640, device="cpu", thermal=None):
+    """Letterbox a pair like the validator does, return (tensor, pair_image)."""
+    pair = make_pair(visible, thermal)
     lb = LetterBox(new_shape=(imgsz, imgsz), auto=False, scaleup=False)(image=pair)
-    if lb.ndim == 2 or lb.shape[2] != 4:                           # cv2 may drop the 4th channel on padding
+    if lb.ndim == 2 or lb.shape[2] != 4:
         raise RuntimeError("letterbox lost the thermal channel")
     x = torch.from_numpy(np.ascontiguousarray(lb.transpose(2, 0, 1))).float().div(255).unsqueeze(0)
     return x.to(device), pair
 
 
 @torch.no_grad()
-def predict_pair(model, visible_path, conf=0.25, iou=0.7, imgsz=640):
+def predict_pair(model, visible, conf=0.25, iou=0.7, imgsz=640, thermal=None):
     """Boxes (n, 6: x1 y1 x2 y2 conf cls) in original pixel coordinates."""
     device = next(model.parameters()).device
-    x, pair = load_pair(visible_path, imgsz, device)
+    x, pair = load_pair(visible, imgsz, device, thermal)
     x = x.to(next(model.parameters()).dtype)
     preds = model(x)
     preds = preds[0] if isinstance(preds, (tuple, list)) else preds
@@ -53,10 +79,10 @@ def draw_pair(pair, det, names, gt=None):
 
 
 @torch.no_grad()
-def reliability_maps(model, visible_path, imgsz=640):
+def reliability_maps(model, visible, imgsz=640, thermal=None):
     """{level: (r_visible, r_thermal)} for one pair at the letterboxed size, plus the letterboxed pair."""
     device = next(model.parameters()).device
-    x, _ = load_pair(visible_path, imgsz, device)
+    x, _ = load_pair(visible, imgsz, device, thermal)
     model(x.to(next(model.parameters()).dtype))
     out = {}
     for i, f in model.fusers.items():

@@ -2,14 +2,12 @@
 \input{style}
 \begin{document}
 \begin{tikzpicture}[node distance=6mm]
-  % ---------------- inputs and stems ----------------
   \node[io] (iv) at (0,0) {Visible image\\ $I^{v}_{t}$};
   \node[io] (it) at (6.4,0) {Thermal image\\ $I^{\theta}_{t}$};
   \node[vis, minimum width=3.2cm] (sv) at (0,1.45) {Stem};
   \node[thr, minimum width=3.2cm] (st) at (6.4,1.45) {Stem};
   \draw[ar] (iv) -- (sv); \draw[ar] (it) -- (st);
 
-  % ---------------- the repeated level ----------------
   \node[vis, minimum width=3.2cm, minimum height=1.25cm] (bv) at (0,3.55) {Backbone stage $\ell$\\[-1pt] \footnotesize Conv, C3k2};
   \node[thr, minimum width=3.2cm, minimum height=1.25cm] (bt) at (6.4,3.55) {Backbone stage $\ell$\\[-1pt] \footnotesize Conv, C3k2};
   \node[fus, minimum width=2.6cm, minimum height=1.7cm] (fu) at (3.2,5.15)
@@ -17,7 +15,6 @@
   \draw[ar] (sv) -- (bv); \draw[ar] (st) -- (bt);
   \draw[ar] (bv.north) |- ($(fu.west)+(0,-0.25)$);
   \draw[ar] (bt.north) |- ($(fu.east)+(0,-0.25)$);
-  % stage output continues upwards to the next stage
   \draw[ar] ($(bv.north)+(-0.9,0)$) -- ++(0,1.9) node[lab, above, text width=2.3cm] {to stage $\ell+1$};
   \draw[ar] ($(bt.north)+(0.9,0)$) -- ++(0,1.9) node[lab, above, text width=2.3cm] {to stage $\ell+1$};
 
@@ -28,7 +25,6 @@
   \node[lab, anchor=west, text width=2.7cm] at (8.75,3.55)
        {levels $P_2$ to $P_5$, strides 4 to 32; separate weights per stream, both COCO-initialised};
 
-  % ---------------- neck, heads, output ----------------
   \node[neu, minimum width=6.2cm, minimum height=1.05cm] (nk) at (3.2,7.75)
        {PAN neck with stride-4 extension\\[-1pt] \footnotesize YOLO26-P2: top-down and bottom-up over fused $P_2$--$P_5$};
   \node[hed, minimum width=6.2cm, minimum height=1.05cm] (hd) at (3.2,9.35)
@@ -37,7 +33,6 @@
   \draw[ar] (fu) -- node[lab, right=2pt] {fused $P_2$--$P_5$} (nk);
   \draw[ar] (nk) -- (hd); \draw[ar] (hd) -- (out);
 
-  % reliability maps as a side output
   \node[lab, anchor=west, text width=2.6cm] (rho) at (8.75,5.15) {reliability maps\\ $r^{v}_\ell,\; r^{\theta}_\ell,\; \rho_\ell$};
   \draw[dar, draw=cFuse] (fu.east) ++(0,0.35) -- (rho.west |- 0,5.5);
 \end{tikzpicture}

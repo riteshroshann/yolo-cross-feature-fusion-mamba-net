@@ -1,0 +1,10 @@
+probe,llvip_cffm,llvip_cffm_nogate,llvip_concat
+clean,0.6289,0.6258,0.6495
+visible_dark,0.5985,0.5424,0.6099
+visible_drop,0.5674,0.5704,0.6184
+visible_drop (flagged),0.595,0.5704,0.6184
+thermal_drop,0.0217,0.0066,0.0029
+thermal_drop (flagged),0.1739,0.0066,0.0029
+thermal_shift_4,0.5326,0.518,0.5157
+thermal_shift_8,0.3259,0.311,0.2969
+thermal_shift_16,0.0276,0.0286,0.0169

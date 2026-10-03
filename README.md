@@ -1,18 +1,27 @@
 # cffm-net
 
-Object detection from a visible and a thermal camera at once. Two YOLO26 backbones, fused by a Mamba-style
-selective scan. Each sensor's reliability, at every location, scales the scan's step size, so a blinded
-camera cannot overwrite what the other one sees. The focus is small objects.
+![CFFM-Net on a night crossing](cffm-net-pilot/results/showcase/hero_llvip.jpg)
 
-Status: the pilot (still images, LLVIP and M3FD) is written and tested, but not trained yet. Video, live
-cameras and multiple cameras come after it.
+Object detection from a visible and a thermal camera at once. Two YOLO26 backbones, fused by a Mamba-style
+selective scan whose step size is scaled by how reliable each camera is at each location.
+
+| AP50-95 | LLVIP | M3FD |
+|---|---|---|
+| thermal only | 0.641 | |
+| concat | 0.650 | 0.505 |
+| CFFM-Net, pilot | 0.629 | 0.479 |
+
+The pilot trails concat on clean images but holds up better when the thermal camera drifts or drops out.
+Round 2 (standard head, modality dropout) is training.
+
+![Tracking a crowd](cffm-net-pilot/results/showcase/tracking_mot17.gif)
 
 ```
-cffm-net-pilot/   code and notebooks for the pilot, runs on Kaggle (2x T4)
+cffm-net-pilot/   code, notebooks, results, demo app and web front-end
 docs/dossier/     research dossier: survey, method, plan
 docs/novelty/     what the pilot adds, and the limitations of prior work it targets
 docs/datasets/    which datasets, and how to get them
 papers/           the open-access papers the dossier cites
 ```
 
-To run the pilot, see `cffm-net-pilot/README.md`.
+Demo: `python cffm-net-pilot/demo/app.py`. Everything else: `cffm-net-pilot/README.md`.

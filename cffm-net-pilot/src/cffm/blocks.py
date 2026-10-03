@@ -12,7 +12,13 @@ import torch.nn.functional as F
 
 from .scan import selective_scan
 
-EPS = 1e-6
+MIN_WEIGHT = 1e-2
+
+
+def weighted_mean(fv, ft, rv, rt):
+    """Reliability-weighted average in float32, with the total weight floored so its gradient stays bounded."""
+    rv, rt = rv.float(), rt.float()
+    return ((rv * fv.float() + rt * ft.float()) / (rv + rt).clamp_min(MIN_WEIGHT)).to(fv.dtype)
 
 
 class LayerNorm2d(nn.Module):
@@ -50,7 +56,7 @@ class ReliabilityHead(nn.Module):
 
     def forward(self, fv, ft, flags=None):
         x = torch.cat([fv, ft, (fv - ft).abs()], dim=1)
-        r = torch.sigmoid(self.out(self.body(x)))                    # starts at sigmoid(2) = 0.88: trust both
+        r = torch.sigmoid(self.out(self.body(x)).float())
         if flags is not None:
             r = r * flags.to(device=r.device, dtype=r.dtype)[:, :, None, None]
         return r[:, :1], r[:, 1:]
@@ -69,13 +75,13 @@ class OffsetAlign(nn.Module):
 
     def forward(self, fv, ft):
         b, _, h, w = ft.shape
-        off = torch.tanh(self.out(self.body(torch.cat([fv, ft], 1)))) * self.max_disp  # (b, 2, h, w), cells
+        off = torch.tanh(self.out(self.body(torch.cat([fv, ft], 1)))) * self.max_disp
         ys = torch.linspace(-1, 1, h, device=ft.device, dtype=ft.dtype)
         xs = torch.linspace(-1, 1, w, device=ft.device, dtype=ft.dtype)
         gy, gx = torch.meshgrid(ys, xs, indexing="ij")
         grid = torch.stack([gx, gy], dim=-1).unsqueeze(0)
         scale = torch.tensor([2.0 / max(w - 1, 1), 2.0 / max(h - 1, 1)], device=ft.device, dtype=ft.dtype)
-        grid = grid + off.permute(0, 2, 3, 1) * scale                # cells -> normalised coords
+        grid = grid + off.permute(0, 2, 3, 1) * scale
         return F.grid_sample(ft, grid, mode="bilinear", padding_mode="border", align_corners=True)
 
 
@@ -94,10 +100,9 @@ class GatedCrossScan(nn.Module):
 
         bound = 1.0 / math.sqrt(d)
         self.x_proj = nn.Parameter(torch.empty(K, r + 2 * n, d).uniform_(-bound, bound))
-        # softplus(dt_b) starts in [dt_min, dt_max]
         self.dt_w = nn.Parameter(torch.empty(K, d, r).uniform_(-r ** -0.5, r ** -0.5))
         dt = torch.exp(torch.rand(K, d) * (math.log(dt_max) - math.log(dt_min)) + math.log(dt_min))
-        self.dt_b = nn.Parameter(dt + torch.log(-torch.expm1(-dt)))  # inverse softplus
+        self.dt_b = nn.Parameter(dt + torch.log(-torch.expm1(-dt)))
         self.A_log = nn.Parameter(torch.log(torch.arange(1, n + 1, dtype=torch.float32)).repeat(K * d, 1))
         self.D = nn.Parameter(torch.ones(K * d))
 
@@ -120,21 +125,20 @@ class GatedCrossScan(nn.Module):
                 + as_cols(y[:, 2]) + as_cols(y[:, 3].flip(-1)))
 
     def forward(self, xv, xt, rv, rt):
-        # the whole SSM path stays in float32: over 10k tokens the state overflows float16
         with torch.autocast(device_type=xv.device.type, enabled=False):
             return self._forward(xv.float(), xt.float(), rv.float(), rt.float())
 
     def _forward(self, xv, xt, rv, rt):
         b, d, h, w = xv.shape
         K, n, r = self.K, self.n, self.r
-        seqs = self._orders(torch.stack([xv, xt], dim=-1))           # (b, K, d, L)
-        rel = self._orders(torch.stack([rv, rt], dim=-1))            # (b, K, 1, L)
+        seqs = self._orders(torch.stack([xv, xt], dim=-1))
+        rel = self._orders(torch.stack([rv, rt], dim=-1))
         L = seqs.shape[-1]
 
-        x_dbl = torch.einsum("bkdl,kcd->bkcl", seqs, self.x_proj.float())   # (b, K, r+2n, L)
+        x_dbl = torch.einsum("bkdl,kcd->bkcl", seqs, self.x_proj.float())
         dts, Bs, Cs = torch.split(x_dbl, [r, n, n], dim=2)
         dts = torch.einsum("bkrl,kdr->bkdl", dts, self.dt_w.float()) + self.dt_b.float()[None, :, :, None]
-        delta = F.softplus(dts) * rel                                # r -> 0 skips the token, state untouched
+        delta = F.softplus(dts) * rel
 
         A = -torch.exp(self.A_log.float())
         y = selective_scan(seqs.reshape(b, K * d, L), delta.reshape(b, K * d, L), A,
@@ -157,7 +161,7 @@ class GatedConvMixer(nn.Module):
         self.out = nn.Conv2d(hid, 2 * d, 1)
 
     def forward(self, xv, xt, rv, rt):
-        x = torch.cat([xv * rv, xt * rt], dim=1)                     # no step size here, so gate the input
+        x = torch.cat([xv * rv, xt * rt], dim=1)
         y = self.out(self.dw(self.inp(x)) * torch.sigmoid(self.gate(x)))
         return y.chunk(2, dim=1)
 
@@ -171,9 +175,8 @@ class CMFM(nn.Module):
         super().__init__()
         d = max(16, int(round(c * ratio)))
         self.gate, self.c, self.d = gate, c, d
-        self.rel = ReliabilityHead(c) if gate else None   # no unused parameters when gating is off
+        self.rel = ReliabilityHead(c) if gate else None
         self.align = OffsetAlign(c) if align else None
-        # the 3x3 depthwise conv plays the role of Mamba's short causal conv
         self.phi_v = nn.Sequential(conv_bn_act(c, d, 1), conv_bn_act(d, d, 3, groups=d))
         self.phi_t = nn.Sequential(conv_bn_act(c, d, 1), conv_bn_act(d, d, 3, groups=d))
         if mixer == "ssm":
@@ -184,11 +187,11 @@ class CMFM(nn.Module):
         else:
             raise ValueError(f"unknown mixer {mixer!r}")
         self.norm = LayerNorm2d(2 * d)
-        self.local = conv_bn_act(2 * d, 2 * d, 3, groups=2 * d)     # MambaVision's non-SSM branch
+        self.local = conv_bn_act(2 * d, 2 * d, 3, groups=2 * d)
         self.proj = nn.Conv2d(4 * d, c, 1)
-        nn.init.zeros_(self.proj.weight)                             # start as a weighted average
+        nn.init.zeros_(self.proj.weight)
         nn.init.zeros_(self.proj.bias)
-        self.last = {}                                               # reliability maps, for inspection
+        self.last = {}
 
     def forward(self, fv, ft, flags=None):
         if self.gate:
@@ -198,9 +201,9 @@ class CMFM(nn.Module):
         ft = self.align(fv, ft) if self.align is not None else ft
         pv, pt = self.phi_v(fv), self.phi_t(ft)
         yv, yt = self.mixer(pv, pt, rv, rt)
-        mix = self.proj(torch.cat([self.norm(torch.cat([yv, yt], 1)),   # float32 until normalised
+        mix = self.proj(torch.cat([self.norm(torch.cat([yv, yt], 1)),
                                    self.local(torch.cat([pv, pt], 1))], dim=1).to(fv.dtype))
-        z = (rv * fv + rt * ft) / (rv + rt + EPS) + mix
+        z = weighted_mean(fv, ft, rv, rt) + mix
         self.last = {"rv": rv.detach(), "rt": rt.detach(), "rho": torch.maximum(rv, rt).detach()}
         return z
 
@@ -220,7 +223,7 @@ class ReliabilityWeightedSum(nn.Module):
         else:
             rv = rt = torch.ones_like(fv[:, :1])
         self.last = {"rv": rv.detach(), "rt": rt.detach()}
-        return (rv * fv + rt * ft) / (rv + rt + EPS)
+        return weighted_mean(fv, ft, rv, rt)
 
 
 class ConcatFusion(nn.Module):

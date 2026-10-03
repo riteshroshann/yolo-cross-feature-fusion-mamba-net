@@ -34,13 +34,13 @@ def test_scan_orders_are_invertible(K):
     X = torch.randn(2, 8, 5, 7, 2)
     seqs = scan._orders(X)
     assert seqs.shape == (2, K, 8, 2 * 5 * 7)
-    assert torch.allclose(scan._merge(seqs, 5, 7), K * X)   # every direction maps back to X
+    assert torch.allclose(scan._merge(seqs, 5, 7), K * X)
 
 
 def test_cross_scan_interleaves_modalities():
     scan = GatedCrossScan(4, directions=2)
     xv, xt = torch.zeros(1, 4, 2, 2), torch.ones(1, 4, 2, 2)
-    seq = scan._orders(torch.stack([xv, xt], -1))[0, 0, 0]  # direction 0, channel 0
+    seq = scan._orders(torch.stack([xv, xt], -1))[0, 0, 0]
     assert seq.tolist() == [0, 1, 0, 1, 0, 1, 0, 1]
 
 
@@ -52,7 +52,6 @@ def test_zero_reliability_thermal_cannot_change_visible_outputs():
     yv1, _ = scan(xv, xt, rv, rt)
     yv2, _ = scan(xv, xt + 3 * torch.randn_like(xt), rv, rt)
     assert torch.allclose(yv1, yv2, atol=1e-5)
-    # with r_t = 1 thermal does reach the visible outputs
     yv3, _ = scan(xv, xt, rv, torch.ones_like(rt))
     yv4, _ = scan(xv, xt + 3 * torch.randn_like(xt), rv, torch.ones_like(rt))
     assert not torch.allclose(yv3, yv4, atol=1e-3)
@@ -65,7 +64,7 @@ def test_cmfm_starts_as_a_weighted_average(mixer, gate):
     fv, ft = feats()
     z = blk(fv, ft)
     assert z.shape == fv.shape
-    assert torch.allclose(z, (fv + ft) / 2, atol=1e-4)      # zero-init projection, equal reliabilities
+    assert torch.allclose(z, (fv + ft) / 2, atol=1e-4)
 
 
 def test_cmfm_backward():
@@ -87,7 +86,6 @@ def test_scan_path_stays_float32_under_autocast():
 
 
 def test_half_model_forward():
-    # Ultralytics evaluates with model.half(); every weight and input is float16 then
     m = CMFM(32, impl="torch").eval().half()
     fv, ft = torch.randn(1, 32, 6, 6).half(), torch.randn(1, 32, 6, 6).half()
     try:
@@ -114,3 +112,12 @@ def test_build_fuser_by_level():
     assert isinstance(build_fuser("cffm", 32, 3, {}), CMFM)
     assert isinstance(build_fuser("concat", 32, 3, {}), ConcatFusion)
     assert isinstance(build_fuser("cffm", 32, 4, {"mixer": "gconv"}).mixer, GatedConvMixer)
+
+
+def test_weighted_mean_gradient_stays_bounded_when_both_weights_vanish():
+    from cffm.blocks import weighted_mean
+    fv, ft = torch.randn(1, 8, 4, 4), torch.randn(1, 8, 4, 4)
+    rv = torch.full((1, 1, 4, 4), 1e-7, requires_grad=True)
+    rt = torch.zeros(1, 1, 4, 4, requires_grad=True)
+    weighted_mean(fv, ft, rv, rt).sum().backward()
+    assert torch.isfinite(rv.grad).all() and rv.grad.abs().max() < 8 * fv.abs().max() / 1e-2 + 1

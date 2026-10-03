@@ -46,7 +46,7 @@ class TemporalStateMemory(nn.Module):
         self.D = nn.Parameter(torch.ones(cs))
         self.spread = nn.Conv2d(cs, cs, 3, padding=1, groups=cs)
         self.out = nn.Conv2d(cs, c, 1)
-        nn.init.zeros_(self.out.weight)                                    # starts as the identity
+        nn.init.zeros_(self.out.weight)
         nn.init.zeros_(self.out.bias)
 
     def init_state(self, z: torch.Tensor) -> torch.Tensor:
@@ -69,11 +69,11 @@ class TemporalStateMemory(nn.Module):
             delta = delta * rho
         Bc, Cc = self.to_bc(u).chunk(2, dim=1)
         A = -torch.exp(self.A_log.float())
-        d_ = delta.permute(0, 2, 3, 1).unsqueeze(-1).float()               # (b, h, w, cs, 1)
+        d_ = delta.permute(0, 2, 3, 1).unsqueeze(-1).float()
         u_ = u.permute(0, 2, 3, 1).unsqueeze(-1).float()
-        B_ = Bc.permute(0, 2, 3, 1).unsqueeze(-2).float()                  # (b, h, w, 1, n)
+        B_ = Bc.permute(0, 2, 3, 1).unsqueeze(-2).float()
         C_ = Cc.permute(0, 2, 3, 1).unsqueeze(-2).float()
-        state = torch.exp(d_ * A) * state.float() + d_ * u_ * B_           # (b, h, w, cs, n)
+        state = torch.exp(d_ * A) * state.float() + d_ * u_ * B_
         y = (state * C_).sum(-1) + self.D * u.permute(0, 2, 3, 1).float()
         y = y.permute(0, 3, 1, 2).to(z.dtype)
         return z + self.out(self.spread(y)), state

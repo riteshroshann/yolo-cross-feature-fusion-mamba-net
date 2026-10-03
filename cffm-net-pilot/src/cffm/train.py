@@ -15,16 +15,16 @@ from ultralytics.models.yolo.detect import DetectionTrainer, DetectionValidator
 from ultralytics.nn.tasks import DetectionModel, yaml_model_load
 from ultralytics.utils import LOGGER, RANK
 
-from . import data as cdata  # also installs the paired image reader
+from . import data as cdata
 from .model import DualStreamDetectionModel
 
-SIZE_BINS = {  # (min, max) area in pixels^2, at the resolution the model sees
+SIZE_BINS = {
     "all": (0, 1e10),
-    "vt": (0, 8 ** 2),          # AI-TOD "very tiny"
-    "t": (8 ** 2, 16 ** 2),     # AI-TOD "tiny"
-    "s": (16 ** 2, 32 ** 2),    # AI-TOD "small"
-    "m": (32 ** 2, 96 ** 2),    # COCO medium
-    "l": (96 ** 2, 1e10),       # COCO large
+    "vt": (0, 8 ** 2),
+    "t": (8 ** 2, 16 ** 2),
+    "s": (16 ** 2, 32 ** 2),
+    "m": (32 ** 2, 96 ** 2),
+    "l": (96 ** 2, 1e10),
 }
 
 
@@ -36,7 +36,7 @@ class DualValidator(DetectionValidator):
         stats = super().coco_evaluate(stats, pred_json, anno_json, iou_types, suffix)
         if not (self.args.save_json and self.gdict and len(self.jdict)):
             return stats
-        try:  # AP in the AI-TOD size bands, from the same matched predictions
+        try:
             from faster_coco_eval import COCOeval_faster
 
             anno = self._coco_api
@@ -46,13 +46,13 @@ class DualValidator(DetectionValidator):
             ev.params.areaRngLbl = list(SIZE_BINS)
             ev.evaluate()
             ev.accumulate()
-            prec = ev.eval["precision"]                        # [iou, recall, class, area, maxdet]
+            prec = ev.eval["precision"]
             for a, lbl in enumerate(SIZE_BINS):
                 p = prec[:, :, :, a, -1]
                 stats[f"metrics/AP_{lbl}(B)"] = float(p[p > -1].mean()) if (p > -1).any() else float("nan")
                 p50 = prec[0, :, :, a, -1]
                 stats[f"metrics/AP50_{lbl}(B)"] = float(p50[p50 > -1].mean()) if (p50 > -1).any() else float("nan")
-        except Exception as e:  # never let an extra metric kill a run
+        except Exception as e:
             LOGGER.warning(f"size-binned evaluation skipped: {e}")
         return stats
 
@@ -124,13 +124,13 @@ def _degrade(x: torch.Tensor, kind: str) -> torch.Tensor:
     x = x.clone()
     if kind == "clean":
         return x
-    if kind == "visible_dark":          # night: 15% of the light plus sensor noise
+    if kind == "visible_dark":
         x[:, :3] = (x[:, :3] * 0.15 + 0.02 * torch.randn_like(x[:, :3])).clamp(0, 1)
     elif kind == "visible_drop":
         x[:, :3] = 0
     elif kind == "thermal_drop":
         x[:, 3:] = 0
-    elif kind.startswith("thermal_shift_"):  # misregistration: thermal moved k pixels right and down
+    elif kind.startswith("thermal_shift_"):
         k = int(kind.rsplit("_", 1)[1])
         x[:, 3:] = torch.roll(x[:, 3:], shifts=(k, k), dims=(2, 3))
     else:
@@ -148,7 +148,7 @@ def probe(weights, data, kind: str, *, flagged: bool = False, imgsz=640, batch=1
     handle = model.register_forward_pre_hook(lambda m, a: (_degrade(a[0], kind),) + tuple(a[1:]))
     if flagged and kind in ("visible_drop", "thermal_drop"):
         flags = torch.tensor([[0.0, 1.0]] if kind == "visible_drop" else [[1.0, 0.0]])
-        model.sensor_flags = flags  # broadcast over the batch inside the reliability head
+        model.sensor_flags = flags
     try:
         name = f"{Path(weights).parent.parent.name}_{kind}{'_flagged' if flagged else ''}"
         return evaluate(weights, data, imgsz=imgsz, batch=batch, device=device, project=project, name=name,

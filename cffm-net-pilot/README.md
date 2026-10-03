@@ -1,5 +1,7 @@
 # CFFM-Net pilot
 
+![CFFM-Net on a night crossing](results/showcase/hero_llvip.jpg)
+
 Code and notebooks for the two-day pilot of **CFFM-Net** (Cross-Feature Fusion Mamba Network): a dual-stream
 YOLO26 detector that fuses visible and thermal images with a selective state-space scan. In that scan, the
 discretisation step of every token is scaled by how reliable its sensor is at its location. The pilot trains
@@ -17,7 +19,9 @@ cffm-net-pilot/
     phase0_environment/        00 setup and checks · 01 data acquisition · 02 data conversion
     phase1_still_images/       03 data audit · 04 single-sensor baselines · 05 two-stream baseline
                                06 inside CMFM · 07 train CFFM-Net · 08 ablations
+                               08b head control · 08c, 08d round 2 (modality dropout)
                                09 degradation probe and latency · 15 results, hypotheses, figures
+                               16 showcase: boards, camera failures, tracking, any photo
   src/cffm/                    the package the notebooks import
     scan.py                    selective scan: fused CUDA kernel or portable two-pass PyTorch scan
     blocks.py                  ReliabilityHead, OffsetAlign, GatedCrossScan, CMFM, baseline fusers
@@ -26,17 +30,42 @@ cffm-net-pilot/
     train.py                   DualTrainer, DualValidator (AI-TOD size bins), evaluate, probe, latency
     pipeline.py                Kaggle glue: find data and checkpoints, train from the run plan
     report.py                  results tables and the pre-registered hypothesis decisions
-    viz.py                     predictions and reliability maps
+    viz.py                     predictions and reliability maps for any visible + thermal pair
+    hud.py                     analysis boards: bracketed subjects, thermal and trust panels, trails
+    showcase.py                scene picking, high-res pairs, ByteTrack sequences, inline display
     tsm.py                     Temporal State Memory (Phase 2; tested, not used in the pilot)
     env.py                     platform detection, paths, GPU report
   configs/pilot.yaml           every run and its settings (epochs, batch, data, model)
   configs/models/*.yaml        CFFM-Net, its ablations and the two-stream baseline
-  tests/                       62 tests; notebook 00 runs them on the Kaggle GPU
+  tests/                       77 tests (64 run on CPU; the Triton ones need a GPU)
   docs/figures/                methodology diagrams (architecture, CMFM, gated scan, workflow), TikZ sources
   tools/build_notebooks.py     regenerates all notebooks from one script
   tools/make_zip.py            packs the project into cffm-net-pilot.zip for Kaggle
   tools/kaggle_run.py          uploads the code and pushes and watches the notebooks via the Kaggle API
+  tools/run_notebooks.py       executes notebooks locally and cleans their outputs for GitHub
+  tools/build_demo.py          fills demo/ with sample pairs, photos and weights
+  demo/app.py                  Gradio app: upload a pair or any photo, get the analysis board
+  web/                         static front-end for Vercel that calls the demo's API
+  results/                     pilot tables and figures; results/showcase holds the boards
   weights/yolo26n.pt           COCO-pretrained YOLO26-n; in the zip, not in git (notebook 00 downloads it)
+```
+
+## Demo
+
+```bash
+python tools/build_demo.py     # sample pairs, photos and weights into demo/
+python demo/app.py             # http://127.0.0.1:7860
+```
+
+The web page in `web/` is a static site: serve it (`python -m http.server -d web 8000`) or deploy the folder on
+Vercel, and point its backend field at the running app or a Hugging Face Space built with
+`python tools/build_demo.py --space`.
+
+## Running locally
+
+```bash
+python tools/run_notebooks.py          # every notebook, in order, outputs saved in place
+python tools/run_notebooks.py 16       # just the showcase
 ```
 
 ## Running on Kaggle
