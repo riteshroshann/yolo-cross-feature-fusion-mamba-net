@@ -5,6 +5,7 @@
 <p align="center">Ritesh Roshan</p>
 
 <p align="center">
+<a href="https://yolo-cross-feature-fusion-mamba-net.vercel.app"><b>Live demo</b></a> &nbsp;·&nbsp;
 <a href="docs/atlas/CFFM-Net_Architecture_Atlas.pdf">Architecture atlas</a> &nbsp;·&nbsp;
 <a href="docs/dossier/CFFM-Net_Research_Dossier.pdf">Research dossier</a> &nbsp;·&nbsp;
 <a href="docs/novelty/CFFM-Net_Pilot_Novelty.pdf">Novelty note</a> &nbsp;·&nbsp;
@@ -13,7 +14,10 @@
 <a href="study-prep">Study path</a>
 </p>
 
-![CFFM-Net on a night crossing from the LLVIP test set](cffm-net-pilot/results/showcase/hero_llvip.jpg)
+[![CFFM-Net on a night crossing from the LLVIP test set](cffm-net-pilot/results/showcase/hero_llvip.jpg)](https://yolo-cross-feature-fusion-mamba-net.vercel.app)
+
+<p align="center"><sub>Try it at <a href="https://yolo-cross-feature-fusion-mamba-net.vercel.app">yolo-cross-feature-fusion-mamba-net.vercel.app</a>.
+Upload a visible and thermal pair or any photo, or pick a sample.</sub></p>
 
 A thermal camera sees people in the dark. A visible camera sees texture, colour and print. Each one fails where
 the other does not: glare, fog, a lens that drifts out of registration, a sensor that drops out. Most fusion
@@ -250,9 +254,11 @@ python tools/kaggle_run.py wait 07
 An interrupted run resumes from its last checkpoint. Runs that already finished are reused, not retrained. The
 full walkthrough is in [`cffm-net-pilot/README.md`](cffm-net-pilot/README.md).
 
-**Demo.** `python cffm-net-pilot/demo/app.py` starts a Gradio app. Upload a visible and thermal pair, or any photo,
-and get the analysis board: numbered subjects, per-camera panels and the trust map. [`web/`](cffm-net-pilot/web)
-is a static front-end for the same API.
+**Demo.** The live demo is at [yolo-cross-feature-fusion-mamba-net.vercel.app](https://yolo-cross-feature-fusion-mamba-net.vercel.app).
+To run it yourself, `python cffm-net-pilot/demo/app.py` starts the Gradio app behind it. Upload a visible and
+thermal pair, or any photo, and get the analysis board: numbered subjects, per-camera panels and the trust map.
+[`web/`](cffm-net-pilot/web) is the static front-end; the *backend* field at the bottom of its demo panel points it
+at any running copy of the app.
 
 <p align="center"><img src="cffm-net-pilot/results/showcase/tracking_mot17.gif" width="70%" alt="Tracking a crowd on MOT17-04"></p>
 

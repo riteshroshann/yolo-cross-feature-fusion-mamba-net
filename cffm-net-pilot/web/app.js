@@ -1,6 +1,6 @@
 import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
 
-const DEFAULT_BACKEND = "https://bbac94ca05251fde7e.gradio.live/";
+const DEFAULT_BACKEND = "https://d166127263e7916396.gradio.live/";
 const SAMPLES = [
   ["llvip_190311", "Night pedestrians · LLVIP"], ["llvip_190009", "Night pedestrians · LLVIP"],
   ["llvip_190505", "Night pedestrians · LLVIP"], ["llvip_190648", "Night pedestrians · LLVIP"],
@@ -13,7 +13,8 @@ const store = { get: (k) => { try { return localStorage.getItem(k); } catch { re
                 set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 const state = { mode: "pair", vis: null, ir: null, client: null, url: null };
 
-$("backend").value = store.get("cffm-backend") || DEFAULT_BACKEND;
+const saved = store.get("cffm-backend");
+$("backend").value = saved && !saved.includes(".gradio.live") ? saved : DEFAULT_BACKEND;
 $("backend").addEventListener("change", (e) => { store.set("cffm-backend", e.target.value.trim()); state.client = null; });
 $("conf").addEventListener("input", (e) => { $("confOut").value = Number(e.target.value).toFixed(2); });
 
