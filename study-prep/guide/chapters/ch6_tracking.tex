@@ -1,0 +1,59 @@
+\chapter{Stage five: tracking and video}
+
+\section{Why it matters}
+
+A detector answers \emph{what is here}; a tracker answers \emph{who is this, and where are they going}. The
+showcase already tracks crowds, and the project's next phase moves from still images to video, where \method{}'s
+temporal state memory carries information from frame to frame. This stage covers the tracking-by-detection
+pipeline and how it is measured.
+
+\section{What to learn}
+
+\begin{itemize}
+  \item Tracking by detection: detect in every frame, then associate detections into identities.
+  \item The Kalman filter as a constant-velocity motion model, and the Hungarian algorithm for matching~\cite{bewley2016sort}.
+  \item Using low-confidence detections to keep tracks through occlusion~\cite{zhang2022bytetrack}.
+  \item Fixing drift and camera motion~\cite{cao2023ocsort,aharon2022botsort}.
+  \item Metrics: MOTA, IDF1 and HOTA, and the MOT benchmarks~\cite{milan2016mot16}.
+  \item Visible--thermal tracking data~\cite{vtmot2024} and spatio-temporal fusion~\cite{mambast2024}.
+  \item Why sampled frames cannot be tracked: the LLVIP test frames are seconds apart, which is why the showcase uses MOT17 video.
+\end{itemize}
+
+\section{Lectures and reading}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{resource} & \hd{link and what to take from it} \\
+Ultralytics tracking & \link{https://docs.ultralytics.com/modes/track/} \newline ByteTrack and BoT-SORT exactly as the showcase calls them. \\
+ByteTrack code & \link{https://github.com/ifzhang/ByteTrack} \newline The reference implementation. \\
+\end{tabularx}
+
+\section{Papers}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{paper} & \hd{take away} \\
+SORT~\cite{bewley2016sort} & Kalman filter plus Hungarian matching, the baseline of the field \\
+ByteTrack~\cite{zhang2022bytetrack} & associate every box, including low-confidence ones \\
+OC-SORT~\cite{cao2023ocsort} & observation-centric correction of Kalman drift \\
+BoT-SORT~\cite{aharon2022botsort} & camera-motion compensation and appearance cues \\
+MOT16 and MOT17~\cite{milan2016mot16} & the benchmark behind the crowd demo \\
+VT-MOT~\cite{vtmot2024} & visible--thermal multi-object tracking at scale \\
+MambaST~\cite{mambast2024} & Mamba fusion across spectra and time \\
+\end{tabularx}
+
+\section{In this repository}
+
+Read \file{cffm-net-pilot/src/cffm/showcase.py}, the \texttt{track} function, and \file{hud.py}, which draws
+identities, trails and heading arrows. Then \file{tsm.py}, the temporal state memory for the video phase.
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Implement a Kalman filter for one moving box and plot predicted against observed positions.
+  \item Track MOT17-04 with and without low-confidence association and count identity switches.
+  \item Explain why 72 identities over 150 frames of MOT17-04 is plausible and 115 is not.
+\end{enumerate}
+
+\section{You are ready when}
+
+You can explain how a detection in frame $t$ is given the same identity as one in frame $t-1$, and what goes
+wrong in a crowd.

@@ -1,0 +1,39 @@
+\chapter{From study to research}
+\label{ch:research}
+
+\section{Reading the project's own results}
+
+The pilot is the best exercise in this guide, because its results are mixed and honest. With matched heads,
+\method{} trails the simple concatenation baseline by 0.3 to 1.5 AP on clean LLVIP images, close to run-to-run
+noise. It holds up better when the thermal image is shifted, and when told that the thermal camera is gone it
+still detects, where concatenation collapses. When the thermal camera is switched off without warning, both
+models find no one, although the people are plainly visible. Each of these is a research question, and each
+can be stated as a hypothesis, tested with one controlled run, and decided by a rule written down in advance.
+
+\section{Two lessons from the training logs}
+
+The first full training run diverged to NaN from its second epoch. The cause was half precision: over twelve
+thousand tokens, the scan's inputs and outputs left float16's range. The fix was to keep the whole state-space
+path in float32. A later run diverged again once modality dropout forced one camera's weight to zero and the
+model pushed the other towards zero as well: the fusion divided by almost nothing, the gradient became a million
+times too large, and float16 overflowed. The fix was to compute the weights in float32 and floor their total.
+Both bugs were invisible in the unit tests and obvious in the logs. Read the logs.
+
+\section{A weekly rhythm}
+
+\begin{tabularx}{\textwidth}{@{}P{3cm}L@{}}
+\hd{day} & \hd{activity} \\
+Monday & one lecture and its notes \\
+Tuesday & the matching exercise or assignment \\
+Wednesday & one paper, read three times \\
+Thursday & reproduce one figure or number from that paper, however small \\
+Friday & read the matching code in this repository and change one thing \\
+Weekend & write a one-page summary of the week in your own words \\
+\end{tabularx}
+
+\section{When you are stuck}
+
+Shrink the problem until it is small enough to see: one image instead of a dataset, one block instead of a
+network, ten steps instead of thirty epochs. Make a model overfit a single batch before training it properly.
+Change one thing at a time. When a result surprises you, suspect the code before the theory, and the data before
+the code.

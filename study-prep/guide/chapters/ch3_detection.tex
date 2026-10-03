@@ -1,0 +1,64 @@
+\chapter{Stage two: detection and YOLO}
+
+\section{Why it matters}
+
+\method{} is a detector first. Its backbones, neck, head, loss and evaluation all come from YOLO26, and every
+result in the project is a COCO average precision. To change the method, or even to read its results tables
+critically, you need to know how a detector turns a feature map into boxes and how those boxes are scored.
+
+\section{What to learn}
+
+\begin{itemize}
+  \item Two-stage detection (region proposals, then classification) and one-stage detection; why YOLO is fast~\cite{ren2015fasterrcnn,redmon2016yolo}.
+  \item Box regression, anchors, and anchor-free heads.
+  \item Feature pyramids~\cite{lin2017fpn}: why small objects need high-resolution features, and what a stride-4 head buys and costs.
+  \item Class imbalance and the focal loss~\cite{lin2017focal}.
+  \item Non-maximum suppression, and why DETR~\cite{carion2020detr} could remove it with one-to-one matching.
+        YOLO26 and YOLOv10~\cite{wang2024yolov10} borrow this idea; the real-time DETR line~\cite{zhao2024rtdetr} is the main competitor.
+  \item Evaluation: intersection over union, precision and recall, AP50 and AP50-95, and the size bands for small and tiny objects.
+\end{itemize}
+
+\section{Lectures and reading}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{resource} & \hd{link and what to take from it} \\
+CS231n lecture on detection and segmentation & \link{https://www.youtube.com/playlist?list=PL3FW7Lu3i5JvHM8ljYj-zLfQRF3EO8sYv} \newline Lecture 11 sets out the whole landscape. \\
+EECS 498 lectures on object detection & \link{https://www.youtube.com/playlist?list=PL5-TkQAfAZFbzxjBHtzdVCWE0Zbhomg7r} \newline Two lectures that go deeper than CS231n on single-stage detectors. \\
+Ultralytics documentation & \link{https://docs.ultralytics.com/} \newline The trainer, validator and data pipeline this project subclasses. \\
+YOLO26 model page & \link{https://docs.ultralytics.com/models/yolo26/} \newline The architecture and end-to-end head \method{} builds on. \\
+The Illustrated Transformer & \link{https://jalammar.github.io/illustrated-transformer/} \newline Read before DETR. \\
+\end{tabularx}
+
+\section{Papers}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{paper} & \hd{take away} \\
+Faster R-CNN~\cite{ren2015fasterrcnn} & the two-stage design every later paper compares against \\
+YOLOv1~\cite{redmon2016yolo} & detection as one regression over a grid \\
+FPN~\cite{lin2017fpn} & combine coarse semantics with fine resolution across scales \\
+RetinaNet~\cite{lin2017focal} & the focal loss for the flood of easy background \\
+YOLOv3~\cite{redmon2018yolov3} & multi-scale prediction in the YOLO family \\
+DETR~\cite{carion2020detr} & set prediction with one-to-one matching, no NMS \\
+RT-DETR~\cite{zhao2024rtdetr} & real-time transformers that rival YOLO \\
+YOLOv10~\cite{wang2024yolov10} & NMS-free training for YOLO, the ancestor of YOLO26's head \\
+\end{tabularx}
+
+\section{In this repository}
+
+Read \file{cffm-net-pilot/src/cffm/model.py}, which wraps YOLO26 into a two-stream model, and
+\file{train.py}, which adds the size-binned evaluation. Then open notebook 04 and compare its single-camera
+results with the two-stream ones in notebook 05.
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Implement IoU and greedy NMS for a list of boxes; test them on hand-made cases.
+  \item Fine-tune YOLO26-n on a small public dataset with the Ultralytics CLI and read every line of its output.
+  \item Compute AP50 for one class by hand from a list of scored detections and ground truths.
+  \item Explain in a paragraph why the stride-4 head cost the pilot 1.8 AP on LLVIP but might help on M3FD.
+\end{enumerate}
+
+\section{You are ready when}
+
+You can draw a YOLO-style detector from input image to final boxes, name what each part is for, and explain
+the difference between AP50 and AP50-95 with an example.

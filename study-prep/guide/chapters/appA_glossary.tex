@@ -1,0 +1,19 @@
+\chapter{Glossary}
+
+\begin{longtable}{@{}P{3.6cm}P{10.2cm}@{}}
+\hd{term} & \hd{meaning} \\
+AP50, AP50-95 & average precision with a box counted correct at IoU 0.5, or averaged over thresholds from 0.5 to 0.95 \\
+backbone, neck, head & feature extractor, multi-scale feature mixer, and the layer that predicts boxes and classes \\
+ByteTrack & a tracker that associates low-confidence detections too, keeping identities through occlusion \\
+concat baseline & two backbones whose features are stacked and squeezed by a 1x1 convolution \\
+$\Delta$ (delta) & the step size of a selective scan; small keeps the state, large overwrites it \\
+float16, float32 & half and single precision; float16 overflows above 65504 and underflows below about $6\times10^{-8}$ \\
+IoU & intersection over union of two boxes \\
+LWIR & long-wave infrared, the band a thermal camera records \\
+modality dropout & blacking out one camera at random during training so the model learns to work without it \\
+NMS & non-maximum suppression, removing duplicate boxes; YOLO26 does not need it \\
+reliability gate & \method{}'s per-location trust in each camera, multiplied into the scan's step size \\
+selective scan & a state-space recurrence whose parameters depend on the input \\
+stride & how many input pixels one feature-map cell covers; stride 4 sees small objects best \\
+trust map & a picture of the reliability gate: where the model weighted visible and where thermal \\
+\end{longtable}

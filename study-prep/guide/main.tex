@@ -1,0 +1,49 @@
+\documentclass[11pt,a4paper,oneside,openany]{book}
+\input{preamble}
+
+\hypersetup{
+  pdftitle    = {A Study Guide for CFFM-Net},
+  pdfauthor   = {Ritesh Roshan},
+  pdfsubject  = {Learning path from deep-learning foundations to visible-thermal Mamba detection},
+  pdfkeywords = {CS231n, YOLO, Mamba, state space models, multispectral fusion, tracking}
+}
+
+\begin{document}
+
+\frontmatter
+\begin{titlepage}
+\thispagestyle{empty}
+\setstretch{1.15}
+\centering
+\vspace*{34mm}
+{\large\scshape\color{muted} Study Guide\par}
+\vspace{20mm}
+{\fontsize{29}{37}\selectfont From First Principles\\[2pt] to Cross-Feature Fusion\\[2pt] Mamba Networks\par}
+\vspace{14mm}
+{\Large\itshape Deep learning, detection, state-space models,\\[2pt] visible--thermal fusion and tracking,\\[2pt] in the order this project needs them\par}
+\vspace{30mm}
+{\large Ritesh Roshan\par}
+\vfill
+{\normalsize\color{muted} Version 1.0\\[2pt] October 2026\par}
+\vspace{12mm}
+\end{titlepage}
+
+\cleardoublepage
+{\setstretch{1.08}\tableofcontents}
+
+\mainmatter
+\input{chapters/ch1_path}
+\input{chapters/ch2_foundations}
+\input{chapters/ch3_detection}
+\input{chapters/ch4_mamba}
+\input{chapters/ch5_fusion}
+\input{chapters/ch6_tracking}
+\input{chapters/ch7_research}
+
+\appendix
+\input{chapters/appA_glossary}
+
+\backmatter
+\input{refs}
+
+\end{document}

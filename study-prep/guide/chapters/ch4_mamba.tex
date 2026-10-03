@@ -1,0 +1,75 @@
+\chapter{Stage three: state-space models and Mamba}
+
+\section{Why it matters}
+
+This is the stage that standard computer-vision courses do not cover, and it is the heart of \method{}. The
+fusion block interleaves visible and thermal features into one sequence and runs a selective state-space scan
+over it. The project's central idea is a single multiplication inside that scan, so the scan itself has to be
+understood exactly.
+
+\section{The one equation to own}
+
+A selective state-space model keeps a small hidden state $h$ per channel and walks along the sequence:
+\[
+  h_k = \exp(\Delta_k A)\, h_{k-1} + \Delta_k B_k x_k, \qquad y_k = C_k h_k + D x_k .
+\]
+$A$ is a learned negative diagonal, so $\exp(\Delta_k A)$ is a number between zero and one: how much of the past
+is kept. $\Delta_k$, $B_k$ and $C_k$ are computed from the input itself, which is what makes the scan
+\emph{selective}~\cite{gu2023mamba}. When $\Delta_k \to 0$ the state is kept and the input ignored; when
+$\Delta_k$ is large the past is forgotten. \method{} multiplies $\Delta_k$ by the reliability of the camera that
+produced token $k$, so a token from an unreliable camera cannot write into the state.
+
+\section{What to learn}
+
+\begin{itemize}
+  \item Continuous state-space models and their discretisation by zero-order hold.
+  \item The S4 view~\cite{gu2022s4}: the same model as a recurrence and as a long convolution.
+  \item Selectivity in Mamba~\cite{gu2023mamba}, the parallel scan, and why it is linear in sequence length.
+  \item Mamba-2 and the link between state-space models and linear attention~\cite{dao2024mamba2}.
+  \item Applying a one-dimensional scan to an image: scan orders and directions~\cite{zhu2024vim,liu2024vmamba}.
+  \item The sceptical view~\cite{yu2025mambaout}: when a gated convolution does as well, and why the project
+        includes exactly that control.
+  \item Hybrids and detectors~\cite{hatamizadeh2025mambavision,wang2025mambayolo}.
+\end{itemize}
+
+\section{Lectures and reading}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{resource} & \hd{link and what to take from it} \\
+The Annotated S4, Sasha Rush & \link{https://srush.github.io/annotated-s4/} \newline The gentlest rigorous route in, with runnable code. \\
+A Visual Guide to Mamba & \link{https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mamba-and-state} \newline Pictures for every step from RNNs to the selective scan. \\
+Official Mamba code & \link{https://github.com/state-spaces/mamba} \newline The reference implementation and its fused kernel. \\
+Stanford CS25, Transformers United & \link{https://web.stanford.edu/class/cs25/} \newline Guest lectures that place state-space models next to attention. \\
+\end{tabularx}
+
+\section{Papers}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{paper} & \hd{take away} \\
+S4~\cite{gu2022s4} & structured state spaces for very long sequences \\
+Mamba~\cite{gu2023mamba} & input-dependent $\Delta$, $B$, $C$: the selective scan \\
+Mamba-2~\cite{dao2024mamba2} & state-space duality with attention \\
+Vision Mamba~\cite{zhu2024vim} & bidirectional scans over image patches \\
+VMamba~\cite{liu2024vmamba} & four-direction cross scan, used by \method{} \\
+MambaOut~\cite{yu2025mambaout} & the gated-convolution control \\
+MambaVision~\cite{hatamizadeh2025mambavision} & a hybrid with a non-scan local branch, also used here \\
+Mamba YOLO~\cite{wang2025mambayolo} & a scan inside a YOLO detector \\
+\end{tabularx}
+
+\section{In this repository}
+
+Read \file{cffm-net-pilot/src/cffm/blocks.py}: \texttt{GatedCrossScan} and \texttt{CMFM}. Then notebook 06,
+which shows numerically that a zero-reliability camera cannot change the visible outputs of the scan.
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Implement the recurrence above as a Python loop and as a parallel prefix scan; check they agree.
+  \item Show algebraically why $\Delta \to 0$ leaves the state unchanged.
+  \item Run the gated-convolution ablation in notebook 08 and argue, from its result, whether the scan earns its cost.
+\end{enumerate}
+
+\section{You are ready when}
+
+You can derive the discretised recurrence from the continuous model, explain what selectivity adds to S4, and
+point to the line in \file{blocks.py} where reliability enters the scan.

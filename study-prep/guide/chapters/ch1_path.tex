@@ -1,0 +1,39 @@
+\chapter{How to use this guide}
+
+\method{} is an object detector that looks through two cameras at once, an ordinary visible camera and a
+thermal camera, and decides at every location which one to trust. Understanding it end to end touches five
+areas that are usually taught separately: deep learning for images, object detection, state-space models,
+multispectral fusion and multi-object tracking. This guide puts them in the order the project needs them and,
+for each one, names the lectures to watch, the papers to read, the files in the repository that use the idea,
+and a short set of exercises.
+
+The path assumes comfortable Python and first-year linear algebra and calculus. It does not assume prior deep
+learning. Part time, it takes about two months; most people can start contributing to the code after the
+second stage.
+
+\section{The five stages}
+
+\begin{tabularx}{\textwidth}{@{}P{0.6cm}P{4.2cm}P{1.8cm}L@{}}
+\hd{} & \hd{stage} & \hd{time} & \hd{what it unlocks in \method{}} \\
+1 & Foundations & 3--4 weeks & training loops, convolutions, residual networks, attention \\
+2 & Detection and YOLO & 2 weeks & the YOLO26 backbone, neck and NMS-free head the method is built on \\
+3 & State-space models and Mamba & 2 weeks & the selective scan and the reliability gate on its step size \\
+4 & Seeing in two spectra & 1 week & paired visible--thermal data, fusion designs, the datasets \\
+5 & Tracking and video & 1 week & identities over time, the showcase tracker, the next phase \\
+\end{tabularx}
+
+\section{How each chapter is organised}
+
+Every stage chapter has the same six parts. \emph{Why it matters} says what breaks in the project without it.
+\emph{What to learn} lists the ideas to own, not just recognise. \emph{Lectures and reading} gives the
+resources, with links. \emph{Papers} lists the PDFs in \file{study-prep/papers}, each with the one thing to take
+from it. \emph{In this repository} names the code to read once the stage is done. \emph{Exercises} are small
+and concrete; the chapter ends with a test of readiness.
+
+\section{How to study}
+
+Watch a lecture once at normal speed, then work the matching assignment or exercise before moving on; the
+assignments teach more than the videos. Read a paper three times: first the abstract, figures and conclusion;
+then the method, with a pen, rederiving each equation; then the experiments, asking what was compared, against
+what, and whether the comparison is fair. Keep a notebook of every idea in your own words. When a paper and a
+lecture disagree, the code decides.

@@ -1,0 +1,54 @@
+\chapter{Stage four: seeing in two spectra}
+
+\section{Why it matters}
+
+A visible camera sees colour and texture but goes blind at night, in glare and in smoke; a thermal camera sees
+heat in any light but loses texture and colour. The question the project asks is how to combine them so the
+result is better than either alone, and stays good when one of them fails. This stage covers the data, the
+fusion designs that came before \method{}, and how they are evaluated.
+
+\section{What to learn}
+
+\begin{itemize}
+  \item What a long-wave infrared image measures, and why people and engines stand out in it.
+  \item Registration: why the two cameras must be aligned, and what a few pixels of misalignment does to a detector.
+  \item Early, middle and late fusion; where \method{} fuses and why.
+  \item Attention-based fusion~\cite{qingyun2021cft,shen2024icafusion} and Mamba-based fusion~\cite{dong2025fusionmamba,li2025cfmw,como2024}.
+  \item The datasets: KAIST~\cite{hwang2015kaist}, LLVIP~\cite{jia2021llvip}, M3FD~\cite{liu2022tardal} and RGBT-Tiny~\cite{ying2025rgbttiny};
+        what each is good for and what each hides.
+  \item Robustness testing: dropping, darkening or shifting one camera at test time, and modality dropout at training time.
+\end{itemize}
+
+\section{Papers}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}L@{}}
+\hd{paper} & \hd{take away} \\
+CFT~\cite{qingyun2021cft} & cross-modality fusion with transformers \\
+ICAFusion~\cite{shen2024icafusion} & iterative cross-attention, a strong attention baseline \\
+Fusion-Mamba~\cite{dong2025fusionmamba} & the first Mamba fusion detector \\
+CFMW~\cite{li2025cfmw} & Mamba fusion under adverse weather, one of the four source papers \\
+COMO~\cite{como2024} & cross-Mamba interaction with offset-guided alignment \\
+KAIST~\cite{hwang2015kaist} & the original paired pedestrian benchmark, with video \\
+LLVIP~\cite{jia2021llvip} & low-light paired pedestrians, the pilot's main dataset \\
+M3FD~\cite{liu2022tardal} & six classes in mixed scenes, the pilot's second dataset \\
+RGBT-Tiny~\cite{ying2025rgbttiny} & tiny objects in paired video, the target benchmark \\
+\end{tabularx}
+
+\section{In this repository}
+
+Read \file{cffm-net-pilot/src/cffm/data.py}, which turns the raw datasets into paired four-channel images, then
+notebooks 03 and 16. The camera-failure board in notebook 16 is the clearest picture of what fusion should and
+should not do.
+
+\section{Exercises}
+
+\begin{enumerate}
+  \item Load ten LLVIP pairs, overlay visible and thermal at 50 per cent, and judge the registration by eye.
+  \item Shift the thermal image by 8 pixels and measure how much the concat baseline's detections move.
+  \item From notebook 09, explain why concat collapses when told that thermal is gone while \method{} does not.
+\end{enumerate}
+
+\section{You are ready when}
+
+You can say which camera should win in a given scene and why, and you can design a test that would show whether
+a fusion model really behaves that way.
