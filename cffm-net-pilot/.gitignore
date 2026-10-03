@@ -7,3 +7,4 @@ __pycache__/
 weights/*.pt
 results/showcase/*.mp4
 demo/weights/
+.gradio/
