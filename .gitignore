@@ -14,3 +14,5 @@ papers/download.log
 study-prep/guide/build.log
 study-prep/guide/main.pdf
 docs/atlas/build.log
+papers/**/*.pdf
+study-prep/papers/**/*.pdf

@@ -5,6 +5,7 @@ colorTo: gray
 sdk: gradio
 app_file: app.py
 pinned: false
+license: agpl-3.0
 ---
 
 # CFFM-Net demo

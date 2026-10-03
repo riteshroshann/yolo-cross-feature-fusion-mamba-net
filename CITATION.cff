@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+type: software
+title: "CFFM-Net: Reliability-Gated Selective State-Space Fusion of Visible and Thermal Cameras for Small-Object Detection"
+authors:
+  - family-names: Roshan
+    given-names: Ritesh
+version: "0.1.0"
+date-released: "2026-10-03"
+license:
+  - AGPL-3.0-only
+  - CC-BY-4.0
+repository-code: "https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net"
+keywords:
+  - object detection
+  - visible-thermal fusion
+  - multispectral
+  - state space models
+  - Mamba
+  - YOLO26
+  - small objects
+  - sensor reliability
+abstract: >-
+  CFFM-Net fuses a visible and a thermal camera for small-object detection. Two YOLO26 backbones are fused at four
+  pyramid levels by a selective state-space scan over interleaved visible and thermal tokens, in which the
+  discretisation step of every token is scaled by a learned per-pixel estimate of its camera's reliability, so that
+  tokens from an unreliable or failed camera are skipped by construction.

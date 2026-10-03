@@ -63,27 +63,33 @@ model assigned at each level. 6.03 M parameters, 18.4 GFLOPs at 640 px.</sub></p
 **Reliability.** At each fusion level ℓ, a light head reads both feature maps and their disagreement and outputs one
 trust map per camera:
 
-$$\big(r^{v}, r^{\theta}\big) = \sigma\Big(g\big([F^{v},\, F^{\theta},\, |F^{v}-F^{\theta}|]\big)\Big)\odot s,$$
+```math
+\big(r^{v}, r^{\theta}\big) = \sigma\Big(g\big([F^{v},\, F^{\theta},\, |F^{v}-F^{\theta}|]\big)\Big)\odot s,
+```
 
-where $s\in\lbrace 0,1\rbrace^{2}$ are optional sensor-health flags. Nothing supervises $r$ directly. It is learned
+where $`s\in\{0,1\}^{2}`$ are optional sensor-health flags. Nothing supervises $`r`$ directly. It is learned
 only through the detection loss.
 
 **Gated cross-scan.** The thermal map is warped onto the visible one by a learned offset of at most four cells. Both
-are projected to $d=c/2$ channels and interleaved location by location,
-$x^{v}_{1}, x^{\theta}_{1}, x^{v}_{2}, x^{\theta}_{2}, \dots$, giving $L = 2HW$ tokens. Each token's step is then
+are projected to $`d=c/2`$ channels and interleaved location by location,
+$`x^{v}_{1}, x^{\theta}_{1}, x^{v}_{2}, x^{\theta}_{2}, \dots`$, giving $`L = 2HW`$ tokens. Each token's step is then
 scaled by the reliability of the camera that produced it:
 
-$$\Delta_k = r_k\cdot\operatorname{softplus}\big(W_{\Delta}x_k + b_{\Delta}\big),\qquad
-h_k = e^{\Delta_k A}\,h_{k-1} + \Delta_k B_k\,x_k,\qquad y_k = C_k h_k + D\,x_k .$$
+```math
+\Delta_k = r_k\cdot\mathrm{softplus}\big(W_{\Delta}x_k + b_{\Delta}\big),\qquad
+h_k = e^{\Delta_k A}\,h_{k-1} + \Delta_k B_k\,x_k,\qquad y_k = C_k h_k + D\,x_k .
+```
 
 The scan runs in four directions (rows and columns, each forwards and backwards), as in VMamba's SS2D, and the
 directions are summed back on the grid.
 
 **Residual form.** The block output is the reliability-weighted mean of its inputs plus a learned correction:
 
-$$Z = \frac{r^{v}F^{v} + r^{\theta}\tilde F^{\theta}}{\max\big(r^{v}+r^{\theta},\,10^{-2}\big)}
-\;+\; W_o\Big[\operatorname{LN}\big(\mathrm{scan}_r(\cdot)\big),\ \operatorname{DWConv}(\cdot)\Big],
-\qquad W_o \leftarrow 0 .$$
+```math
+Z = \frac{r^{v}F^{v} + r^{\theta}\tilde F^{\theta}}{\max\big(r^{v}+r^{\theta},\,10^{-2}\big)}
+\;+\; W_o\Big[\mathrm{LN}\big(\mathrm{scan}_r(\cdot)\big),\ \mathrm{DWConv}(\cdot)\Big],
+\qquad W_o \leftarrow 0 .
+```
 
 <p align="center">
 <img src="cffm-net-pilot/docs/figures/fig_cmfm.png" width="44%" alt="The CMFM fusion block">
@@ -93,10 +99,10 @@ $$Z = \frac{r^{v}F^{v} + r^{\theta}\tilde F^{\theta}}{\max\big(r^{v}+r^{\theta},
 
 ### Two properties that hold by construction, and are tested
 
-1. **A camera with zero reliability cannot write to the state.** If $r_k = 0$, then $e^{\Delta_k A} = I$ and
-   $\Delta_k B_k x_k = 0$, so token $k$ leaves $h$ unchanged. The tests set $r^{\theta} = 0$, perturb the thermal
+1. **A camera with zero reliability cannot write to the state.** If $`r_k = 0`$, then $`e^{\Delta_k A} = I`$ and
+   $`\Delta_k B_k x_k = 0`$, so token $`k`$ leaves $`h`$ unchanged. The tests set $`r^{\theta} = 0`$, perturb the thermal
    features, and check that the visible outputs of the scan do not move.
-2. **A new block is exactly a reliability-weighted average.** $W_o$ starts at zero and the offset field starts at
+2. **A new block is exactly a reliability-weighted average.** $`W_o`$ starts at zero and the offset field starts at
    the identity, so training starts from a well-defined fusion and can only add to it. COCO-pretrained backbones go
    in without disturbance.
 
@@ -207,7 +213,7 @@ Triton, then PyTorch. All three agree with the textbook loop in values and gradi
 
 **Numerics.** A recurrence over twelve thousand tokens overflows FP16. The whole scan path therefore runs in FP32
 under AMP: projections, steps, state and the fusion weights. The weighted mean is computed in FP32 with its
-denominator floored at $10^{-2}$. Before that floor, modality dropout could drive both reliabilities near zero and
+denominator floored at $`10^{-2}`$. Before that floor, modality dropout could drive both reliabilities near zero and
 produce a NaN, which is what invalidated the round-2 LLVIP run.
 
 **FLOP accounting.** Standard profilers do not count the element-wise work of a selective scan. The reported
@@ -280,8 +286,8 @@ docs/atlas/              Architecture Atlas: YOLOv1 to YOLO26, SSMs to VMamba, C
 docs/dossier/            research dossier: survey, method, evaluation plan
 docs/novelty/            what the pilot adds over prior visible-thermal fusion
 docs/datasets/           datasets, licences and how to obtain them
-study-prep/              learning path, lecture links, 37 papers by stage, study guide
-papers/                  the open-access papers the dossier cites
+study-prep/              learning path, lecture links, 37 papers by stage (fetch.py), study guide
+papers/                  index and downloader for the 174 works the dossier cites
 ```
 
 ## Citation
@@ -295,6 +301,18 @@ papers/                  the open-access papers the dossier cites
   howpublished = {\url{https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net}}
 }
 ```
+
+GitHub's *Cite this repository* button reads the same entry from [CITATION.cff](CITATION.cff).
+
+## License
+
+Copyright © 2026 Ritesh Roshan. The code is released under the [GNU AGPL v3.0](LICENSE), as Ultralytics YOLO,
+on which it builds, requires. The documents, figures, tables and README text are released under
+[CC BY 4.0](LICENSES/CC-BY-4.0.txt). Both licences let anyone reuse the work, provided they credit it.
+
+The dataset images in the showcase and demo stay under their own terms: LLVIP and M3FD are for non-commercial
+research, and MOT17 is CC BY-NC-SA 3.0. The cited papers are not redistributed here. [NOTICE.md](NOTICE.md) lists
+exactly what is covered and what is not.
 
 ## Acknowledgements
 

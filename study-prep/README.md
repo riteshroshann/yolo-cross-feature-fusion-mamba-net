@@ -4,6 +4,9 @@ Everything needed to understand CFFM-Net from first principles, in the order it 
 `CFFM-Net_Study_Guide.pdf` for the full path: what to learn in each stage, why it matters for this project,
 which files in the repository to read afterwards, and exercises.
 
+The 37 papers named below are not redistributed here. `python study-prep/papers/fetch.py` downloads them from
+arXiv and CVF into `papers/`, using the sources listed in `papers/index.csv`.
+
 ## Stage 1 · Foundations (3 to 4 weeks)
 
 | resource | link |

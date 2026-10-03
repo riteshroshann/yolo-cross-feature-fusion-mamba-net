@@ -1,0 +1,38 @@
+file,title,source
+1_foundations/2014_Adam.pdf,Adam: A Method for Stochastic Optimization,https://arxiv.org/abs/1412.6980
+1_foundations/2015_BatchNorm.pdf,Batch Normalization,https://arxiv.org/abs/1502.03167
+1_foundations/2015_ResNet.pdf,Deep Residual Learning for Image Recognition,https://arxiv.org/abs/1512.03385
+1_foundations/2017_Transformer.pdf,Attention Is All You Need,https://arxiv.org/abs/1706.03762
+1_foundations/2020_ViT.pdf,An Image is Worth 16x16 Words,https://arxiv.org/abs/2010.11929
+2_detection_and_yolo/2015_Faster-RCNN.pdf,Faster R-CNN,https://arxiv.org/abs/1506.01497
+2_detection_and_yolo/2015_YOLOv1.pdf,"You Only Look Once: Unified, Real-Time Object Detection",https://arxiv.org/abs/1506.02640
+2_detection_and_yolo/2016_FPN.pdf,Feature Pyramid Networks for Object Detection,https://arxiv.org/abs/1612.03144
+2_detection_and_yolo/2017_RetinaNet-FocalLoss.pdf,Focal Loss for Dense Object Detection,https://arxiv.org/abs/1708.02002
+2_detection_and_yolo/2018_YOLOv3.pdf,YOLOv3: An Incremental Improvement,https://arxiv.org/abs/1804.02767
+2_detection_and_yolo/2020_DETR.pdf,End-to-End Object Detection with Transformers,https://arxiv.org/abs/2005.12872
+2_detection_and_yolo/2023_RT-DETR.pdf,DETRs Beat YOLOs on Real-time Object Detection,https://arxiv.org/abs/2304.08069
+2_detection_and_yolo/2024_YOLOv10.pdf,YOLOv10: Real-Time End-to-End Object Detection,https://arxiv.org/abs/2405.14458
+3_state_space_models_mamba/2021_S4.pdf,Efficiently Modeling Long Sequences with Structured State Spaces,https://arxiv.org/abs/2111.00396
+3_state_space_models_mamba/2023_Mamba.pdf,Mamba: Linear-Time Sequence Modeling with Selective State Spaces,https://arxiv.org/abs/2312.00752
+3_state_space_models_mamba/2024_Mamba-2.pdf,Transformers are SSMs,https://arxiv.org/abs/2405.21060
+3_state_space_models_mamba/2024_Mamba-YOLO.pdf,Mamba YOLO,https://arxiv.org/abs/2406.05835
+3_state_space_models_mamba/2024_MambaOut.pdf,MambaOut: Do We Really Need Mamba for Vision?,https://arxiv.org/abs/2405.07992
+3_state_space_models_mamba/2024_MambaVision.pdf,MambaVision,https://arxiv.org/abs/2407.08083
+3_state_space_models_mamba/2024_VMamba.pdf,VMamba: Visual State Space Model,https://arxiv.org/abs/2401.10166
+3_state_space_models_mamba/2024_Vision-Mamba.pdf,Vision Mamba,https://arxiv.org/abs/2401.09417
+4_multispectral_fusion/2015_KAIST-dataset.pdf,Multispectral Pedestrian Detection,https://openaccess.thecvf.com/content_cvpr_2015/papers/Hwang_Multispectral_Pedestrian_Detection_2015_CVPR_paper.pdf
+4_multispectral_fusion/2021_CFT.pdf,Cross-Modality Fusion Transformer,https://arxiv.org/abs/2111.00273
+4_multispectral_fusion/2021_LLVIP-dataset.pdf,LLVIP: A Visible-infrared Paired Dataset,https://arxiv.org/abs/2108.10831
+4_multispectral_fusion/2022_M3FD-dataset.pdf,Target-aware Dual Adversarial Learning (TarDAL; M3FD),https://arxiv.org/abs/2203.16220
+4_multispectral_fusion/2023_ICAFusion.pdf,ICAFusion,https://arxiv.org/abs/2308.07504
+4_multispectral_fusion/2024_CFMW.pdf,CFMW: Cross-modality Fusion Mamba,https://arxiv.org/abs/2404.16302
+4_multispectral_fusion/2024_COMO.pdf,COMO: Cross-Mamba Interaction and Offset-Guided Fusion,https://arxiv.org/abs/2412.18076
+4_multispectral_fusion/2024_Fusion-Mamba.pdf,Fusion-Mamba for Cross-modality Object Detection,https://arxiv.org/abs/2404.09146
+4_multispectral_fusion/2024_RGBT-Tiny-dataset.pdf,Visible-Thermal Tiny Object Detection (RGBT-Tiny),https://arxiv.org/abs/2406.14482
+5_tracking_and_video/2016_MOT16-MOT17.pdf,MOT16: A Benchmark for Multi-Object Tracking,https://arxiv.org/abs/1603.00831
+5_tracking_and_video/2016_SORT.pdf,Simple Online and Realtime Tracking,https://arxiv.org/abs/1602.00763
+5_tracking_and_video/2021_ByteTrack.pdf,ByteTrack,https://arxiv.org/abs/2110.06864
+5_tracking_and_video/2022_BoT-SORT.pdf,BoT-SORT,https://arxiv.org/abs/2206.14651
+5_tracking_and_video/2022_OC-SORT.pdf,Observation-Centric SORT,https://arxiv.org/abs/2203.14360
+5_tracking_and_video/2024_MambaST.pdf,MambaST,https://arxiv.org/abs/2408.01037
+5_tracking_and_video/2024_VT-MOT.pdf,Visible-Thermal Multiple Object Tracking (VT-MOT),https://arxiv.org/abs/2408.00969
