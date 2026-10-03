@@ -2,7 +2,7 @@
 
 <p align="center"><b>Reliability-gated selective state-space fusion of visible and thermal cameras for small-object detection</b></p>
 
-<p align="center">Ritesh Roshan</p>
+<p align="center"><a href="https://www.linkedin.com/in/ritesh-roshan-sahoo/">Ritesh Roshan</a></p>
 
 <p align="center">
 <a href="https://yolo-cross-feature-fusion-mamba-net.vercel.app"><b>Live demo</b></a> &nbsp;·&nbsp;

@@ -24,6 +24,8 @@ h1 { font: 800 clamp(40px, 8vw, 96px)/1 var(--sans); letter-spacing: -.03em; mar
 .byline { font: 600 14px var(--mono); color: var(--ink); letter-spacing: .12em; text-transform: uppercase; margin: 22px 0 30px;
   padding-left: 12px; border-left: 3px solid var(--accent); }
 .byline span { color: var(--muted); margin-right: .6em; }
+.byline a { color: var(--ink); text-decoration: none; border-bottom: 1px solid transparent; transition: color .15s, border-color .15s; }
+.byline a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .hero { position: relative; margin-top: 32px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
   box-shadow: 0 30px 80px -30px rgba(255, 204, 0, .18); }
 .scan { position: absolute; inset: 0; background: linear-gradient(transparent 0, rgba(255, 204, 0, .07) 50%, transparent 100%);
