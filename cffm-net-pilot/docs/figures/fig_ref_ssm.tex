@@ -1,0 +1,49 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[font=\small]
+  \node[font=\small\scshape, text=muted, anchor=west] at (-0.3,2.3) {(a) continuous state space};
+  \node[io] (xt) at (0,0.9) {$x(t)$};
+  \node[scn, minimum width=4.4cm, minimum height=1.35cm] (cs) at (3.6,0.9)
+    {$h'(t) = A\,h(t) + B\,x(t)$\\[3pt] $y(t) = C\,h(t) + D\,x(t)$};
+  \node[io] (yt) at (7.2,0.9) {$y(t)$};
+  \draw[ar] (xt) -- (cs); \draw[ar] (cs) -- (yt);
+  \node[shp, below=2pt of cs] {$h(t)\in\mathbb{R}^N$, $A$ diagonal and negative};
+
+  \node[font=\small\scshape, text=muted, anchor=west] at (8.6,2.3) {(b) discretisation, zero-order hold};
+  \node[nrm, minimum width=4.6cm, minimum height=1.35cm] (zoh) at (11.2,0.9)
+    {$\bar A = \exp(\Delta A)$\\[3pt] $\bar B = (\Delta A)^{-1}(\exp(\Delta A) - I)\,\Delta B \approx \Delta B$};
+  \node[shp, below=2pt of zoh] {step size $\Delta>0$; $\bar A\in(0,1)$ per state};
+  \draw[ar] (cs.east) ++(0,0.45) -- ++(0.5,0) |- ($(zoh.west)+(0,0.45)$);
+
+  \node[font=\small\scshape, text=muted, anchor=west] at (-0.3,-1.6) {(c) recurrent view, one step per token};
+  \foreach \k/\x in {0/0, 1/2.6, 2/5.2, 3/7.8} {
+    \node[scn, minimum width=1.5cm, minimum height=0.8cm] (h\k) at (\x+1.0,-3.6) {$h_{\k}$};
+    \node[io] (x\k) at (\x+1.0,-5.3) {$x_{\k}$};
+    \node[io] (y\k) at (\x+1.0,-2.0) {$y_{\k}$};
+    \draw[ar] (x\k) -- node[lab, right] {$\bar B_{\k}$} (h\k);
+    \draw[ar] (h\k) -- node[lab, right] {$C_{\k}$} (y\k);
+  }
+  \foreach \a/\b in {0/1, 1/2, 2/3} \draw[ar] (h\a) -- node[lab, above] {$\bar A_{\b}$} (h\b);
+  \draw[ar] (h3) -- ++(1.4,0) node[right, io] {$\cdots$};
+  \node[note, text width=7.4cm, anchor=north west] at (-0.3,-6.0)
+    {$h_k = \bar A_k h_{k-1} + \bar B_k x_k$, $\;y_k = C_k h_k + D x_k$. One pass over $L$ tokens costs $O(L)$, and the
+     state $h$ is all the memory the model keeps.};
+
+  \node[font=\small\scshape, text=muted, anchor=west] at (11.4,-1.6) {(d) selection (Mamba)};
+  \node[io] (sx) at (12.6,-5.3) {$x_k$};
+  \node[emb, minimum width=2.4cm] (lin) at (12.6,-4.15) {Linear};
+  \node[nrm, minimum width=1.2cm] (dl) at (11.4,-2.8) {$\Delta_k$};
+  \node[nrm, minimum width=1.2cm] (bb) at (12.6,-2.8) {$B_k$};
+  \node[nrm, minimum width=1.2cm] (cc) at (13.8,-2.8) {$C_k$};
+  \draw[ar] (sx) -- (lin);
+  \draw[ar] (lin) -- (dl); \draw[ar] (lin) -- (bb); \draw[ar] (lin) -- (cc);
+  \node[note, text width=4.8cm, anchor=west] at (15.0,-2.4)
+    {$\Delta_k \to 0$: $\bar A_k \to 1$, $\bar B_k\to 0$, the state is held and $x_k$ ignored.};
+  \node[note, text width=4.8cm, anchor=west] at (15.0,-3.6)
+    {$\Delta_k$ large: $\bar A_k \to 0$, the past is forgotten and the state rewritten from $x_k$.};
+  \node[note, text width=4.8cm, anchor=west] at (15.0,-4.9)
+    {Because $\Delta, B, C$ depend on the input, the model chooses per token what to keep. This is the knob
+     CFFM-Net scales by sensor reliability.};
+\end{tikzpicture}
+\end{document}

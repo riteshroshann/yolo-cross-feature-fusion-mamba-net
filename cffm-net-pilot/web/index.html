@@ -12,7 +12,7 @@
 <body>
 <nav>
   <a class="logo" href="#top"><span class="bar"></span>CFFM-NET</a>
-  <div class="links"><a href="#demo">Demo</a><a href="#tracking">Tracking</a><a href="#findings">Findings</a><a href="#results">Results</a><a href="#method">Method</a></div>
+  <div class="links"><a href="#demo">Demo</a><a href="#tracking">Tracking</a><a href="#findings">Findings</a><a href="#results">Results</a><a href="#lineage">Lineage</a><a href="#method">Method</a><a href="#roadmap">Roadmap</a><a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">Code</a></div>
 </nav>
 
 <header id="top">
@@ -82,8 +82,11 @@
       <div class="fact"><b>Trust follows the light, weakly</b><p>Across 300 test frames, darker scenes lean on thermal
         (correlation <b>−0.50</b> on both datasets). The fusion weights stay between 0.46 and 0.52, so the gate learned
         the right direction but responds weakly.</p></div>
-      <div class="fact warn"><b>Behind on clean images</b><p>On clean data CFFM-Net trails simple concatenation by
-        <b>2.1 AP</b> (LLVIP) and <b>2.6 AP</b> (M3FD). A head-control experiment and a longer schedule are running now.</p></div>
+      <div class="fact"><b>The gate absorbs a darkened camera</b><p>With the visible image darkened, the reliability gate alone
+        is worth <b>+5.6 AP</b> (0.599 against 0.542 for the same network without it).</p></div>
+      <div class="fact warn"><b>Not yet ahead on clean images</b><p>The pilot trails simple concatenation by <b>2.1 AP</b> on
+        LLVIP. Matching the detection head closes most of that gap. Trained the same way with modality dropout, v2 leads
+        concat on M3FD by <b>+0.5 AP</b> (0.488 against 0.482), which is within noise. An 80-epoch round is training now.</p></div>
       <img src="assets/trust_vs_brightness.jpg" alt="Thermal share of the fusion weight against scene brightness" class="plot">
     </div>
   </div>
@@ -101,20 +104,51 @@
       <tr class="ours"><td>CFFM-Net</td><td>0.629</td><td>0.479</td><td>6.0 M</td><td>42 ms</td></tr>
       <tr><td>CFFM-Net, no reliability gate</td><td>0.626</td><td>–</td><td>6.0 M</td><td>41 ms</td></tr>
       <tr><td>CFFM-Net, gated conv instead of scan</td><td>0.628</td><td>–</td><td>6.2 M</td><td>35 ms</td></tr>
+      <tr class="group"><td colspan="5">round 2 · both trained with modality dropout · standard head</td></tr>
+      <tr class="best"><td>two-stream concat + dropout</td><td>0.652</td><td>0.482</td><td>4.1 M</td><td>23 ms</td></tr>
+      <tr class="ours"><td>CFFM-Net v2 + dropout</td><td>rerun</td><td>0.488</td><td>6.0 M</td><td>–</td></tr>
     </tbody>
   </table>
 </section>
 
-<section id="method">
-  <h2><span>05</span> How it works</h2>
-  <div class="grid3">
-    <figure><img src="assets/fig_architecture.png" alt="CFFM-Net architecture"><figcaption>Two YOLO26 backbones, fused at four scales, one NMS-free head.</figcaption></figure>
-    <figure><img src="assets/fig_cmfm.png" alt="CMFM block"><figcaption>The fusion block: reliability head, alignment, interleaved tokens, gated scan.</figcaption></figure>
-    <figure><img src="assets/fig_gated_scan.png" alt="Gated selective scan"><figcaption>Reliability scales each token's step: an unreliable sensor cannot overwrite the state.</figcaption></figure>
-  </div>
+<section id="lineage">
+  <h2><span>05</span> Where it comes from</h2>
+  <p class="sub">The two families CFFM-Net is built from, redrawn from the original papers in one visual language.
+    Blue is the visible camera, orange the thermal camera, purple the selective scan, gold the detection heads.</p>
+  <h3>YOLO, from one grid to YOLO26</h3>
+  <figure class="diagram"><img src="assets/fig_ref_yolov1.png" alt="YOLOv1 network and grid prediction" loading="lazy"><figcaption>YOLOv1, after Redmon et al. (2016): one network, one pass, an S×S grid that predicts boxes and classes.</figcaption></figure>
+  <figure class="diagram"><img src="assets/fig_ref_yolo_lineage.png" alt="YOLO lineage from v1 to YOLO26" loading="lazy"><figcaption>Ten years of YOLO: backbone, neck and head, and the one change that defines each generation, ending at the NMS-free, DFL-free YOLO26.</figcaption></figure>
+  <figure class="diagram"><img src="assets/fig_ref_yolo26.png" alt="YOLO26-n architecture with measured shapes" loading="lazy"><figcaption>YOLO26-n as used here, with every layer index and measured shape at 640 px. Training uses two heads: one-to-many and one-to-one. Inference uses only the one-to-one head, so there is no NMS.</figcaption></figure>
+  <figure class="diagram narrow"><img src="assets/fig_ref_yolo26_blocks.png" alt="Conv, C3k2, SPPF and C2PSA blocks" loading="lazy"><figcaption>The four repeated blocks: Conv, C3k2, SPPF and C2PSA.</figcaption></figure>
+  <h3>State-space models and Mamba</h3>
+  <figure class="diagram"><img src="assets/fig_ref_ssm.png" alt="From continuous state-space model to selective scan" loading="lazy"><figcaption>From a continuous state-space model to a selective scan, after S4 and Mamba. Making the step Δ depend on the input lets the model choose what to keep.</figcaption></figure>
+  <figure class="diagram"><img src="assets/fig_ref_mamba.png" alt="Mamba block, SS2D cross-scan and VSS block" loading="lazy"><figcaption>The Mamba block, VMamba's four-way cross-scan (SS2D) and the VSS block that wraps it.</figcaption></figure>
 </section>
 
-<footer>CFFM-Net pilot · Ritesh Roshan · data: LLVIP, M3FD (research use) · built with YOLO26 and a reliability-gated selective scan</footer>
+<section id="method">
+  <h2><span>06</span> How it works</h2>
+  <p class="sub">CFFM-Net as trained, drawn with the real activations of one LLVIP test pair. The two backbones never mix;
+    they meet only in the fusion blocks, where each token's scan step is scaled by how reliable its camera is there.</p>
+  <figure class="diagram"><img src="assets/fig_cffm_overall.png" alt="CFFM-Net overall architecture with real feature maps" loading="lazy"><figcaption>Two YOLO26-n backbones, a reliability-weighted sum at P2, the cross-modal fusion Mamba block at P3 to P5, the YOLO26 neck and heads. The small maps are the thermal reliability at each level. 6.03 M parameters, 18.4 GFLOPs.</figcaption></figure>
+  <div class="grid3">
+    <figure><img src="assets/fig_architecture.png" alt="CFFM-Net in compact form" loading="lazy"><figcaption>The same network in compact form: one stage per stream, fused at each level.</figcaption></figure>
+    <figure><img src="assets/fig_cmfm.png" alt="CMFM block" loading="lazy"><figcaption>The fusion block: reliability head, alignment, interleaved tokens, gated scan, zero-initialised output.</figcaption></figure>
+    <figure><img src="assets/fig_gated_scan.png" alt="Gated selective scan" loading="lazy"><figcaption>Reliability scales each token's step. A camera with zero reliability cannot write into the state.</figcaption></figure>
+  </div>
+  <figure class="diagram"><img src="assets/fig_training.png" alt="Training and evaluation pipeline" loading="lazy"><figcaption>From raw archives to verdicts: paired conversion, shared augmentation, modality dropout, two YOLO26 losses, FP32 scan under AMP, then COCO AP, the sensor-fault probe, latency and the pre-registered decisions.</figcaption></figure>
+  <figure class="diagram narrow"><img src="assets/fig_workflow.png" alt="Notebook workflow" loading="lazy"><figcaption>The notebooks and how their outputs flow, each one an independent Kaggle session.</figcaption></figure>
+</section>
+
+<section id="roadmap">
+  <h2><span>07</span> The whole project</h2>
+  <p class="sub">Still images are Phase 1. Phase 2 adds memory across frames and tracking. Phase 3 adds live cameras, and
+    Phase 4 combines several cameras into anonymous counts.</p>
+  <figure class="diagram"><img src="assets/fig_tsm.png" alt="Temporal State Memory" loading="lazy"><figcaption>The Temporal State Memory of Phase 2. A per-pixel state is carried from frame to frame. Its step is scaled by the real time gap and by reliability, it is warped with the camera, and it resets at scene cuts. It is built and tested, and training it comes next.</figcaption></figure>
+  <figure class="diagram"><img src="assets/fig_scope.png" alt="Project scope across five phases" loading="lazy"><figcaption>All five phases, with what each delivers, the test it must pass, and how the model grows from phase to phase.</figcaption></figure>
+  <p class="sub">Every diagram, with the reasoning behind it, is collected in the <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/docs/atlas/CFFM-Net_Architecture_Atlas.pdf">Architecture Atlas</a> (PDF). The code, tests and notebooks are on <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">GitHub</a>.</p>
+</section>
+
+<footer>CFFM-Net · Ritesh Roshan · data: LLVIP, M3FD (research use) · built with YOLO26 and a reliability-gated selective scan · <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">source</a></footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,18 @@
+\chapter{Figure sources}
+
+\begin{longtable}{@{}P{2.6cm}P{11.2cm}@{}}
+\hd{figure} & \hd{source} \\
+\ref{fig:yolov1} & redrawn after Redmon et al.~\cite{redmon2016yolo}; images from the LLVIP test set~\cite{jia2021llvip} \\
+\ref{fig:lineage} & summarised from the papers and repositories cited in Section~2.2 \\
+\ref{fig:yolo26} & drawn from the YOLO26 configuration in Ultralytics 8.4.171~\cite{yolo26_2026}; shapes measured \\
+\ref{fig:yoloblocks} & drawn from the Ultralytics implementation of each block \\
+\ref{fig:ssm} & redrawn after Gu et al.~\cite{gu2022s4} and Gu and Dao~\cite{gu2023mamba} \\
+\ref{fig:mamba} & redrawn after Gu and Dao~\cite{gu2023mamba} and Liu et al.~\cite{liu2024vmamba} \\
+\ref{fig:overall} & this project; layout after CFMW~\cite{li2025cfmw}; feature and reliability maps from the trained model \\
+\ref{fig:compact} to \ref{fig:gated} & this project, drawn from its source code \\
+\ref{fig:training}, \ref{fig:workflow} & this project \\
+\ref{fig:tsm}, \ref{fig:scope} & this project; phases as defined in the research dossier \\
+\end{longtable}
+
+All figures are TikZ sources in \file{cffm-net-pilot/docs/figures} and are rebuilt with
+\file{build_figures.py}; the images they show are regenerated from the trained checkpoints.

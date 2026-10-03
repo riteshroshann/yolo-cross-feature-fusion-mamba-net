@@ -46,7 +46,6 @@ def write(path, cells):
 
 
 SETUP = code('''
-# Same setup cell in every notebook: find the project, install it, check the GPU.
 import glob, shutil, subprocess, sys
 from pathlib import Path
 
@@ -54,10 +53,8 @@ ON_KAGGLE = Path("/kaggle/working").exists()
 if ON_KAGGLE:
     PROJECT = Path("/kaggle/working/cffm-net-pilot")
     if not PROJECT.exists():
-        # Kaggle mounts datasets at different depths under /kaggle/input, so search five levels.
         hits = [Path(p).parent for k in range(1, 6) for p in glob.glob("/kaggle/input" + "/*" * k + "/pyproject.toml")
                 if (Path(p).parent / "src" / "cffm").is_dir()]
-        # Earlier notebooks' outputs hold stale copies of the code, so prefer the uploaded dataset.
         hits.sort(key=lambda h: any((h.parent / d).exists() for d in ("runs", "data")))
         zips = [Path(p) for k in range(1, 5) for p in glob.glob("/kaggle/input" + "/*" * k + ".zip")
                 if "cffm" in Path(p).name]
@@ -70,7 +67,6 @@ if ON_KAGGLE:
             p.chmod(p.stat().st_mode | 0o200)
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "ultralytics==8.4.171",
                     "faster-coco-eval>=1.6.7", "cloudpickle", "pytest", "lap>=0.5.12", "imageio-ffmpeg"], check=True)   # cloudpickle: two-GPU launcher
-    # Editable install, so DataLoader and DDP worker processes can import cffm too.
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "-e", str(PROJECT)], check=True)
 else:
     PROJECT = next(p for p in [Path.cwd().resolve(), *Path.cwd().resolve().parents] if (p / "src" / "cffm").is_dir())
@@ -118,12 +114,10 @@ pd.DataFrame(specs)[cols]
 '''
 
 TRAIN_LOOP = '''
-# Finished runs are reused and unfinished ones resume, so just rerun if the Kaggle session dies.
 results = [pipeline.train_from_spec(s, env) for s in specs]
 '''
 
 CURVES = '''
-# Val mAP still rising at the end is expected; val mAP falling with the loss would mean overfitting.
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -145,7 +139,6 @@ plt.tight_layout(); plt.show()
 '''
 
 SUMMARY = '''
-# AP_vt / AP_t / AP_s are the AI-TOD size bands (<8, 8-16, 16-32 px).
 import pandas as pd
 keys = ["mAP50-95(B)", "mAP50(B)", "mAP_small(B)", "AP_vt(B)", "AP_t(B)", "AP_s(B)", "AP_m(B)", "AP_l(B)"]
 rows = [{"run": r["run"], **{k.replace("(B)", ""): r["metrics"].get(k) for k in keys}} for r in results]
@@ -153,7 +146,6 @@ pd.DataFrame(rows).set_index("run").round(4)
 '''
 
 CLEANUP = code('''
-# /kaggle/working becomes the saved output, and the data is cheap to rebuild, so keep only the runs.
 if env.platform == "kaggle":
     shutil.rmtree(env.data, ignore_errors=True)
 ''')
@@ -185,7 +177,6 @@ print(json.dumps(cenv.versions(), indent=2))
 for i in range(torch.cuda.device_count()):
     p = torch.cuda.get_device_properties(i)
     print(f"GPU {i}: {p.name}, {p.total_memory / 2**30:.1f} GB, compute capability {p.major}.{p.minor}")
-# A T4 has no bfloat16, so AMP uses float16 and cffm/scan.py keeps the recurrence in float32.
 assert torch.cuda.is_available(), "No GPU: set Accelerator to 'GPU T4 x2' in the notebook settings."
 '''),
         md("## 2. COCO-pretrained YOLO26-n weights\n\nEvery model starts from these weights, so one copy goes "
@@ -375,7 +366,6 @@ Datasets are found by folder layout, so their names do not matter.
 '''),
         SETUP,
         code('''
-# Option C only: paste Google Drive links or file IDs (leave empty otherwise).
 LLVIP_GDRIVE = ""
 M3FD_GDRIVE = ""
 if LLVIP_GDRIVE:
@@ -479,7 +469,6 @@ for name in ("llvip", "m3fd"):
         boxes = np.array([list(map(float, l.split()[1:])) for f in (root / "labels" / "visible" / split).glob("*.txt")
                           for l in f.read_text().splitlines() if l.strip()], dtype=float).reshape(-1, 4)
         inside = ((boxes[:, :2] - boxes[:, 2:] / 2 >= -1e-6) & (boxes[:, :2] + boxes[:, 2:] / 2 <= 1 + 1e-6)).all()
-        # every 25th pair is enough to catch a converter bug
         size_ok = all(cv2.imread(str(v)).shape[:2] == cv2.imread(str(root / "images" / "infrared" / split / v.name)).shape[:2]
                       for v in vis[::25])
         print(f"{name} {split}: {len(vis)} pairs, {len(missing)} incomplete, {len(boxes)} boxes, "
@@ -805,6 +794,22 @@ def nb08d():
              "08d · Round 2 on M3FD: standard head and modality dropout",
              "The same pair of runs as 08c on M3FD's six classes and much smaller objects.",
              "08d", "about 1.5 hours on 2 x T4")
+
+
+
+def nb08e():
+    train_nb("notebooks/phase1_still_images/08e_round3_llvip.ipynb",
+             "08e · Round 3 on LLVIP: 80 epochs",
+             "CFFM-Net v2 and concat, both with modality dropout, on the long schedule: 80 epochs, mosaic off "
+             "for the last 10.",
+             "08e", "about 4 hours on 2 x T4")
+
+
+def nb08f():
+    train_nb("notebooks/phase1_still_images/08f_round3_m3fd.ipynb",
+             "08f · Round 3 on M3FD: 80 epochs",
+             "The same pair of runs as 08e on M3FD.",
+             "08f", "about 4 hours on 2 x T4")
 
 
 def nb09():
@@ -1147,7 +1152,7 @@ except ImportError:
 
 if __name__ == "__main__":
     import sys
-    every = (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb08c, nb08d, nb09, nb15, nb16)
+    every = (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb08c, nb08d, nb08e, nb08f, nb09, nb15, nb16)
     pick = set(sys.argv[1:])
     for f in every:
         if not pick or f.__name__[2:] in pick:

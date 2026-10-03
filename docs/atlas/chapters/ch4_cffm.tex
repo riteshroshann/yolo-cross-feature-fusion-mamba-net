@@ -1,0 +1,70 @@
+\chapter{CFFM-Net}\label{ch:cffm}
+
+\section{The whole network}
+
+\method{} detects objects from a visible and a thermal camera at once (Figure~\ref{fig:overall}). Each camera has
+its own YOLO26-n backbone with separate weights; both start from the same COCO-pretrained weights, the thermal
+image repeated to three channels. The two backbones run side by side, and at four pyramid levels, P2 to P5, their
+feature maps are fused. At P2, stride 4, the fusion is a reliability-weighted average, because a scan over a
+$160\times160$ map buys little for its cost. At P3, P4 and P5 it is the cross-modal fusion Mamba block, CMFM. The
+fused maps $Z_2$ to $Z_5$ then enter an unchanged YOLO26 neck extended with a stride-4 path, and four heads predict
+boxes at strides 4, 8, 16 and 32.
+
+\widefig{fig_cffm_overall}{\method{} as trained in the pilot, drawn with the real data of one LLVIP test pair. The
+feature maps are the channel-averaged activations of each backbone stage; the small maps $r^{\theta}$ are the
+thermal reliability the model assigned at each fusion level. 6.03 million parameters: 1.37 million in each
+backbone, 2.15 million in the fusion blocks and the rest in the neck and heads.}{fig:overall}
+
+The fusion never feeds back into the backbones. Each stream keeps its own features all the way to P5, so one
+camera's failure cannot corrupt the other's representation, and the fusion blocks decide how much of each to pass
+to the neck. Figure~\ref{fig:compact} gives the same network in compact form.
+
+\fig[0.82\textwidth]{fig_architecture}{\method{} in compact form: one backbone stage per stream, the fusion at each
+level, the shared neck and the heads. The block repeats four times, once per pyramid level.}{fig:compact}
+
+\section{Inside the fusion block}
+
+Figure~\ref{fig:cmfm} opens CMFM. A small reliability head looks at both feature maps and at their difference and
+outputs two maps, $r^{v}$ and $r^{\theta}$, between zero and one: how far the block should trust each camera at
+each location. The thermal features are first shifted by a learned offset field of at most four cells, which
+corrects small misregistration between the cameras. Both streams are projected to half their channels, then
+interleaved token by token, $x^{v}_{1}, x^{\theta}_{1}, x^{v}_{2}, x^{\theta}_{2}, \dots$, so that the scan sees both
+cameras at the same place one after the other. The gated scan runs over this sequence in four directions, its
+output is merged and normalised, joined with a local depthwise branch, and projected back. Because that last
+projection starts at zero, a new block computes exactly the reliability-weighted average of its inputs, and
+training can only add to it.
+
+\fig[0.66\textwidth]{fig_cmfm}{The cross-modal fusion Mamba block. The reliability maps are used twice: they gate
+the scan and they weight the residual average. The output projection $W_o$ starts at zero.}{fig:cmfm}
+
+\section{The gated recurrence}
+
+The single change that makes the scan selective between cameras is drawn in Figure~\ref{fig:gated}. Each token's
+step size $\Delta_k$ is multiplied by the reliability $r_k$ of the camera that produced it. When $r_k$ approaches
+zero, $\Delta_k$ does too, so the decay approaches one and the input term zero: the token neither writes into the
+state nor erases it. A dazzled or missing camera is skipped, and the memory built from the other camera carries
+on. The unit tests check this property directly: with thermal reliability set to zero, changing the thermal
+features does not change the visible outputs.
+
+\fig[0.66\textwidth]{fig_gated_scan}{One step of the reliability-gated selective scan. The reliability $r_k$ scales
+the step size, which is the knob Mamba uses to decide what to keep.}{fig:gated}
+
+\section{The numbers}
+
+\begin{tabularx}{\textwidth}{@{}P{5.2cm}LLL@{}}
+\hd{model} & \hd{parameters} & \hd{GFLOPs} & \hd{latency, T4 FP16} \\
+YOLO26-n, one camera & 2.50 M & 5.9 & 17.0 ms \\
+two-stream concat & 4.07 M & 9.7 & 23.4 ms \\
+\method{}, pilot & 6.03 M & 18.4 & 41.9 ms \\
+\end{tabularx}
+
+Latency is measured at batch 1 on one T4 with the PyTorch model, before any engine optimisation. \method{} costs
+1.79 times the concat baseline, inside the limit of two set before training.
+
+\section{Versions}
+
+The pilot version uses YOLO26's stride-4 head. A head-control experiment showed that this head, not the fusion,
+cost about 1.8 AP on LLVIP, so the second version, \method{} v2, returns to the standard three-level head. It also
+trains with modality dropout, blacking out one camera at random so the model learns to work without it, and keeps
+the fusion weights in single precision with a floor on their sum, which removed a numerical overflow. In the first
+clean comparison on M3FD, \method{} v2 reached 0.488 AP against 0.483 for the concat baseline trained the same way.

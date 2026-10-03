@@ -37,8 +37,8 @@ cffm-net-pilot/
     env.py                     platform detection, paths, GPU report
   configs/pilot.yaml           every run and its settings (epochs, batch, data, model)
   configs/models/*.yaml        CFFM-Net, its ablations and the two-stream baseline
-  tests/                       77 tests (64 run on CPU; the Triton ones need a GPU)
-  docs/figures/                methodology diagrams (architecture, CMFM, gated scan, workflow), TikZ sources
+  tests/                       78 tests (65 run anywhere; the fused-kernel ones need a GPU with Triton)
+  docs/figures/                every diagram as TikZ source: YOLO and Mamba references, CFFM-Net, training, scope
   tools/build_notebooks.py     regenerates all notebooks from one script
   tools/make_zip.py            packs the project into cffm-net-pilot.zip for Kaggle
   tools/kaggle_run.py          uploads the code and pushes and watches the notebooks via the Kaggle API
@@ -120,7 +120,7 @@ Work*); the checkpoints are picked up from there.
 python -m venv .venv && .venv/Scripts/activate          # Linux/macOS: source .venv/bin/activate
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 pip install -e ".[dev]"
-python -m pytest -q                                      # 56 pass, 6 skip (fused kernel, opt-in smoke run)
+python -m pytest -q                                      # 65 pass, 13 skip without Triton or a GPU
 CFFM_SMOKE=1 python -m pytest tests/test_smoke_train.py  # one-epoch end-to-end check on fake data
 ```
 

@@ -1,0 +1,37 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[font=\small, M/.style={blk, minimum width=2.9cm, minimum height=0.62cm, inner ysep=1.5pt, font=\footnotesize, text width=2.7cm}]
+  \draw[line width=0.8pt, draw=cNeutral!60] (-0.4,0) -- (19.6,0);
+  \foreach \x/\yr/\nm/\bb/\nk/\hd/\note/\cc in {
+      0/2016/YOLOv1/{GoogLeNet-style, 24 conv}/{none}/{fully connected, $7{\times}7$ grid}/{one regression over a grid; one scale; class per cell}/cNeutral,
+      3.9/2018/YOLOv3/{Darknet-53, residual}/{FPN, three scales}/{anchor boxes per scale}/{multi-scale prediction; logistic class scores}/cRGB,
+      7.8/2020/{YOLOv4, v5}/{CSPDarknet}/{SPP and PAN}/{anchor-based, coupled}/{mosaic augmentation; cross-stage partial blocks}/cFuse,
+      11.7/2023/YOLOv8/{C2f blocks}/{PAN, C2f}/{anchor-free, decoupled, DFL}/{task-aligned assignment; distribution focal loss}/cTime,
+      15.6/2024/YOLOv10/{C2f, PSA}/{PAN}/{dual heads, one-to-one at test}/{NMS-free consistent dual assignments}/cIR}
+  {
+    \fill[\cc] (\x+1.45,0) circle (3pt);
+    \node[font=\small\scshape, text=\cc!85!black] at (\x+1.45,0.5) {\yr};
+    \node[font=\normalsize] at (\x+1.45,1.15) {\nm};
+    \node[M, fill=\cc!10, draw=\cc!55] (h) at (\x+1.45,-1.0) {\hd};
+    \node[M, fill=\cc!6, draw=\cc!45] (n) at (\x+1.45,-1.85) {\nk};
+    \node[M, fill=\cc!14, draw=\cc!65] (b) at (\x+1.45,-2.7) {\bb};
+    \draw[sar] (b) -- (n); \draw[sar] (n) -- (h);
+    \node[note, text width=2.9cm, anchor=north, align=center] at (\x+1.45,-3.25) {\note};
+  }
+  \begin{scope}[xshift=19.5cm]
+    \fill[cHead] (1.45,0) circle (3.6pt);
+    \node[font=\small\scshape, text=cHead!80!black] at (1.45,0.5) {2026};
+    \node[font=\normalsize\bfseries] at (1.45,1.15) {YOLO26};
+    \node[M, fill=cHead!14, draw=cHead!70] (h) at (1.45,-1.0) {one-to-one and one-to-many, no DFL};
+    \node[M, fill=cHead!8, draw=cHead!55] (n) at (1.45,-1.85) {PAN, C3k2};
+    \node[M, fill=cHead!18, draw=cHead!75] (b) at (1.45,-2.7) {C3k2, SPPF, C2PSA};
+    \draw[sar] (b) -- (n); \draw[sar] (n) -- (h);
+    \node[note, text width=2.9cm, anchor=north, align=center] at (1.45,-3.25) {end-to-end, NMS-free; box regression without DFL; MuSGD optimiser};
+  \end{scope}
+  \draw[ar, line width=0.8pt, draw=cNeutral!60] (19.6,0) -- (20.6,0);
+  \node[lab, anchor=east] at (-0.5,-1.0) {head};
+  \node[lab, anchor=east] at (-0.5,-1.85) {neck};
+  \node[lab, anchor=east] at (-0.5,-2.7) {backbone};
+\end{tikzpicture}
+\end{document}

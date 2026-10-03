@@ -1,0 +1,48 @@
+\documentclass[11pt,a4paper,oneside,openany]{book}
+\input{preamble}
+
+\hypersetup{
+  pdftitle    = {CFFM-Net Architecture Atlas},
+  pdfauthor   = {Ritesh Roshan},
+  pdfsubject  = {Architecture diagrams and workflows of CFFM-Net and the models it builds on},
+  pdfkeywords = {YOLO, YOLO26, Mamba, state space models, VMamba, visible-thermal fusion, architecture}
+}
+
+\begin{document}
+
+\frontmatter
+\begin{titlepage}
+\thispagestyle{empty}
+\setstretch{1.15}
+\centering
+\vspace*{34mm}
+{\large\scshape\color{muted} Architecture Atlas\par}
+\vspace{20mm}
+{\fontsize{29}{37}\selectfont Cross-Feature Fusion\\[2pt] Mamba Networks,\\[2pt] Drawn Block by Block\par}
+\vspace{14mm}
+{\Large\itshape From YOLOv1 and Mamba to the visible--thermal\\[2pt] detector built in this project,\\[2pt] and the system it is meant to become\par}
+\vspace{30mm}
+{\large Ritesh Roshan\par}
+\vfill
+{\normalsize\color{muted} Version 1.0\\[2pt] October 2026\par}
+\vspace{12mm}
+\end{titlepage}
+
+\cleardoublepage
+{\setstretch{1.08}\tableofcontents}
+
+\mainmatter
+\input{chapters/ch1_reading}
+\input{chapters/ch2_yolo}
+\input{chapters/ch3_mamba}
+\input{chapters/ch4_cffm}
+\input{chapters/ch5_training}
+\input{chapters/ch6_scope}
+
+\appendix
+\input{chapters/appA_sources}
+
+\backmatter
+\input{refs}
+
+\end{document}

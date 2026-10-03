@@ -1,0 +1,54 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[font=\small, M/.style={blk, minimum width=2.4cm, minimum height=0.66cm, inner ysep=1.5pt, font=\footnotesize}]
+  \node[font=\small\scshape, text=muted, anchor=west] at (-2.6,9.7) {(a) one frame at one pyramid level};
+  \node[io] (z) at (0,-0.6) {$Z_{\ell,t}$};
+  \node[M, emb] (inp) at (0,0.6) {$1{\times}1$ conv $\to u_t$};
+  \node[M, nrm] (dt) at (-1.6,1.9) {$\Delta_t = \mathrm{softplus}(\cdot)$};
+  \node[M, nrm] (bc) at (1.6,1.9) {$B_t,\ C_t$};
+  \node[op] (g1) at (-1.6,3.0) {$\times$};
+  \node[io, anchor=east, font=\footnotesize] at (-2.0,3.0) {$\tfrac{\tau_t}{\tau_0}\cdot\rho_{\ell,t}$};
+  \node[M, scn, minimum width=5.0cm, minimum height=0.9cm] (up) at (0,4.2)
+     {$S_t = e^{\Delta_t A}\odot \mathcal{W}_{H_t}(S_{t-1}) + \Delta_t B_t u_t$};
+  \draw[ar] (z) -- (inp);
+  \draw[ar] (inp) -| (dt); \draw[ar] (inp) -| (bc);
+  \draw[ar] (dt) -- (g1); \draw[ar] (g1) -- (g1 |- up.south);
+  \draw[ar] (bc) -- (bc |- up.south);
+
+  \node[M, nrm, minimum width=3.0cm] (wp) at (5.4,5.6) {warp $\mathcal{W}_{H_t}$, reset at cuts};
+  \node[io] (sp) at (8.4,5.6) {$S_{t-1}$};
+  \draw[ar] (sp) -- (wp); \draw[ar] (wp) |- (up.east);
+
+  \node[M, neu, minimum width=3.6cm] (rd) at (0,5.5+0.2) {$y_t = C_t\cdot S_t + D\,u_t$};
+  \node[M, neu, minimum width=3.6cm] (sp2) at (0,6.75) {DW $3{\times}3$, $1{\times}1$ conv (zero-init)};
+  \node[op] (add) at (0,7.85) {$+$};
+  \node[io] (zo) at (0,8.8) {$Z'_{\ell,t}$ to the neck};
+  \draw[ar] (up) -- (rd); \draw[ar] (rd) -- (sp2); \draw[ar] (sp2) -- (add); \draw[ar] (add) -- (zo);
+  \draw[ar] (z.east) -- ++(2.9,0) |- (add.east);
+  \draw[ar] (up.east) ++(0,-0.3) -- ++(2.0,0) node[right, io] {$S_t$ to frame $t{+}1$};
+
+  \node[note, text width=5.6cm, anchor=north west] at (3.6,2.6)
+    {Each pixel keeps an $n$-dimensional state per channel. $\tau_t/\tau_0$ scales the step to the real time between frames;
+     $\rho_{\ell,t}$, the higher of the two camera reliabilities from CMFM, lets an unreliable frame leave the memory
+     untouched. The homography $H_t$ moves the memory with the camera, and a scene cut resets it.};
+
+  \begin{scope}[xshift=11.6cm]
+    \node[font=\small\scshape, text=muted, anchor=west] at (-0.6,9.7) {(b) unrolled over a stream};
+    \foreach \k/\x/\lbl in {0/0/{t-2}, 1/2.6/{t-1}, 2/5.2/{t}} {
+      \node[img] (fr\k) at (\x+0.9,0.3) {\includegraphics[width=1.7cm]{in_thermal.jpg}};
+      \node[shp, below=1pt of fr\k] {frame $\lbl$};
+      \node[M, fus, minimum width=1.7cm] (cf\k) at (\x+0.9,2.1) {CFFM-Net};
+      \node[M, scn, minimum width=1.7cm] (ts\k) at (\x+0.9,3.4) {TSM};
+      \node[M, hed, minimum width=1.7cm] (hd\k) at (\x+0.9,4.65) {neck, heads};
+      \draw[ar] (fr\k) -- (cf\k); \draw[ar] (cf\k) -- (ts\k); \draw[ar] (ts\k) -- (hd\k);
+    }
+    \draw[ar] (ts0) -- node[lab, above] {$S$} (ts1);
+    \draw[ar] (ts1) -- node[lab, above] {$S$} (ts2);
+    \draw[ar] (ts2) -- ++(1.4,0) node[right, io] {$\cdots$};
+    \node[note, text width=7.4cm, anchor=north west] at (-0.6,-1.0)
+      {The fused features of each frame update a per-pixel memory, so a person who drops below the threshold in
+       one frame is still remembered in the next. Phase 2 trains this on paired visible--thermal video.};
+  \end{scope}
+\end{tikzpicture}
+\end{document}

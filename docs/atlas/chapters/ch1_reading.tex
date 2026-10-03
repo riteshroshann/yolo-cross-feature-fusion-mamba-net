@@ -1,0 +1,44 @@
+\chapter{How to read this atlas}
+
+This atlas collects every architecture and workflow diagram of the project in one place. It begins with the models
+\method{} is built from, redrawn from their original papers: the YOLO family from its first version to YOLO26, and the
+state-space models that lead to Mamba. It then draws \method{} itself, the way it is trained and evaluated, and the
+system it is meant to grow into. Every number in the diagrams of \method{} was read from the trained model or from
+its configuration, not estimated.
+
+\section{One visual language}
+
+All diagrams share the conventions of the Transformer paper~\cite{vaswani2017attention}: rounded blocks with a
+light fill and a thin outline, grey containers marked $N\times$ for blocks that repeat, small circles for
+element-wise operations, and thin arrows for data. Diagrams of whole networks follow the layout of recent
+multispectral detection papers such as CFMW~\cite{li2025cfmw}: dashed regions group the parts of the network,
+real images and feature maps sit where the data flows, and tensor shapes are written beside the layers that
+produce them.
+
+Colour always means the same thing.
+
+\begin{tabularx}{\textwidth}{@{}P{3.4cm}L@{}}
+\hd{colour} & \hd{meaning} \\
+blue & the visible camera, its backbone and its feature maps \\
+orange & the thermal camera and its backbone \\
+green & fusion by weighted sum, the neck, and outputs that are kept \\
+purple & selective scans and state: the Mamba block, CMFM and the temporal memory \\
+gold & detection heads, attention blocks and evaluation \\
+pink & linear projections and embeddings \\
+brown & data and the steps that prepare it \\
+grey & convolutions and plain bookkeeping such as concatenation and upsampling \\
+\end{tabularx}
+
+\section{Arrows, shapes and symbols}
+
+A solid arrow carries data. A dashed arrow carries something that exists only in training, is optional, or is
+planned. The circles mark element-wise operations: $+$ adds, $\times$ multiplies, $\Vert$ concatenates along the
+channel axis and $\div$ splits it. A shape written as $128\times80^2$ means 128 channels on an 80 by 80 grid, for a
+640-pixel input; the stride of a level is the input size divided by its grid size.
+
+\section{What is redrawn and what is ours}
+
+Chapters~2 and~3 redraw published architectures in the common style above. They follow the original papers in
+structure and naming, and they use this project's images only to make the data flow concrete. Chapters~4 to~6 are
+the project's own: \method{}, its training and evaluation, and its roadmap. Appendix~A lists the source of every
+figure.

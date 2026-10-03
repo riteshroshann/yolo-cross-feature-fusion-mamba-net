@@ -1,0 +1,31 @@
+\chapter{Beyond still images}
+
+\section{Temporal State Memory}
+
+Video adds a dimension the still-image model ignores: a person who is hard to see in one frame was usually visible
+in the previous one. Phase~2 adds a Temporal State Memory (TSM) between each fusion block and the neck
+(Figure~\ref{fig:tsm}). Every pixel of every pyramid level keeps a small state, updated once per frame by the same
+selective recurrence as the scan, so the network can carry evidence forward in time.
+
+Three signals control the update. The ratio $\tau_t/\tau_0$ scales the step to the real time between frames, so a
+dropped frame counts as a longer step instead of being ignored. The reliability $\rho_{\ell,t}$, the higher of the
+two camera reliabilities from CMFM, lets a frame in which both cameras are unreliable leave the memory untouched.
+And the homography $H_t$ between consecutive frames moves the memory with the camera, so the state stays attached
+to the scene, while a scene cut resets it. As in CMFM, the output projection starts at zero, so an untrained memory
+changes nothing. The module is implemented and tested; training it is the first task of Phase~2.
+
+\widefig{fig_tsm}{The Temporal State Memory of Phase~2. (a) One update at one pyramid level. (b) The same module
+unrolled over a stream: the state $S$ passes from frame to frame.}{fig:tsm}
+
+\section{The whole project}
+
+Figure~\ref{fig:scope} places everything in this atlas on the project's roadmap. Phase~0 and the pilot of Phase~1
+are done, and the long training runs of Phase~1 are under way. Phase~2 turns the detector into a video analyser
+with tracking, built on the memory above and on ByteTrack~\cite{zhang2022bytetrack}. Phase~3 connects live cameras,
+where the difficulty is no longer accuracy but time: one capture thread per camera, only the newest frame kept, an
+optimised engine and a monitor that raises the sensor flags when a camera stalls. Phase~4, optional, combines
+several cameras on a shared ground plane and reports only anonymous counts, crossings and dwell times, never
+identities.
+
+\widefig{fig_scope}{The full scope of the project. Top: the five phases with what each delivers and the test it must
+pass. Bottom: how the model grows across the phases; dashed blocks are built and tested or still planned.}{fig:scope}

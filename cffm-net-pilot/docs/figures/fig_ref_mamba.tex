@@ -1,0 +1,94 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[font=\small, M/.style={blk, minimum width=2.0cm, minimum height=0.66cm, inner ysep=1.5pt}]
+  \node[font=\small\scshape, text=muted] at (0,10.3) {(a) Mamba block};
+  \node[io] (in) at (0,-0.4) {$x\in\mathbb{R}^{L\times D}$};
+  \node[M, nrm, minimum width=3.6cm] (nm) at (0,0.85) {RMSNorm};
+  \node[M, emb] (l1) at (-1.15,2.0) {Linear};
+  \node[M, emb] (l2) at (1.25,2.0) {Linear};
+  \node[M, neu] (cv) at (-1.15,3.1) {Conv1d};
+  \node[M, ff] (s1) at (-1.15,4.15) {SiLU};
+  \node[M, scn, minimum height=0.9cm] (ssm) at (-1.15,5.35) {selective\\[-2pt] SSM};
+  \node[M, ff] (s2) at (1.25,4.15) {SiLU};
+  \node[op] (mul) at (0,6.6) {$\times$};
+  \node[M, emb, minimum width=3.6cm] (lo) at (0,7.6) {Linear};
+  \node[op] (add) at (0,8.65) {$+$};
+  \node[io] (out) at (0,9.6) {output};
+  \draw[ar] (in) -- (nm);
+  \draw[ar] (nm.north) ++(-1.15,0) -- (l1); \draw[ar] (nm.north) ++(1.25,0) -- (l2);
+  \draw[ar] (l1) -- (cv); \draw[ar] (cv) -- (s1); \draw[ar] (s1) -- (ssm); \draw[ar] (l2) -- (s2);
+  \draw[ar] (ssm) |- (mul); \draw[ar] (s2) |- (mul);
+  \draw[ar] (mul) -- (lo); \draw[ar] (lo) -- (add); \draw[ar] (add) -- (out);
+  \draw[ar] (0,0.1) -- (2.55,0.1) |- (add.east);
+  \node[shp, anchor=west] at (1.95,1.45) {expand $E{=}2$};
+  \begin{scope}[on background layer]
+    \node[box, fit=(nm)(l1)(l2)(ssm)(lo)(add), inner xsep=12pt, inner ysep=9pt] (ct) {};
+  \end{scope}
+  \node[anchor=east, font=\small] at ($(ct.west)+(-0.1,0)$) {$N\times$};
+
+  \node[font=\small\scshape, text=muted] at (8.4,10.3) {(b) 2-D selective scan (SS2D)};
+  \begin{scope}[shift={(4.2,3.7)}]
+    \fill[cRGB!10] (0,0) rectangle (2.0,2.0);
+    \draw[cRGB!55, line width=0.4pt] (0,0) grid[step=0.5] (2.0,2.0);
+    \node[shp] at (1.0,-0.3) {feature map, $H\times W$};
+  \end{scope}
+  \foreach \k/\y/\lbl in {1/7.6/{rows, left to right}, 2/5.75/{columns, top to bottom}, 3/3.9/{rows, reversed}, 4/2.05/{columns, reversed}} {
+    \begin{scope}[shift={(7.4,\y)}]
+      \fill[cTime!8] (0,0) rectangle (1.2,1.2);
+      \draw[cTime!35, line width=0.3pt] (0,0) grid[step=0.3] (1.2,1.2);
+      \ifcase\k\or
+        \draw[cTime, line width=0.6pt, -{Stealth[length=1.4mm]}] (0.05,1.05)--(1.15,1.05)--(0.05,0.75)--(1.15,0.75)--(0.05,0.45)--(1.15,0.45)--(0.05,0.15)--(1.15,0.15);
+      \or
+        \draw[cTime, line width=0.6pt, -{Stealth[length=1.4mm]}] (0.15,1.15)--(0.15,0.05)--(0.45,1.15)--(0.45,0.05)--(0.75,1.15)--(0.75,0.05)--(1.05,1.15)--(1.05,0.05);
+      \or
+        \draw[cTime, line width=0.6pt, -{Stealth[length=1.4mm]}] (1.15,0.15)--(0.05,0.15)--(1.15,0.45)--(0.05,0.45)--(1.15,0.75)--(0.05,0.75)--(1.15,1.05)--(0.05,1.05);
+      \or
+        \draw[cTime, line width=0.6pt, -{Stealth[length=1.4mm]}] (1.05,0.05)--(1.05,1.15)--(0.75,0.05)--(0.75,1.15)--(0.45,0.05)--(0.45,1.15)--(0.15,0.05)--(0.15,1.15);
+      \fi
+      \node[shp, anchor=north] at (0.6,-0.02) {\lbl};
+      \node[M, scn, minimum width=1.3cm] (s6\k) at (2.45,0.6) {S6};
+      \draw[ar] (1.25,0.6) -- (s6\k);
+    \end{scope}
+    \draw[ar] (6.25,4.7) -- (7.35,\y+0.6);
+  }
+  \node[op] (mg) at (11.6,4.7) {$+$};
+  \foreach \k in {1,2,3,4} \draw[ar] (s6\k.east) -- (mg);
+  \node[shp, above=3pt of mg] {cross-merge};
+  \begin{scope}[shift={(12.2,3.7)}]
+    \fill[cFuse!12] (0,0) rectangle (2.0,2.0);
+    \draw[cFuse!55, line width=0.4pt] (0,0) grid[step=0.5] (2.0,2.0);
+    \node[shp] at (1.0,-0.3) {output, $H\times W$};
+  \end{scope}
+  \draw[ar] (mg) -- (12.15,4.7);
+  \node[note, text width=9.6cm, anchor=north west] at (4.2,1.25)
+    {Flattening an image into one sequence loses its 2-D neighbourhoods. SS2D scans it four ways, runs an
+     independent selective scan (S6) on each, and adds the results, so every pixel sees context from all four
+     directions at linear cost.};
+
+  \node[font=\small\scshape, text=muted] at (17.9,10.3) {(c) VSS block};
+  \node[io] (vin) at (17.9,-0.4) {input};
+  \node[M, nrm, minimum width=3.6cm] (vn) at (17.9,0.85) {LayerNorm};
+  \node[M, emb] (vl1) at (16.75,2.0) {Linear};
+  \node[M, emb] (vl2) at (19.15,2.0) {Linear};
+  \node[M, neu] (vdw) at (16.75,3.05) {DWConv $3{\times}3$};
+  \node[M, ff] (vs1) at (16.75,4.05) {SiLU};
+  \node[M, scn, minimum height=0.8cm] (vss) at (16.75,5.1) {SS2D};
+  \node[M, nrm] (vln) at (16.75,6.15) {LayerNorm};
+  \node[M, ff] (vs2) at (19.15,4.05) {SiLU};
+  \node[op] (vmul) at (17.9,7.2) {$\times$};
+  \node[M, emb, minimum width=3.6cm] (vlo) at (17.9,8.1) {Linear};
+  \node[op] (vadd) at (17.9,9.0) {$+$};
+  \node[io] (vout) at (17.9,9.75) {output};
+  \draw[ar] (vin) -- (vn);
+  \draw[ar] (vn.north) ++(-1.15,0) -- (vl1); \draw[ar] (vn.north) ++(1.25,0) -- (vl2);
+  \draw[ar] (vl1) -- (vdw); \draw[ar] (vdw) -- (vs1); \draw[ar] (vs1) -- (vss); \draw[ar] (vss) -- (vln);
+  \draw[ar] (vl2) -- (vs2); \draw[ar] (vln) |- (vmul); \draw[ar] (vs2) |- (vmul);
+  \draw[ar] (vmul) -- (vlo); \draw[ar] (vlo) -- (vadd); \draw[ar] (vadd) -- (vout);
+  \draw[ar] (17.9,0.1) -- (20.45,0.1) |- (vadd.east);
+  \begin{scope}[on background layer]
+    \node[box, fit=(vn)(vl1)(vl2)(vln)(vlo)(vadd), inner xsep=12pt, inner ysep=9pt] (vct) {};
+  \end{scope}
+  \node[anchor=east, font=\small] at ($(vct.west)+(-0.1,0)$) {$N\times$};
+\end{tikzpicture}
+\end{document}

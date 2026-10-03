@@ -1,0 +1,49 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[font=\small, W/.style={blk, minimum width=3.6cm, text width=3.4cm, minimum height=0.85cm, inner ysep=2.5pt, font=\footnotesize}]
+  \node[W, dat] (raw) at (0,3.0) {LLVIP, M3FD\\[-1pt]\scriptsize official archives};
+  \node[W, dat] (cv) at (0,1.5) {converter\\[-1pt]\scriptsize long side 640, paired layout, YOLO labels};
+  \node[W, dat] (ld) at (0,0) {paired loader\\[-1pt]\scriptsize 4 channels: visible BGR + thermal};
+  \node[W, dat] (au) at (0,-1.5) {augmentation\\[-1pt]\scriptsize mosaic, flip, HSV on visible only};
+  \node[W, emb] (md) at (0,-3.0) {modality dropout\\[-1pt]\scriptsize $p{=}0.15$ per camera, flagged half the time};
+  \foreach \a/\b in {raw/cv, cv/ld, ld/au, au/md} \draw[ar] (\a) -- (\b);
+
+  \node[W, scn, minimum height=1.3cm] (mdl) at (5.2,0) {CFFM-Net\\[-1pt]\scriptsize two backbones, fusion at P2 to P5, PAN, heads};
+  \node[W, att] (l1) at (5.2,2.2) {one-to-many loss\\[-1pt]\scriptsize task-aligned, top 10};
+  \node[W, att] (l2) at (5.2,3.5) {one-to-one loss\\[-1pt]\scriptsize task-aligned, top 1};
+  \node[W, neu] (op) at (5.2,-2.2) {AdamW, AMP float16\\[-1pt]\scriptsize scan path kept in float32};
+  \node[W, neu] (dd) at (5.2,-3.5) {DDP on $2\times$ T4\\[-1pt]\scriptsize batch 8 per GPU, 30 or 80 epochs};
+  \draw[ar] (md.east) -- ++(0.35,0) |- (mdl.west);
+  \draw[ar] (mdl) -- (l1); \draw[ar] (l1) -- (l2);
+  \draw[ar] (l2.east) -- ++(0.35,0) |- ($(op.east)+(0,0.1)$);
+  \draw[ar] (op.west) -- ++(-0.35,0) |- ($(mdl.west)+(0,-0.35)$);
+  \draw[dar] (dd) -- (op);
+
+  \node[W, hed] (ck) at (10.4,3.0) {checkpoints\\[-1pt]\scriptsize best on the quarter validation set};
+  \node[W, hed] (ev) at (10.4,1.5) {COCO evaluation\\[-1pt]\scriptsize full test set, AP and AI-TOD size bands};
+  \node[W, hed] (pr) at (10.4,0) {degradation probe\\[-1pt]\scriptsize 7 faults, with and without the flag};
+  \node[W, hed] (lt) at (10.4,-1.5) {latency\\[-1pt]\scriptsize one T4, FP16, batch 1};
+  \node[W, fus] (hy) at (10.4,-3.0) {hypotheses PH1 to PH5\\[-1pt]\scriptsize rules fixed before training};
+  \draw[ar] (l2.north) |- (ck.west);
+  \foreach \a/\b in {ck/ev, ev/pr, pr/lt, lt/hy} \draw[ar] (\a) -- (\b);
+
+  \node[W, vis] (rs) at (15.6,1.5) {results\\[-1pt]\scriptsize tables, figures, LaTeX};
+  \node[W, vis] (sh) at (15.6,0) {showcase\\[-1pt]\scriptsize analysis boards, tracking};
+  \node[W, vis] (dm) at (15.6,-1.5) {demo and website\\[-1pt]\scriptsize upload a pair or a photo};
+  \draw[ar] (hy.east) -- ++(0.4,0) |- (rs.west);
+  \draw[ar] (ck.east) -- ++(0.65,0) |- (sh.west);
+  \draw[ar] (ck.east) -- ++(0.65,0) |- (dm.west);
+
+  \begin{scope}[on background layer]
+    \node[region=cData, fit=(raw)(md), inner xsep=8pt, inner ysep=10pt] (r1) {};
+    \node[region=cTime, fit=(l2)(dd), inner xsep=10pt, inner ysep=10pt] (r2) {};
+    \node[region=cHead, fit=(ck)(hy), inner xsep=8pt, inner ysep=10pt] (r3) {};
+    \node[region=cRGB, fit=(rs)(dm), inner xsep=8pt, inner ysep=10pt] (r4) {};
+  \end{scope}
+  \node[rtitle=cData, anchor=south west] at (r1.north west) {Data};
+  \node[rtitle=cTime, anchor=south west] at (r2.north west) {Training};
+  \node[rtitle=cHead, anchor=south west] at (r3.north west) {Evaluation};
+  \node[rtitle=cRGB, anchor=south west] at (r4.north west) {Delivery};
+\end{tikzpicture}
+\end{document}

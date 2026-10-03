@@ -40,6 +40,11 @@ runs:
   - {name: m3fd_cffm_v2,    notebook: "08d", data: m3fd/data_paired.yaml,  model: configs/models/cffm-net-n-v2.yaml,         batch: 16}
   - {name: m3fd_concat_md,  notebook: "08d", data: m3fd/data_paired.yaml,  model: configs/models/two-stream-concat-n-md.yaml, batch: 16}
 
+  - {name: llvip_cffm_v2_e80,   notebook: "08e", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-v2.yaml,         batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: llvip_concat_md_e80, notebook: "08e", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: m3fd_cffm_v2_e80,    notebook: "08f", data: m3fd/data_paired.yaml,  model: configs/models/cffm-net-n-v2.yaml,         batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: m3fd_concat_md_e80,  notebook: "08f", data: m3fd/data_paired.yaml,  model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+
 probe:
   runs: [llvip_cffm, llvip_cffm_nogate, llvip_concat]
   kinds: [clean, visible_dark, visible_drop, thermal_drop, thermal_shift_4, thermal_shift_8, thermal_shift_16]

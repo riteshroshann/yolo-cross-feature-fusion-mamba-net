@@ -32,6 +32,8 @@ NOTEBOOKS = {
     "08b": (f"{P1}/08b_head_control.ipynb", "gpu", [LLVIP], ["02"]),
     "08c": (f"{P1}/08c_round2_llvip.ipynb", "gpu", [LLVIP], ["02"]),
     "08d": (f"{P1}/08d_round2_m3fd.ipynb", "gpu", [M3FD], ["02"]),
+    "08e": (f"{P1}/08e_round3_llvip.ipynb", "gpu", [LLVIP], ["02"]),
+    "08f": (f"{P1}/08f_round3_m3fd.ipynb", "gpu", [M3FD], ["02"]),
     "09": (f"{P1}/09_probe_and_latency.ipynb", "gpu", [LLVIP], ["02", "04", "05", "07", "08"]),
     "15": (f"{P1}/15_results_and_figures.ipynb", "cpu", [], ["04", "05", "07", "08", "09"]),
     "16": (f"{P1}/16_showcase.ipynb", "gpu", [LLVIP, M3FD, MOT17], ["05", "07"]),

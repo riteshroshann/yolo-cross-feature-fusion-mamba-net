@@ -1,0 +1,35 @@
+\chapter{Training and evaluation}
+
+\section{From raw data to results}
+
+Figure~\ref{fig:training} follows the data through the pipeline. The LLVIP~\cite{jia2021llvip} and
+M3FD~\cite{liu2022tardal} archives are converted once into one paired layout: two folders of images with identical
+names, the long side at 640 pixels, and labels in YOLO format. A paired loader reads both images and stacks them
+into one four-channel tensor, visible colour plus thermal grey. Augmentation is shared, so a crop or a flip moves
+both cameras together, except for colour jitter, which touches only the visible image. Modality dropout then blacks
+out one camera with probability 0.15 each, and in half of those cases tells the model which camera is gone, so that
+both the silent and the reported failure are seen in training.
+
+\widefig{fig_training}{The training and evaluation pipeline. Brown: data; purple: training; gold: evaluation;
+blue: what the project delivers. The loop between the losses and the optimiser is one training step.}{fig:training}
+
+Training follows YOLO26: two task-aligned losses, one-to-many with ten predictions per object and one-to-one with a
+single one, summed. The optimiser is chosen by Ultralytics and was AdamW at this schedule. Mixed precision runs the
+network in 16-bit floats, but the whole scan path, from the projections to the fusion weights, stays in 32-bit
+floats, because a recurrence over twelve thousand tokens overflows the 16-bit range. Two T4 GPUs share each batch
+through distributed data parallelism.
+
+Every trained checkpoint goes through the same evaluation. COCO average precision is computed on the full test
+set, with the AI-TOD size bands that separate very tiny, tiny and small objects. A degradation probe applies seven
+sensor faults at test time, from a darkened visible image to a thermal camera shifted by sixteen pixels. Latency is
+measured on one T4. The five hypotheses of the pilot are then decided by rules written down before training.
+
+\section{The notebooks}
+
+The work is organised as notebooks, each one step of Figure~\ref{fig:workflow}. Phase~0 sets up and checks the
+environment and prepares the data. Phase~1 trains the single-camera and concat baselines, \method{}, its ablations
+and the head control in the pilot, then the improved version in two further rounds, and closes with the probe, the
+results and a showcase of the trained models.
+
+\widefig{fig_workflow}{The notebooks and how their outputs flow. Each training notebook runs as an independent
+Kaggle session; the probe reads their checkpoints, and the results notebook decides the hypotheses.}{fig:workflow}

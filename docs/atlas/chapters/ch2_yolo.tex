@@ -1,0 +1,62 @@
+\chapter{YOLO, from one grid to YOLO26}
+
+\section{The original idea}
+
+YOLO~\cite{redmon2016yolo} turned detection into a single regression. The image is divided into an $S\times S$ grid.
+Each cell predicts a few boxes, each with a confidence, and one set of class probabilities. A convolutional network
+reads the whole image once and writes all of these numbers into one output tensor (Figure~\ref{fig:yolov1}).
+Because there is no separate region-proposal stage, the detector runs in real time, which is why every later
+version kept the name.
+
+\fig{fig_ref_yolov1}{YOLOv1, redrawn after Redmon et al.~\cite{redmon2016yolo}. Top: the network, 24 convolutional
+layers followed by two fully connected ones, ending in a $7\times7\times30$ tensor. Bottom: how that tensor is read.
+Each grid cell proposes boxes with confidences and a class distribution; their product, after non-maximum
+suppression, gives the final detections.}{fig:yolov1}
+
+The weaknesses of this first design shaped everything that followed. One coarse grid means a cell can hold only
+one object, so small objects that share a cell are lost. The fully connected head fixes the input size. And
+duplicate boxes still have to be removed after the network by non-maximum suppression (NMS), a step that is
+neither learned nor parallel.
+
+\section{What changed between versions}
+
+Figure~\ref{fig:lineage} summarises the steps that matter for this project. YOLOv3~\cite{redmon2018yolov3}
+predicted at three scales with a feature pyramid~\cite{lin2017fpn}, which is the first answer to small objects.
+YOLOv4~\cite{bochkovskiy2020yolov4} and YOLOv5~\cite{jocher2020yolov5} added cross-stage partial backbones,
+spatial pyramid pooling and the path-aggregation neck~\cite{liu2018panet}. YOLOv8~\cite{jocher2023yolov8} dropped
+anchor boxes, split the head into box and class branches, assigned targets by task alignment~\cite{feng2021tood},
+and regressed boxes as distributions (DFL)~\cite{li2020gfl}. YOLOv10~\cite{wang2024yolov10} removed NMS by training
+two heads, one that assigns many predictions to each object and one that assigns exactly one, and keeping only the
+second at test time.
+
+\widefig{fig_ref_yolo_lineage}{Six generations of YOLO, each reduced to backbone, neck and head, with the change
+that defines it. The design converges on a multi-scale pyramid, a path-aggregation neck and an end-to-end head
+without NMS.}{fig:lineage}
+
+\section{YOLO26-n, the detector this project builds on}
+
+YOLO26~\cite{yolo26_2026} keeps YOLOv10's end-to-end head and removes the distribution focal loss, regressing box
+edges directly. Figure~\ref{fig:yolo26} draws its smallest scale, YOLO26-n, exactly as configured in Ultralytics
+8.4.171, with the tensor shapes measured on a 640-pixel input. It has 2.57 million parameters and costs 6.1
+GFLOPs.
+
+The backbone halves the resolution five times. Its outputs at strides 8, 16 and 32, called P3, P4 and P5, feed the
+neck. The neck first passes information downwards, from the coarse, semantic P5 to the fine P3, by upsampling and
+concatenation, then upwards again by strided convolution, so that every output level has both fine detail and
+context. Three detection heads read the levels at strides 8, 16 and 32. In training, each head is supervised twice:
+a one-to-many branch assigns up to ten predictions to each object, which gives dense gradients, and a one-to-one
+branch assigns exactly one, which teaches the network not to produce duplicates. At test time only the one-to-one
+branch runs, and the top 300 boxes are the answer, with no NMS.
+
+\widefig{fig_ref_yolo26}{YOLO26-n as used in this project. Blue: backbone; green: the two-way PAN neck; gold: the
+end-to-end heads. Numbers left of each block are its layer index; shapes are channels $\times$ height$^2$. The
+one-to-many branch is used only in training.}{fig:yolo26}
+
+The four repeated blocks are drawn in Figure~\ref{fig:yoloblocks}. C3k2 is a cross-stage partial block: it splits
+the channels, sends one half through a stack of bottlenecks and concatenates the halves again, so gradients have a
+short path. SPPF pools the same map three times with a $5\times5$ window to mix context from growing regions.
+C2PSA adds self-attention~\cite{vaswani2017attention} at the coarsest level, where the map is small enough for
+attention to be cheap.
+
+\fig{fig_ref_yolo26_blocks}{The building blocks of YOLO26: the standard convolution, the cross-stage partial C3k2,
+fast spatial pyramid pooling (SPPF), and C2PSA with multi-head attention and a feed-forward layer.}{fig:yoloblocks}
