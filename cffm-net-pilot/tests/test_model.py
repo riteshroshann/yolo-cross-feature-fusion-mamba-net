@@ -76,3 +76,20 @@ def test_modality_dropout_only_in_training():
         a, b = m(x), m(x)
     a, b = (a[0] if isinstance(a, (tuple, list)) else a), (b[0] if isinstance(b, (tuple, list)) else b)
     assert torch.equal(a, b)
+
+
+def test_fault_supervised_reliability_trains():
+    import torch
+    from cffm.model import DualStreamDetectionModel
+    m = DualStreamDetectionModel("configs/models/cffm-net-n-v2.yaml", nc=1, verbose=False)
+    m.fault_train, m.rel_loss = 1.0, 1.0
+    m.train()
+    x = torch.rand(2, 4, 128, 128)
+    m(x)
+    t = m._rel_target
+    assert t.shape == (2, 2) and (t < 1).any(dim=1).all()
+    aux = m.reliability_loss()
+    assert aux is not None and aux.requires_grad
+    aux.backward()
+    g = [p.grad for n, p in m.named_parameters() if "rel.out" in n]
+    assert g and all(x is not None and x.abs().sum() > 0 for x in g)

@@ -66,7 +66,7 @@ if ON_KAGGLE:
         for p in [PROJECT, *PROJECT.rglob("*")]:     # inputs are read-only; our copy must be writable
             p.chmod(p.stat().st_mode | 0o200)
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "ultralytics==8.4.171",
-                    "faster-coco-eval>=1.6.7", "cloudpickle", "pytest", "lap>=0.5.12", "imageio-ffmpeg"], check=True)   # cloudpickle: two-GPU launcher
+                    "faster-coco-eval>=1.6.7", "cloudpickle", "pytest", "lap>=0.5.12", "imageio-ffmpeg", "motmetrics"], check=True)   # cloudpickle: two-GPU launcher
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "-e", str(PROJECT)], check=True)
 else:
     PROJECT = next(p for p in [Path.cwd().resolve(), *Path.cwd().resolve().parents] if (p / "src" / "cffm").is_dir())
@@ -812,6 +812,48 @@ def nb08f():
              "08f", "about 4 hours on 2 x T4")
 
 
+def nb08g():
+    train_nb("notebooks/phase1_still_images/08g_seed1_llvip.ipynb",
+             "08g · Seed 1 on LLVIP: 80 epochs",
+             "Round 3 repeated with seed 1, so every reported number is a mean over three seeds.",
+             "08g", "about 4 hours on 2 x T4")
+
+
+def nb08h():
+    train_nb("notebooks/phase1_still_images/08h_seed2_llvip.ipynb",
+             "08h · Seed 2 on LLVIP: 80 epochs",
+             "Round 3 repeated with seed 2, so every reported number is a mean over three seeds.",
+             "08h", "about 4 hours on 2 x T4")
+
+
+def nb08i():
+    train_nb("notebooks/phase1_still_images/08i_seed1_m3fd.ipynb",
+             "08i · Seed 1 on M3FD: 80 epochs",
+             "Round 3 repeated with seed 1, so every reported number is a mean over three seeds.",
+             "08i", "about 4 hours on 2 x T4")
+
+
+def nb08j():
+    train_nb("notebooks/phase1_still_images/08j_seed2_m3fd.ipynb",
+             "08j · Seed 2 on M3FD: 80 epochs",
+             "Round 3 repeated with seed 2, so every reported number is a mean over three seeds.",
+             "08j", "about 4 hours on 2 x T4")
+
+
+def nb08k():
+    train_nb("notebooks/phase1_still_images/08k_v3_llvip.ipynb",
+             "08k · CFFM-Net v3 on LLVIP: fault-supervised reliability",
+             "v3 with the reliability loss, the concat control with the same fault training, and v3 without the loss.",
+             "08k", "about 6 hours on 2 x T4")
+
+
+def nb08l():
+    train_nb("notebooks/phase1_still_images/08l_v3_m3fd.ipynb",
+             "08l · CFFM-Net v3 on M3FD: fault-supervised reliability",
+             "v3 with the reliability loss, the concat control with the same fault training, and v3 without the loss.",
+             "08l", "about 6 hours on 2 x T4")
+
+
 def nb09():
     write("notebooks/phase1_still_images/09_probe_and_latency.ipynb", [
         header("09 · Degradation probe and latency",
@@ -1152,7 +1194,8 @@ except ImportError:
 
 if __name__ == "__main__":
     import sys
-    every = (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb08c, nb08d, nb08e, nb08f, nb09, nb15, nb16)
+    from phase_notebooks import nb20, nb30, nb40
+    every = (nb00, nb01, nb02, nb03, nb04, nb05, nb06, nb07, nb08, nb08b, nb08c, nb08d, nb08e, nb08f, nb08g, nb08h, nb08i, nb08j, nb08k, nb08l, nb09, nb15, nb16, nb20, nb30, nb40)
     pick = set(sys.argv[1:])
     for f in every:
         if not pick or f.__name__[2:] in pick:

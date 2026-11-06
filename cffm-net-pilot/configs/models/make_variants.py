@@ -23,7 +23,7 @@ YOLO26_HEAD = """head:
 """
 
 
-def variant(name, fusion=None, head=None, modality_dropout=None, **cfg):
+def variant(name, fusion=None, head=None, modality_dropout=None, extra=None, **cfg):
     text = BASE
     if fusion:
         text = text.replace("fusion: cffm\n", f"fusion: {fusion}\n")
@@ -34,6 +34,8 @@ def variant(name, fusion=None, head=None, modality_dropout=None, **cfg):
         text = text.replace(old, f"{indent}{k}: {val}")
     if modality_dropout:
         text = text.replace("fusion: ", f"modality_dropout: {modality_dropout}\nfusion: ", 1)
+    for k, v in (extra or {}).items():
+        text = text.replace("fusion: ", f"{k}: {v}\nfusion: ", 1)
     if head:
         text = text[: text.index("head:")] + head
     out = HERE / name
@@ -50,3 +52,7 @@ if __name__ == "__main__":
     variant("two-stream-concat-p2-n.yaml", fusion="concat")
     variant("cffm-net-n-v2.yaml", head=YOLO26_HEAD, modality_dropout=0.15)
     variant("two-stream-concat-n-md.yaml", fusion="concat", head=YOLO26_HEAD, modality_dropout=0.15)
+    variant("cffm-net-n-v3.yaml", head=YOLO26_HEAD, modality_dropout=0.15, extra={"fault_train": 0.3, "rel_loss": 0.5})
+    variant("cffm-net-n-v3-norel.yaml", head=YOLO26_HEAD, modality_dropout=0.15, extra={"fault_train": 0.3})
+    variant("two-stream-concat-n-ft.yaml", fusion="concat", head=YOLO26_HEAD, modality_dropout=0.15,
+            extra={"fault_train": 0.3})

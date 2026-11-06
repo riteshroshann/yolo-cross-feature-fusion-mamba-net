@@ -1,6 +1,6 @@
 """Run the pilot notebooks on Kaggle through its CLI (kaggle>=1.8, token in ~/.kaggle/access_token).
 
-    python tools/kaggle_run.py upload | push 00 | status [00 02 ...] | logs 00 | wait 04 05
+    python tools/kaggle_run.py upload | push 00 | status [00 02 ...] | logs 00 | wait 04 05 | queue 40 20 30 @08k
 """
 import json
 import re
@@ -17,6 +17,9 @@ KAGGLE = shutil.which("kaggle") or str(Path(sys.executable).parent / "kaggle")
 LLVIP = "afradhossain/llvip-dataset"
 M3FD = "nus1998/m3fd-dataset"
 MOT17 = "ahmedsamir1598/mot17challenge"
+KAIST = "adlteam/kaist-dataset"
+KAIST_ANN = "arnb007/annotation-of-kaist-dataset"
+WILDTRACK = "mrriandmstique/wildtrack-multi-camera-tracking"
 P0, P1 = "notebooks/phase0_environment", "notebooks/phase1_still_images"
 
 NOTEBOOKS = {
@@ -34,9 +37,18 @@ NOTEBOOKS = {
     "08d": (f"{P1}/08d_round2_m3fd.ipynb", "gpu", [M3FD], ["02"]),
     "08e": (f"{P1}/08e_round3_llvip.ipynb", "gpu", [LLVIP], ["02"]),
     "08f": (f"{P1}/08f_round3_m3fd.ipynb", "gpu", [M3FD], ["02"]),
+    "08g": (f"{P1}/08g_seed1_llvip.ipynb", "gpu", [LLVIP], ["02"]),
+    "08h": (f"{P1}/08h_seed2_llvip.ipynb", "gpu", [LLVIP], ["02"]),
+    "08i": (f"{P1}/08i_seed1_m3fd.ipynb", "gpu", [M3FD], ["02"]),
+    "08j": (f"{P1}/08j_seed2_m3fd.ipynb", "gpu", [M3FD], ["02"]),
+    "08k": (f"{P1}/08k_v3_llvip.ipynb", "gpu", [LLVIP], ["02"]),
+    "08l": (f"{P1}/08l_v3_m3fd.ipynb", "gpu", [M3FD], ["02"]),
     "09": (f"{P1}/09_probe_and_latency.ipynb", "gpu", [LLVIP], ["02", "04", "05", "07", "08"]),
     "15": (f"{P1}/15_results_and_figures.ipynb", "cpu", [], ["04", "05", "07", "08", "09"]),
     "16": (f"{P1}/16_showcase.ipynb", "gpu", [LLVIP, M3FD, MOT17], ["05", "07"]),
+    "20": ("notebooks/phase2_video/20_phase2_video.ipynb", "gpu", [KAIST, KAIST_ANN], []),
+    "30": ("notebooks/phase3_live/30_phase3_live.ipynb", "gpu", [KAIST, KAIST_ANN], ["20", "08e"]),
+    "40": ("notebooks/phase4_multicamera/40_phase4_multicamera.ipynb", "gpu", [WILDTRACK], []),
 }
 
 
@@ -118,6 +130,27 @@ def wait(ids, every=120):
             time.sleep(every)
 
 
+def queue(ids, watch=(), slots=2, every=300):
+    """Push `ids` in order once a GPU slot is free and every notebook they read from has completed."""
+    pending, live = list(ids), set(watch)
+    while pending:
+        st = {i: status(i) for i in set(live) | {n for i in pending for n in NOTEBOOKS[i][3]}}
+        live = {i for i in live if st.get(i) in ("queued", "running")}
+        for i in list(pending):
+            needs = NOTEBOOKS[i][3]
+            if any(st.get(n) in ("error", "cancelacknowledged") for n in needs):
+                print(f"{i}: a dependency failed, skipping", flush=True)
+                pending.remove(i)
+                continue
+            if len(live) < slots and all(st.get(n) == "complete" for n in needs):
+                push(i)
+                live.add(i)
+                pending.remove(i)
+                print(time.strftime("%H:%M"), "pushed", i, flush=True)
+        if pending:
+            time.sleep(every)
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(errors="replace")
     cmd, *ids = sys.argv[1:] or ["status"]
@@ -133,5 +166,8 @@ if __name__ == "__main__":
         print(kaggle("kernels", "logs", f"{user()}/{slug(ids[0])}", check=False))
     elif cmd == "wait":
         wait(ids)
+    elif cmd == "queue":
+        watch = [i[1:] for i in ids if i.startswith("@")]
+        queue([i for i in ids if not i.startswith("@")], watch)
     else:
         raise SystemExit(__doc__)

@@ -158,6 +158,25 @@ def probe(weights, data, kind: str, *, flagged: bool = False, imgsz=640, batch=1
         model.sensor_flags = None
 
 
+def fault_eval(weights, data, fault: str, severity: int = 2, *, flagged: bool = False, imgsz=640, batch=16,
+               device=None, project="runs/faults", split="test"):
+    """Evaluate a paired model under one benchmark fault from cffm.faults at a given severity."""
+    from . import faults
+    model = _load(weights)
+    if not getattr(model, "_dual", False):
+        raise ValueError("the fault benchmark needs a paired (dual-stream) model")
+    handle = model.register_forward_pre_hook(lambda m, a: (faults.apply(a[0], fault, severity),) + tuple(a[1:]))
+    flags = faults.flags_for(fault) if flagged else None
+    model.sensor_flags = torch.tensor(flags) if flags else None
+    try:
+        tag = "clean" if fault == "clean" else f"{fault}_s{severity}{'_flagged' if flags else ''}"
+        return evaluate(weights, data, imgsz=imgsz, batch=batch, device=device, project=project,
+                        name=f"{Path(weights).parent.parent.name}/{tag}", model=model, split=split)
+    finally:
+        handle.remove()
+        model.sensor_flags = None
+
+
 def gflops(model, imgsz=640, include_scan=True) -> float:
     """GFLOPs at imgsz: Ultralytics' profiler count plus the selective scans, which profilers miss."""
     from ultralytics.utils.torch_utils import get_flops

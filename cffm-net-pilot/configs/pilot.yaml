@@ -17,6 +17,9 @@ datasets:
     imgsz: 640
     val_frac: 0.2
     seed: 0
+  kaist:
+    train_stride: 4
+    test_stride: 20
 
 runs:
   - {name: llvip_yolo26n_visible, notebook: "04", data: llvip/data_visible.yaml,  model: yolo26n.yaml, batch: 32}
@@ -44,6 +47,22 @@ runs:
   - {name: llvip_concat_md_e80, notebook: "08e", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10}
   - {name: m3fd_cffm_v2_e80,    notebook: "08f", data: m3fd/data_paired.yaml,  model: configs/models/cffm-net-n-v2.yaml,         batch: 16, epochs: 80, close_mosaic: 10}
   - {name: m3fd_concat_md_e80,  notebook: "08f", data: m3fd/data_paired.yaml,  model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: llvip_cffm_v2_e80_s1, notebook: "08g", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-v2.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 1}
+  - {name: llvip_concat_md_e80_s1, notebook: "08g", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 1}
+  - {name: llvip_cffm_v2_e80_s2, notebook: "08h", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-v2.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 2}
+  - {name: llvip_concat_md_e80_s2, notebook: "08h", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 2}
+  - {name: m3fd_cffm_v2_e80_s1, notebook: "08i", data: m3fd/data_paired.yaml, model: configs/models/cffm-net-n-v2.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 1}
+  - {name: m3fd_concat_md_e80_s1, notebook: "08i", data: m3fd/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 1}
+  - {name: m3fd_cffm_v2_e80_s2, notebook: "08j", data: m3fd/data_paired.yaml, model: configs/models/cffm-net-n-v2.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 2}
+  - {name: m3fd_concat_md_e80_s2, notebook: "08j", data: m3fd/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 80, close_mosaic: 10, seed: 2}
+  - {name: llvip_cffm_v3_e80, notebook: "08k", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-v3.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: llvip_concat_ft_e80, notebook: "08k", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n-ft.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: llvip_cffm_v3_norel_e80, notebook: "08k", data: llvip/data_paired.yaml, model: configs/models/cffm-net-n-v3-norel.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: m3fd_cffm_v3_e80, notebook: "08l", data: m3fd/data_paired.yaml, model: configs/models/cffm-net-n-v3.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: m3fd_concat_ft_e80, notebook: "08l", data: m3fd/data_paired.yaml, model: configs/models/two-stream-concat-n-ft.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: m3fd_cffm_v3_norel_e80, notebook: "08l", data: m3fd/data_paired.yaml, model: configs/models/cffm-net-n-v3-norel.yaml, batch: 16, epochs: 80, close_mosaic: 10}
+  - {name: kaist_cffm_v2,   notebook: "20", data: kaist/data_paired.yaml, model: configs/models/cffm-net-n-v2.yaml,         batch: 16, epochs: 25, close_mosaic: 5}
+  - {name: kaist_concat_md, notebook: "20", data: kaist/data_paired.yaml, model: configs/models/two-stream-concat-n-md.yaml, batch: 16, epochs: 25, close_mosaic: 5}
 
 probe:
   runs: [llvip_cffm, llvip_cffm_nogate, llvip_concat]

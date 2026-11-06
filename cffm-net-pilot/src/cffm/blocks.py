@@ -205,6 +205,7 @@ class CMFM(nn.Module):
                                    self.local(torch.cat([pv, pt], 1))], dim=1).to(fv.dtype))
         z = weighted_mean(fv, ft, rv, rt) + mix
         self.last = {"rv": rv.detach(), "rt": rt.detach(), "rho": torch.maximum(rv, rt).detach()}
+        self.live = (rv, rt) if self.training and self.gate else None
         return z
 
 
@@ -223,6 +224,7 @@ class ReliabilityWeightedSum(nn.Module):
         else:
             rv = rt = torch.ones_like(fv[:, :1])
         self.last = {"rv": rv.detach(), "rt": rt.detach()}
+        self.live = (rv, rt) if self.training and self.gate else None
         return weighted_mean(fv, ft, rv, rt)
 
 

@@ -8,11 +8,14 @@ from copy import deepcopy
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from ultralytics.nn.tasks import DetectionModel, yaml_model_load
 
+from . import faults
 from .blocks import build_fuser
 
 FUSION_KINDS = ("concat", "cffm")
+FAULT_TRUST = (0.7, 0.4, 0.15)
 
 
 class DualStreamDetectionModel(DetectionModel):
@@ -28,6 +31,10 @@ class DualStreamDetectionModel(DetectionModel):
         self.fusion = d.get("fusion", "cffm")
         self.fusion_cfg = dict(d.get("fusion_cfg") or {})
         self.modality_dropout = float(d.get("modality_dropout", 0.0))
+        self.fault_train = float(d.get("fault_train", 0.0))
+        self.rel_loss = float(d.get("rel_loss", 0.0))
+        self._rel_target = None
+        self.last_rel_loss = 0.0
         assert self.fusion in FUSION_KINDS, f"fusion must be one of {FUSION_KINDS}"
 
         self.nb = len(self.yaml["backbone"]) - 1
@@ -76,18 +83,42 @@ class DualStreamDetectionModel(DetectionModel):
         told = (torch.rand(b, 1, device=x.device) < 0.5).to(x.dtype)
         return x, keep * told + (1 - told)
 
+    @staticmethod
+    def corrupt(x, p):
+        """Corrupt one camera per sample with probability p by a random benchmark fault; return trust targets."""
+        b = x.shape[0]
+        target = torch.ones(b, 2, device=x.device)
+        x = x.clone()
+        for i in torch.nonzero(torch.rand(b) < p).flatten().tolist():
+            sensor = "visible" if torch.rand(1).item() < 0.5 else "thermal"
+            kinds = [k for k in (faults.VISIBLE if sensor == "visible" else faults.THERMAL) if k != "drop"]
+            kind = kinds[torch.randint(len(kinds), (1,)).item()]
+            sev = int(torch.randint(1, 4, (1,)).item())
+            x[i:i + 1] = faults.apply(x[i:i + 1], f"{sensor}_{kind}", sev, seed=int(torch.randint(1 << 30, (1,))))
+            target[i, 0 if sensor == "visible" else 1] = FAULT_TRUST[sev - 1]
+        return x, target
+
     def _predict_once(self, x, profile=False, embed=None):
         if not self._dual:
             return super()._predict_once(x, profile=profile, embed=embed)
         flags = self.sensor_flags
-        if self.training and self.modality_dropout > 0 and x.shape[1] in (4, 6):
-            x, flags = self.drop_modalities(x, self.modality_dropout)
+        self._rel_target = None
+        if self.training and x.shape[1] in (4, 6):
+            target = torch.ones(x.shape[0], 2, device=x.device)
+            if self.fault_train > 0:
+                x, target = self.corrupt(x, self.fault_train)
+            if self.modality_dropout > 0:
+                x, flags = self.drop_modalities(x, self.modality_dropout)
+                target = target * (x.flatten(2).abs().amax(2)[:, [0, 3]] > 0).float()
+            self._rel_target = target
         xv, xt = self.split_modalities(x)
         y = []
         for mv, mt in zip(self.model[: self.nb + 1], self.thermal):
             xv, xt = mv(xv), mt(xt)
             if mv.i in self.fuse_idx:
                 out = self.fusers[str(mv.i)](xv, xt, flags)
+                if getattr(self, "memory", None) is not None and self.memory_on:
+                    out = self._remember(str(mv.i), out)
             else:
                 out = xv
             y.append(out if mv.i in self.save else None)
@@ -98,6 +129,65 @@ class DualStreamDetectionModel(DetectionModel):
             x = m(x)
             y.append(x if m.i in self.save else None)
         return x
+
+    def attach_memory(self, ratio: float = 0.5, d_state: int = 8):
+        """Add one Temporal State Memory per fusion level; zero-initialised, so detections start unchanged."""
+        from .tsm import TemporalStateMemory
+        shapes, hooks = {}, []
+        for k, f in self.fusers.items():
+            hooks.append(f.register_forward_hook(lambda m, a, o, k=k: shapes.__setitem__(k, o.shape[1])))
+        was = self.training
+        self.eval()
+        with torch.no_grad():
+            self._predict_once(torch.zeros(1, 4, 128, 128, device=next(self.parameters()).device))
+        self.train(was)
+        for h in hooks:
+            h.remove()
+        dev = next(self.parameters()).device
+        self.memory = nn.ModuleDict({k: TemporalStateMemory(c, ratio, d_state) for k, c in shapes.items()}).to(dev)
+        self.memory_on = True
+        self.reset_memory()
+        return self.memory
+
+    def reset_memory(self):
+        self._mem_state, self._mem_ctx = {}, {}
+
+    def memory_context(self, tau_ratio=None, H=None, reset=None):
+        """Per-frame context for the memory: time-gap ratio, homography from the previous frame, scene cut."""
+        self._mem_ctx = {"tau_ratio": tau_ratio, "H": H, "reset": reset}
+
+    def _remember(self, k, z):
+        last = getattr(self.fusers[k], "last", {})
+        rho = last.get("rho")
+        if rho is None and "rv" in last:
+            rho = torch.maximum(last["rv"], last["rt"])
+        state = self._mem_state.get(k)
+        if state is not None and (state.shape[0] != z.shape[0] or state.shape[1:3] != z.shape[2:]):
+            state = None
+        z, self._mem_state[k] = self.memory[k](z, state, rho=rho, **self._mem_ctx)
+        return z
+
+    def reliability_loss(self):
+        """BCE between each gated fuser's mean reliability and the known per-camera trust target."""
+        t = self._rel_target
+        live = [f.live for f in self.fusers.values() if getattr(f, "live", None) is not None]
+        if t is None or not live:
+            return None
+        loss = 0.0
+        with torch.autocast(device_type=t.device.type, enabled=False):
+            for rv, rt in live:
+                r = torch.cat([rv.float().mean((2, 3)), rt.float().mean((2, 3))], 1).clamp(1e-4, 1 - 1e-4)
+                loss = loss + F.binary_cross_entropy(r, t.float())
+        return loss / len(live)
+
+    def loss(self, batch, preds=None):
+        total, items = super().loss(batch, preds)
+        if self._dual and self.rel_loss > 0 and self.training:
+            aux = self.reliability_loss()
+            if aux is not None:
+                self.last_rel_loss = float(aux.detach())
+                total = total + self.rel_loss * aux * batch["img"].shape[0]
+        return total, items
 
     def load(self, weights, verbose=True):
         """Load YOLO weights; without `thermal.*` keys the thermal backbone copies the visible one."""
