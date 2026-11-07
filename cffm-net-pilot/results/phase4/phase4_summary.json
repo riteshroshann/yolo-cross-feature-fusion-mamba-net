@@ -1,0 +1,70 @@
+{
+  "detection": {
+    "zero-shot YOLO26-m": {
+      "MODA": 0.42542016806722693,
+      "MODP": 0.7755319921760679,
+      "precision": 0.920997920997921,
+      "recall": 0.4653361344537815,
+      "TP": 443,
+      "FP": 38,
+      "FN": 509
+    },
+    "fine-tuned YOLO26-m": {
+      "MODA": 0.7741596638655462,
+      "MODP": 0.7653815792689189,
+      "precision": 0.8983783783783784,
+      "recall": 0.8728991596638656,
+      "TP": 831,
+      "FP": 94,
+      "FN": 121
+    }
+  },
+  "fusion_params": {
+    "zero-shot YOLO26-m": {
+      "radius": 40,
+      "min_ratio": 0.3,
+      "min_score": 0.45
+    },
+    "fine-tuned YOLO26-m": {
+      "radius": 40,
+      "min_ratio": 0.3,
+      "min_score": 0.3
+    }
+  },
+  "tracking": {
+    "mota": 0.7941176470588236,
+    "idf1": 0.849015317286652,
+    "num_switches": 18.0,
+    "mostly_tracked": 25.0,
+    "num_unique_objects": 41.0
+  },
+  "counts": {
+    "count_mae": 1.425,
+    "mean_people": 23.8,
+    "count_rel_err": 0.059873949579831935,
+    "zone 1_mae": 0.925,
+    "zone 2_mae": 1.175,
+    "zone 3_mae": 0.425
+  },
+  "crossings of y = 0": {
+    "forward": 0,
+    "backward": 11
+  },
+  "dwell": {
+    "zone 1": {
+      "tracks": 22,
+      "total_s": 124.5,
+      "mean_s": 5.659090909090909
+    },
+    "zone 2": {
+      "tracks": 46,
+      "total_s": 571.0,
+      "mean_s": 12.41304347826087
+    },
+    "zone 3": {
+      "tracks": 18,
+      "total_s": 71.5,
+      "mean_s": 3.9722222222222223
+    }
+  }
+}

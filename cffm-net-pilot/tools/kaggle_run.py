@@ -17,7 +17,7 @@ KAGGLE = shutil.which("kaggle") or str(Path(sys.executable).parent / "kaggle")
 LLVIP = "afradhossain/llvip-dataset"
 M3FD = "nus1998/m3fd-dataset"
 MOT17 = "ahmedsamir1598/mot17challenge"
-KAIST = "adlteam/kaist-dataset"
+KAIST = "larbii/thermal-images"
 KAIST_ANN = "arnb007/annotation-of-kaist-dataset"
 WILDTRACK = "mrriandmstique/wildtrack-multi-camera-tracking"
 P0, P1 = "notebooks/phase0_environment", "notebooks/phase1_still_images"
@@ -46,7 +46,7 @@ NOTEBOOKS = {
     "09": (f"{P1}/09_probe_and_latency.ipynb", "gpu", [LLVIP], ["02", "04", "05", "07", "08"]),
     "15": (f"{P1}/15_results_and_figures.ipynb", "cpu", [], ["04", "05", "07", "08", "09"]),
     "16": (f"{P1}/16_showcase.ipynb", "gpu", [LLVIP, M3FD, MOT17], ["05", "07"]),
-    "20": ("notebooks/phase2_video/20_phase2_video.ipynb", "gpu", [KAIST, KAIST_ANN], []),
+    "20": ("notebooks/phase2_video/20_phase2_video.ipynb", "gpu", [KAIST, KAIST_ANN], ["20"]),
     "30": ("notebooks/phase3_live/30_phase3_live.ipynb", "gpu", [KAIST, KAIST_ANN], ["20", "08e"]),
     "40": ("notebooks/phase4_multicamera/40_phase4_multicamera.ipynb", "gpu", [WILDTRACK], []),
 }

@@ -87,7 +87,7 @@ def _apply_clip_faults(x, t, clip_faults):
 
 def train_memory(model, seqs, *, epochs=4, T=6, stride=2, batch=4, lr=2e-3, workers=4, device="cuda",
                  fault_p=0.5, log=print, amp=True):
-    """Train only the memory, detector frozen, by backprop through T frames with the detection loss on each."""
+    """Train only the memory, detector frozen, by backprop through T frames; non-finite steps are skipped."""
     from ultralytics.cfg import get_cfg
     model.to(device).eval()
     if getattr(model, "memory", None) is None:
@@ -105,7 +105,7 @@ def train_memory(model, seqs, *, epochs=4, T=6, stride=2, batch=4, lr=2e-3, work
     steps = epochs * len(loader)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, lr, total_steps=steps, pct_start=0.1)
     scaler = torch.amp.GradScaler(enabled=amp)
-    history, step = [], 0
+    history, step, skipped = [], 0, 0
     for ep in range(epochs):
         t0, run = time.time(), 0.0
         for clips, labels, clip_faults in loader:
@@ -124,6 +124,12 @@ def train_memory(model, seqs, *, epochs=4, T=6, stride=2, batch=4, lr=2e-3, work
                     loss, _ = crit(preds, b)
                     total = total + loss.sum() / T
             opt.zero_grad(set_to_none=True)
+            if not torch.isfinite(total):
+                skipped += 1
+                if skipped > max(20, steps // 20):
+                    raise FloatingPointError(f"memory loss non-finite on {skipped} of {step + 1} steps")
+                step += 1
+                continue
             scaler.scale(total).backward()
             scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(model.memory.parameters(), 10.0)
@@ -136,7 +142,7 @@ def train_memory(model, seqs, *, epochs=4, T=6, stride=2, batch=4, lr=2e-3, work
                 log(f"epoch {ep + 1}/{epochs} step {step}/{steps} loss {run / 50:.3f}")
                 history.append((step, run / 50))
                 run = 0.0
-        log(f"epoch {ep + 1} done in {(time.time() - t0) / 60:.1f} min")
+        log(f"epoch {ep + 1} done in {(time.time() - t0) / 60:.1f} min, {skipped} non-finite steps skipped")
     model.memory.eval()
     return history
 

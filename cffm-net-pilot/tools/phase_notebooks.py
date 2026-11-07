@@ -74,13 +74,15 @@ else:
         figure("fig_tsm"),
         code('''
 cffm = models["cffm"]
-mem_path = Path(ckpts["kaist_cffm_v2"]).parent.parent / "memory.pt"
+mem_path = out / "memory.pt"
 cffm.attach_memory()
-if mem_path.exists():
-    cffm.memory.load_state_dict(torch.load(mem_path, map_location=dev))
-    print("memory loaded from", mem_path)
+saved = [m for m in [mem_path, *Path("/kaggle/input").glob("**/results/phase2/memory.pt")] if m.exists()]
+saved = [m for m in saved if all(torch.isfinite(v).all() for v in torch.load(m, map_location="cpu").values())]
+if saved:
+    cffm.memory.load_state_dict(torch.load(saved[0], map_location=dev))
+    print("memory loaded from", saved[0])
 else:
-    hist = video.train_memory(cffm, train_seqs, epochs=3, T=6, stride=2, batch=4, lr=2e-3, workers=4, device=dev)
+    hist = video.train_memory(cffm, train_seqs, epochs=3, T=6, stride=2, batch=4, lr=5e-4, workers=4, device=dev)
     torch.save(cffm.memory.state_dict(), mem_path)
     pd.DataFrame(hist, columns=["step", "loss"]).plot(x="step", y="loss", figsize=(7, 3), legend=False,
                                                        title="memory training loss")
@@ -190,10 +192,10 @@ ckpts = pipeline.find_checkpoints(env)
 name = "kaist_cffm_v2" if "kaist_cffm_v2" in ckpts else "llvip_cffm_v2_e80"
 model = _load(ckpts[name]).to(dev).eval()
 model.attach_memory()
-mem_path = Path(ckpts[name]).parent.parent / "memory.pt"
-if mem_path.exists():
-    model.memory.load_state_dict(torch.load(mem_path, map_location=dev))
-print("model:", name, "| memory:", "trained" if mem_path.exists() else "untrained (identity)")
+mem = next(iter(sorted(Path("/kaggle/input" if ON_KAGGLE else env.project).glob("**/results/phase2/memory.pt"))), None)
+if mem is not None:
+    model.memory.load_state_dict(torch.load(mem, map_location=dev))
+print("model:", name, "| memory:", mem or "untrained (identity)")
 test_seqs = kaist.sequences(IMG_ROOT, ANN_ROOT, kaist.TEST_SETS)
 frames = [f for s in test_seqs for f in s.frames]
 irs = [kaist.lwir(f) for f in frames]

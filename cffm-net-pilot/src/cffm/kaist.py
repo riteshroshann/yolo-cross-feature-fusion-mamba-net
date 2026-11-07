@@ -139,6 +139,9 @@ def convert(img_root, ann_root, out, train_stride=2, test_stride=20, workers=16)
             for f, b in list(zip(seq.frames, seq.boxes))[::stride]:
                 stem = f"{seq.name.replace('/', '_')}_{f.stem}"
                 jobs.append((split, stem, f, b))
+    counts = {s: sum(1 for j in jobs if j[0] == s) for s in ("train", "val")}
+    if not all(counts.values()):
+        raise FileNotFoundError(f"KAIST split is empty {counts}; the image dataset needs set00-05 and set06-11")
 
     def write(job):
         split, stem, f, b = job
@@ -153,7 +156,7 @@ def convert(img_root, ann_root, out, train_stride=2, test_stride=20, workers=16)
     with ThreadPoolExecutor(workers) as ex:
         list(ex.map(write, jobs))
     write_yamls(out, ["person"])
-    return {s: sum(1 for j in jobs if j[0] == s) for s in ("train", "val")}
+    return counts
 
 
 def _match(dets, gts, ignore, iou_thr=0.5):
