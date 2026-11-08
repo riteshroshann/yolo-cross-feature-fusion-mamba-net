@@ -3,7 +3,7 @@ from build_notebooks import CLEANUP, SETUP, code, figure, header, md, write
 
 KAIST_SETUP = '''
 from pathlib import Path
-import json, time
+import json, shutil, time
 import cv2, numpy as np, pandas as pd, torch
 from cffm import kaist, video, faults, hud, showcase as sc
 from cffm.train import _load
@@ -13,6 +13,9 @@ IMG_ROOT, ANN_ROOT = kaist.find_roots(INPUT)
 dev = "cuda:0" if torch.cuda.is_available() else "cpu"
 out = env.project / "results" / "PHASE"
 out.mkdir(parents=True, exist_ok=True)
+for f in Path("/kaggle/input").glob("**/results/PHASE/*"):
+    if f.suffix in (".json", ".pt") and not (out / f.name).exists():
+        shutil.copy(f, out / f.name)
 print("KAIST images:", IMG_ROOT, "| annotations:", ANN_ROOT, "| device:", dev)
 '''
 

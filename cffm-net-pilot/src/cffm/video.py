@@ -246,6 +246,20 @@ def track_sequence(model, seq, *, stride=1, memory=True, schedule=None, device="
     return out
 
 
+def iou_distance(a: np.ndarray, b: np.ndarray, max_d: float = 0.5) -> np.ndarray:
+    """1 - IoU between xywh boxes, NaN beyond max_d: motmetrics' iou_matrix without np.asfarray (gone in NumPy 2)."""
+    a, b = np.asarray(a, float).reshape(-1, 4), np.asarray(b, float).reshape(-1, 4)
+    if not len(a) or not len(b):
+        return np.empty((len(a), len(b)))
+    lt = np.maximum(a[:, None, :2], b[None, :, :2])
+    rb = np.minimum(a[:, None, :2] + a[:, None, 2:], b[None, :, :2] + b[None, :, 2:])
+    inter = np.prod(np.clip(rb - lt, 0, None), 2)
+    union = a[:, None, 2:].prod(2) + b[None, :, 2:].prod(2) - inter
+    d = 1 - inter / np.maximum(union, 1e-12)
+    d[d > max_d] = np.nan
+    return d
+
+
 def mot_metrics(tracks: dict, seq, min_h=30) -> dict:
     """MOTA, IDF1, ID switches against KAIST person tracks; predictions on ignore regions are dropped."""
     import motmetrics as mm
@@ -262,7 +276,7 @@ def mot_metrics(tracks: dict, seq, min_h=30) -> dict:
         keep = np.asarray(keep).reshape(-1, 5)
         g = np.array([b.xywh for b in gt]).reshape(-1, 4)
         h = np.stack([keep[:, 0], keep[:, 1], keep[:, 2] - keep[:, 0], keep[:, 3] - keep[:, 1]], 1) if len(keep) else np.zeros((0, 4))
-        dist = mm.distances.iou_matrix(g, h, max_iou=0.5)
+        dist = iou_distance(g, h, max_d=0.5)
         acc.update([b.tid for b in gt], keep[:, 4].astype(int).tolist(), dist)
     s = mm.metrics.create().compute(acc, metrics=["mota", "idf1", "num_switches", "mostly_tracked", "num_unique_objects"])
     return {k: float(v) for k, v in s.iloc[0].items()}
