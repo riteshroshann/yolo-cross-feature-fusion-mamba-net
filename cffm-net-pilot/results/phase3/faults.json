@@ -1,0 +1,64 @@
+{
+  "monitor on": {
+    "summary": {
+      "seconds": 106.91530500003137,
+      "fps": 11.794382478725847,
+      "e2e_p50": 101.54619999229908,
+      "e2e_p95": 139.44339496956673,
+      "infer_p50": 72.55115002044477,
+      "infer_p95": 98.60159000090789,
+      "drift_ms": 10.652500001015142,
+      "gpu_growth_mb": 1.0
+    },
+    "reconnects": 10,
+    "MR_all": 0.27873956024964,
+    "faults": {
+      "thermal unplugged": {
+        "detect_s": 0.29076489998260513,
+        "recover_s": 0.1947785000083968,
+        "false_alarm_rate": 0.04263565891472868
+      },
+      "visible frozen": {
+        "detect_s": 0.6910225999890827,
+        "recover_s": 0.10447199997724965,
+        "false_alarm_rate": 0.0
+      },
+      "thermal stalled": {
+        "detect_s": 0.3137188999680802,
+        "recover_s": 0.12462479999521747,
+        "false_alarm_rate": 0.06124031007751938
+      }
+    }
+  },
+  "monitor off": {
+    "summary": {
+      "seconds": 106.9668048999738,
+      "fps": 12.013072664941447,
+      "e2e_p50": 100.68940001656301,
+      "e2e_p95": 139.44085002003703,
+      "infer_p50": 70.47504995716736,
+      "infer_p95": 99.94089999236166,
+      "drift_ms": -2.772499981801957,
+      "gpu_growth_mb": -1.0
+    },
+    "reconnects": 10,
+    "MR_all": 0.27085125123286585,
+    "faults": {
+      "thermal unplugged": {
+        "detect_s": 0.2772877999814227,
+        "recover_s": 0.18201119999866933,
+        "false_alarm_rate": 0.0504973221117062
+      },
+      "visible frozen": {
+        "detect_s": 0.5185414000297897,
+        "recover_s": 0.1340483999811113,
+        "false_alarm_rate": 0.0
+      },
+      "thermal stalled": {
+        "detect_s": 0.2606104000005871,
+        "recover_s": 0.15829609998036176,
+        "false_alarm_rate": 0.07957153787299158
+      }
+    }
+  }
+}

@@ -24,6 +24,8 @@ datasets:
 runs:
   - {name: llvip_yolo26n_visible, notebook: "04", data: llvip/data_visible.yaml,  model: yolo26n.yaml, batch: 32}
   - {name: llvip_yolo26n_thermal, notebook: "04", data: llvip/data_infrared.yaml, model: yolo26n.yaml, batch: 32}
+  - {name: m3fd_yolo26n_visible, notebook: "04", data: m3fd/data_visible.yaml,  model: yolo26n.yaml, batch: 32, epochs: 80, close_mosaic: 10}
+  - {name: m3fd_yolo26n_thermal, notebook: "04", data: m3fd/data_infrared.yaml, model: yolo26n.yaml, batch: 32, epochs: 80, close_mosaic: 10}
 
   - {name: llvip_concat, notebook: "05", data: llvip/data_paired.yaml, model: configs/models/two-stream-concat-n.yaml, batch: 16}
   - {name: m3fd_concat,  notebook: "05", data: m3fd/data_paired.yaml,  model: configs/models/two-stream-concat-n.yaml, batch: 16}

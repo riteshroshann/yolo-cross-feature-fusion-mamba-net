@@ -15,6 +15,7 @@ study-prep/guide/build.log
 study-prep/guide/main.pdf
 docs/atlas/build.log
 papers/**/*.pdf
+!papers/CFFM-Net_IEEE_Journal.pdf
 study-prep/papers/**/*.pdf
 cffm-net-pilot/runs_dl/
 /runs/

@@ -1,0 +1,138 @@
+{
+  "clean | image": [
+    {
+      "seq": "set06/V000",
+      "mota": 0.47696038803556995,
+      "idf1": 0.6544943820224719,
+      "num_switches": 3.0,
+      "mostly_tracked": 16.0,
+      "num_unique_objects": 49.0
+    },
+    {
+      "seq": "set08/V000",
+      "mota": 0.5786639744236917,
+      "idf1": 0.7499114417286574,
+      "num_switches": 24.0,
+      "mostly_tracked": 35.0,
+      "num_unique_objects": 62.0
+    },
+    {
+      "seq": "set09/V000",
+      "mota": 0.2536322125363222,
+      "idf1": 0.5497445876915592,
+      "num_switches": 5.0,
+      "mostly_tracked": 7.0,
+      "num_unique_objects": 26.0
+    },
+    {
+      "seq": "set10/V001",
+      "mota": 0.46998377501352084,
+      "idf1": 0.6162911611785096,
+      "num_switches": 3.0,
+      "mostly_tracked": 13.0,
+      "num_unique_objects": 38.0
+    }
+  ],
+  "clean | memory": [
+    {
+      "seq": "set06/V000",
+      "mota": 0.4591754244139046,
+      "idf1": 0.6225287356321839,
+      "num_switches": 4.0,
+      "mostly_tracked": 19.0,
+      "num_unique_objects": 49.0
+    },
+    {
+      "seq": "set08/V000",
+      "mota": 0.5759717314487632,
+      "idf1": 0.760688991868497,
+      "num_switches": 17.0,
+      "mostly_tracked": 37.0,
+      "num_unique_objects": 62.0
+    },
+    {
+      "seq": "set09/V000",
+      "mota": 0.27355749273557495,
+      "idf1": 0.543292840527268,
+      "num_switches": 3.0,
+      "mostly_tracked": 5.0,
+      "num_unique_objects": 26.0
+    },
+    {
+      "seq": "set10/V001",
+      "mota": 0.38939967550027044,
+      "idf1": 0.525260029717682,
+      "num_switches": 9.0,
+      "mostly_tracked": 9.0,
+      "num_unique_objects": 38.0
+    }
+  ],
+  "thermal lost | image": [
+    {
+      "seq": "set06/V000",
+      "mota": 0.43654001616814875,
+      "idf1": 0.6209912536443148,
+      "num_switches": 1.0,
+      "mostly_tracked": 14.0,
+      "num_unique_objects": 49.0
+    },
+    {
+      "seq": "set08/V000",
+      "mota": 0.5566212350664648,
+      "idf1": 0.716374269005848,
+      "num_switches": 31.0,
+      "mostly_tracked": 30.0,
+      "num_unique_objects": 62.0
+    },
+    {
+      "seq": "set09/V000",
+      "mota": 0.2415940224159402,
+      "idf1": 0.48916064480266813,
+      "num_switches": 5.0,
+      "mostly_tracked": 3.0,
+      "num_unique_objects": 26.0
+    },
+    {
+      "seq": "set10/V001",
+      "mota": 0.1790156841535966,
+      "idf1": 0.31870860927152317,
+      "num_switches": 4.0,
+      "mostly_tracked": 4.0,
+      "num_unique_objects": 38.0
+    }
+  ],
+  "thermal lost | memory": [
+    {
+      "seq": "set06/V000",
+      "mota": 0.4187550525464834,
+      "idf1": 0.5988428158148505,
+      "num_switches": 3.0,
+      "mostly_tracked": 16.0,
+      "num_unique_objects": 49.0
+    },
+    {
+      "seq": "set08/V000",
+      "mota": 0.5682315328958438,
+      "idf1": 0.724966017217943,
+      "num_switches": 25.0,
+      "mostly_tracked": 33.0,
+      "num_unique_objects": 62.0
+    },
+    {
+      "seq": "set09/V000",
+      "mota": 0.2465753424657534,
+      "idf1": 0.4511013215859031,
+      "num_switches": 4.0,
+      "mostly_tracked": 2.0,
+      "num_unique_objects": 26.0
+    },
+    {
+      "seq": "set10/V001",
+      "mota": 0.1552190373174689,
+      "idf1": 0.25327510917030566,
+      "num_switches": 6.0,
+      "mostly_tracked": 2.0,
+      "num_unique_objects": 38.0
+    }
+  ]
+}

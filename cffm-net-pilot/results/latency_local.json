@@ -1,0 +1,40 @@
+{
+  "device": "NVIDIA GeForce RTX 4050 Laptop GPU",
+  "protocol": "FP16, batch 1, 640x512, 50 warm-up, 300 timed, 20 ms pause",
+  "yolo26n_thermal": {
+    "params_M": 2.50419,
+    "GFLOPs": 5.8921984,
+    "median_ms": 25.792512893676758,
+    "p95_ms": 47.51667022705078
+  },
+  "concat_md": {
+    "params_M": 4.067294,
+    "GFLOPs": 9.7081344,
+    "median_ms": 33.089534759521484,
+    "p95_ms": 42.51340866088867
+  },
+  "concat_ft": {
+    "params_M": 4.067294,
+    "GFLOPs": 9.7081344,
+    "median_ms": 31.859712600708008,
+    "p95_ms": 41.28870391845703
+  },
+  "cffm_v2": {
+    "params_M": 6.017002,
+    "GFLOPs": 16.5138432,
+    "median_ms": 44.97100830078125,
+    "p95_ms": 54.72256088256836
+  },
+  "cffm_v3_norel": {
+    "params_M": 6.017002,
+    "GFLOPs": 16.5138432,
+    "median_ms": 50.574337005615234,
+    "p95_ms": 65.55852508544922
+  },
+  "cffm_v3": {
+    "params_M": 6.017002,
+    "GFLOPs": 16.5138432,
+    "median_ms": 52.02739334106445,
+    "p95_ms": 66.34803009033203
+  }
+}
