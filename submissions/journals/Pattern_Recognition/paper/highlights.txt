@@ -1,0 +1,5 @@
+Reliability-gated state-space scan fuses visible and thermal images
+Fusion beats the best single camera on M3FD by 4.0 mAP
+Gated scan adds only a small, not significant margin over concatenation
+Fault-trained concatenation is more robust than the gated model
+Temporal memory and live runtime keep delay and memory bounded

@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering
+\caption{Ablation of mAP in percent. A dash marks a run that was not made.}
+\label{tab:ablation}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcc}
+\toprule
+Variant & LLVIP & M3FD \\
+\midrule
+\multicolumn{3}{l}{\emph{Round one, 30 epochs, seed 0}} \\
+Two-stream concat & \resLlvipConcatPlainSeedZeroMap & \resMfdConcatPlainSeedZeroMap \\
+CFFM-Net v1 & \resLlvipCffmVoneSeedZeroMap & \resMfdCffmVoneSeedZeroMap \\
+v1, no gate & \resLlvipCffmVoneNogateSeedZeroMap & -- \\
+v1, gated conv & \resLlvipCffmVoneGconvSeedZeroMap & -- \\
+Concat + P2 head & \resLlvipConcatPtwoSeedZeroMap & -- \\
+v1, no P2 head & \resLlvipCffmVoneNoptwoSeedZeroMap & -- \\
+\midrule
+\multicolumn{3}{l}{\emph{Rounds three and four, 80 epochs, seed 0}} \\
+Concat, modality dropout & \resLlvipConcatMdSeedZeroMap & \resMfdConcatMdSeedZeroMap \\
+CFFM-Net v2 & \resLlvipCffmVtwoSeedZeroMap & \resMfdCffmVtwoSeedZeroMap \\
+Concat, fault training & \resLlvipConcatFtSeedZeroMap & \resMfdConcatFtSeedZeroMap \\
+CFFM-Net v3 & \resLlvipCffmVthreeSeedZeroMap & \resMfdCffmVthreeSeedZeroMap \\
+v3, no reliability branch & \resLlvipCffmVthreeNorelSeedZeroMap & \resMfdCffmVthreeNorelSeedZeroMap \\
+\bottomrule
+\end{tabular}}
+\end{table}

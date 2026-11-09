@@ -1,0 +1,16 @@
+\begin{table}[t]
+\centering
+\caption{KAIST test results on single frames, reasonable subset. Lower is better for the miss rate. One training run per model, \kstNAll{} test frames, so no confidence interval is available.}
+\label{tab:kaist}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\adjustbox{max width=\linewidth}{\begin{tabular}{lccc}
+\toprule
+Measure & Concat & CFFM-Net v2 & Change \\
+\midrule
+Miss rate, all (\%) & \kstConcatAllMr & \kstCffmAllMr & \kstMarginAllMr \\
+Miss rate, day (\%) & \kstConcatDayMr & \kstCffmDayMr & \kstMarginDayMr \\
+Miss rate, night (\%) & \kstConcatNightMr & \kstCffmNightMr & \kstMarginNightMr \\
+AP$_{50}$, all (\%) & \kstConcatAllApFifty & \kstCffmAllApFifty & \kstMarginAllApFifty \\
+\bottomrule
+\end{tabular}}}
+\end{table}

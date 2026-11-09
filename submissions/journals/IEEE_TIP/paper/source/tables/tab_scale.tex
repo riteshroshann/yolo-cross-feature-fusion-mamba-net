@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Average precision by object size in percent, mean and sample std over three seeds, 80 epochs.}
+\label{tab:scale}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccc}
+\toprule
+Model & Small & Medium & Large \\
+\midrule
+\multicolumn{4}{l}{\emph{LLVIP}} \\
+Concat, modality dropout & \resLlvipConcatMdMeanApSmall\,\ensuremath{\pm}\,\resLlvipConcatMdStdApSmall & \resLlvipConcatMdMeanApMedium\,\ensuremath{\pm}\,\resLlvipConcatMdStdApMedium & \resLlvipConcatMdMeanApLarge\,\ensuremath{\pm}\,\resLlvipConcatMdStdApLarge \\
+CFFM-Net v2 & \resLlvipCffmVtwoMeanApSmall\,\ensuremath{\pm}\,\resLlvipCffmVtwoStdApSmall & \resLlvipCffmVtwoMeanApMedium\,\ensuremath{\pm}\,\resLlvipCffmVtwoStdApMedium & \resLlvipCffmVtwoMeanApLarge\,\ensuremath{\pm}\,\resLlvipCffmVtwoStdApLarge \\
+Margin of v2 (pp) & \marLlvipVtwoVsConcatMdMeanApSmall\,\ensuremath{\pm}\,\marLlvipVtwoVsConcatMdStdApSmall & \marLlvipVtwoVsConcatMdMeanApMedium\,\ensuremath{\pm}\,\marLlvipVtwoVsConcatMdStdApMedium & \marLlvipVtwoVsConcatMdMeanApLarge\,\ensuremath{\pm}\,\marLlvipVtwoVsConcatMdStdApLarge \\
+\midrule
+\multicolumn{4}{l}{\emph{M3FD}} \\
+Concat, modality dropout & \resMfdConcatMdMeanApSmall\,\ensuremath{\pm}\,\resMfdConcatMdStdApSmall & \resMfdConcatMdMeanApMedium\,\ensuremath{\pm}\,\resMfdConcatMdStdApMedium & \resMfdConcatMdMeanApLarge\,\ensuremath{\pm}\,\resMfdConcatMdStdApLarge \\
+CFFM-Net v2 & \resMfdCffmVtwoMeanApSmall\,\ensuremath{\pm}\,\resMfdCffmVtwoStdApSmall & \resMfdCffmVtwoMeanApMedium\,\ensuremath{\pm}\,\resMfdCffmVtwoStdApMedium & \resMfdCffmVtwoMeanApLarge\,\ensuremath{\pm}\,\resMfdCffmVtwoStdApLarge \\
+Margin of v2 (pp) & \marMfdVtwoVsConcatMdMeanApSmall\,\ensuremath{\pm}\,\marMfdVtwoVsConcatMdStdApSmall & \marMfdVtwoVsConcatMdMeanApMedium\,\ensuremath{\pm}\,\marMfdVtwoVsConcatMdStdApMedium & \marMfdVtwoVsConcatMdMeanApLarge\,\ensuremath{\pm}\,\marMfdVtwoVsConcatMdStdApLarge \\
+\bottomrule
+\end{tabular}}
+\end{table}

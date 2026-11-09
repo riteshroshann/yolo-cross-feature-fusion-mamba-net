@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\caption{Degradation probe on LLVIP, mAP in percent, round-one models (30 epochs, seed 0).}
+\label{tab:probe}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\adjustbox{max width=\linewidth}{\begin{tabular}{lccc}
+\toprule
+Condition & v1 & v1, no gate & Concat \\
+\midrule
+Clean & \prbLlvipCffmVoneCleanMap & \prbLlvipCffmVoneNogateCleanMap & \prbLlvipConcatPlainCleanMap \\
+Visible dark & \prbLlvipCffmVoneVisibleDarkMap & \prbLlvipCffmVoneNogateVisibleDarkMap & \prbLlvipConcatPlainVisibleDarkMap \\
+Visible drop & \prbLlvipCffmVoneVisibleDropMap & \prbLlvipCffmVoneNogateVisibleDropMap & \prbLlvipConcatPlainVisibleDropMap \\
+Visible drop, flagged & \prbLlvipCffmVoneVisibleDropFlaggedMap & \prbLlvipCffmVoneNogateVisibleDropFlaggedMap & \prbLlvipConcatPlainVisibleDropFlaggedMap \\
+Thermal drop & \prbLlvipCffmVoneThermalDropMap & \prbLlvipCffmVoneNogateThermalDropMap & \prbLlvipConcatPlainThermalDropMap \\
+Thermal drop, flagged & \prbLlvipCffmVoneThermalDropFlaggedMap & \prbLlvipCffmVoneNogateThermalDropFlaggedMap & \prbLlvipConcatPlainThermalDropFlaggedMap \\
+Thermal shift 4 px & \prbLlvipCffmVoneThermalShiftFourMap & \prbLlvipCffmVoneNogateThermalShiftFourMap & \prbLlvipConcatPlainThermalShiftFourMap \\
+Thermal shift 8 px & \prbLlvipCffmVoneThermalShiftEightMap & \prbLlvipCffmVoneNogateThermalShiftEightMap & \prbLlvipConcatPlainThermalShiftEightMap \\
+Thermal shift 16 px & \prbLlvipCffmVoneThermalShiftSixteenMap & \prbLlvipCffmVoneNogateThermalShiftSixteenMap & \prbLlvipConcatPlainThermalShiftSixteenMap \\
+\bottomrule
+\end{tabular}}}
+\end{table}

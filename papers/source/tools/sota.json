@@ -1,0 +1,32 @@
+{
+  "llvip": [
+    {"method": "YOLOv5-l, infrared only", "cite": "jia2021llvip", "detector": "YOLOv5-l", "setting": "not stated", "map50": "96.5", "map": "67.0"},
+    {"method": "CFT", "cite": "fang2021cft", "detector": "YOLOv5 with CFB", "setting": "640$\\times$640", "map50": "97.5", "map": "63.6"},
+    {"method": "CSSA", "cite": "cao2023csaa", "detector": "Faster R-CNN, ResNet-50", "setting": "640$\\times$512", "map50": "94.3", "map": "59.2"},
+    {"method": "MS-DETR", "cite": "xing2024msdetr", "detector": "Deformable DETR, ResNet-50", "setting": "640$\\times$512", "map50": "97.9", "map": "66.1"},
+    {"method": "Fusion-Mamba", "cite": "dong2025fusionmamba", "detector": "YOLOv8-l", "setting": "640$\\times$640", "map50": "97.0", "map": "64.3"},
+    {"method": "DAMSDet", "cite": "guo2024damsdet", "detector": "DETR, ResNet-50", "setting": "1024$\\times$1024", "map50": "97.9", "map": "69.6"},
+    {"method": "TFDet", "cite": "zhang2024tfdet", "detector": "YOLOv5-l", "setting": "not stated", "map50": "97.9", "map": "71.1"},
+    {"method": "WaveMamba", "cite": "zhu2025wavemamba", "detector": "YOLOv8", "setting": "not stated", "map50": "98.3", "map": "66.0"},
+    {"method": "IRDFusion", "cite": "shen2025irdfusion", "detector": "Co-DETR", "setting": "640$\\times$640", "map50": "98.4", "map": "70.9"}
+  ],
+  "m3fd": [
+    {"method": "TarDAL, fused image", "cite": "liu2022tardal", "detector": "YOLOv5", "setting": "3,500 train, test not stated", "map50": "80.7", "map": "--"},
+    {"method": "DAMSDet", "cite": "guo2024damsdet", "detector": "DETR, ResNet-50", "setting": "3,368 / 831, by scene", "map50": "80.2", "map": "52.9"},
+    {"method": "TFDet", "cite": "zhang2024tfdet", "detector": "YOLOv5", "setting": "2,905 / 1,295", "map50": "64.8", "map": "41.0"},
+    {"method": "E2E-MFD", "cite": "zhang2024e2emfd", "detector": "Detectron2, end to end", "setting": "2,940 / 1,260", "map50": "91.8", "map": "63.8"},
+    {"method": "Fusion-Mamba", "cite": "dong2025fusionmamba", "detector": "YOLOv8-l", "setting": "split of Liang et al.", "map50": "88.0", "map": "61.9"},
+    {"method": "WaveMamba", "cite": "zhu2025wavemamba", "detector": "YOLOv8", "setting": "3,360 / 840", "map50": "92.1", "map": "64.4"}
+  ],
+  "kaist": [
+    {"method": "AR-CNN", "cite": "zhang2019arcnn", "detector": "VGG-16", "train": "sanitized", "all": "9.34", "day": "9.94", "night": "8.38"},
+    {"method": "MBNet", "cite": "zhou2020mbnet", "detector": "ResNet-50", "train": "AR-CNN improved", "all": "8.13", "day": "8.28", "night": "7.86"},
+    {"method": "GAFF, original training", "cite": "zhang2021gaff", "detector": "VGG-16", "train": "original", "all": "10.62", "day": "10.82", "night": "10.14"},
+    {"method": "GAFF, sanitized training", "cite": "zhang2021gaff", "detector": "VGG-16", "train": "sanitized", "all": "6.48", "day": "8.35", "night": "3.46"},
+    {"method": "ICAFusion", "cite": "shen2024icafusion", "detector": "YOLOv5, CSPDarknet53", "train": "sanitized", "all": "7.17", "day": "6.82", "night": "7.85"},
+    {"method": "MS-DETR", "cite": "xing2024msdetr", "detector": "ResNet-50", "train": "sanitized", "all": "6.13", "day": "7.78", "night": "3.18"},
+    {"method": "TFDet", "cite": "zhang2024tfdet", "detector": "VGG-16", "train": "sanitized", "all": "4.47", "day": "5.22", "night": "3.36"}
+  ]
+,
+  "extra": {"cft_split_low": "68.2", "cft_split_high": "89.8"}
+}

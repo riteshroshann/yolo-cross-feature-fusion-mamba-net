@@ -1,0 +1,26 @@
+\begin{table}[t]
+\centering
+\caption{Detection accuracy in percent. Fusion models: mean and sample std over three seeds, 80 epochs. Single-camera rows: one seed; 30 epochs on LLVIP, which is not matched to the fusion rows, and 80 epochs on M3FD, which is. The margin over the best single camera subtracts the one-seed single-camera value from each fusion seed.}
+\label{tab:main}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcc}
+\toprule
+Model & mAP & mAP$_{50}$ \\
+\midrule
+\multicolumn{3}{l}{\emph{LLVIP}} \\
+YOLO26-n visible & \resLlvipYoloVisSeedZeroMap & \resLlvipYoloVisSeedZeroMapFifty \\
+YOLO26-n thermal & \resLlvipYoloThmSeedZeroMap & \resLlvipYoloThmSeedZeroMapFifty \\
+Concat, modality dropout & \resLlvipConcatMdMeanMap\,\ensuremath{\pm}\,\resLlvipConcatMdStdMap & \resLlvipConcatMdMeanMapFifty\,\ensuremath{\pm}\,\resLlvipConcatMdStdMapFifty \\
+CFFM-Net v2 & \resLlvipCffmVtwoMeanMap\,\ensuremath{\pm}\,\resLlvipCffmVtwoStdMap & \resLlvipCffmVtwoMeanMapFifty\,\ensuremath{\pm}\,\resLlvipCffmVtwoStdMapFifty \\
+Margin of v2 over concat (pp) & \marLlvipVtwoVsConcatMdMeanMap\,\ensuremath{\pm}\,\marLlvipVtwoVsConcatMdStdMap & \marLlvipVtwoVsConcatMdMeanMapFifty\,\ensuremath{\pm}\,\marLlvipVtwoVsConcatMdStdMapFifty \\
+\midrule
+\multicolumn{3}{l}{\emph{M3FD}} \\
+YOLO26-n visible & \resMfdYoloVisSeedZeroMap & \resMfdYoloVisSeedZeroMapFifty \\
+YOLO26-n thermal & \resMfdYoloThmSeedZeroMap & \resMfdYoloThmSeedZeroMapFifty \\
+Concat, modality dropout & \resMfdConcatMdMeanMap\,\ensuremath{\pm}\,\resMfdConcatMdStdMap & \resMfdConcatMdMeanMapFifty\,\ensuremath{\pm}\,\resMfdConcatMdStdMapFifty \\
+CFFM-Net v2 & \resMfdCffmVtwoMeanMap\,\ensuremath{\pm}\,\resMfdCffmVtwoStdMap & \resMfdCffmVtwoMeanMapFifty\,\ensuremath{\pm}\,\resMfdCffmVtwoStdMapFifty \\
+Margin of v2 over concat (pp) & \marMfdVtwoVsConcatMdMeanMap\,\ensuremath{\pm}\,\marMfdVtwoVsConcatMdStdMap & \marMfdVtwoVsConcatMdMeanMapFifty\,\ensuremath{\pm}\,\marMfdVtwoVsConcatMdStdMapFifty \\
+Margin of v2 over best single camera (pp) & \gainMfdCffmVtwoOverBestMeanMap\,\ensuremath{\pm}\,\gainMfdCffmVtwoOverBestStdMap & \gainMfdCffmVtwoOverBestMapFiftyMean\,\ensuremath{\pm}\,\gainMfdCffmVtwoOverBestMapFiftyStd \\
+\bottomrule
+\end{tabular}}
+\end{table}

@@ -1,0 +1,33 @@
+\begin{table}[t]
+\centering
+\caption{Multi-camera analytics. Detection uses zero-shot and fine-tuned YOLO26-m with ground-plane fusion; tracking and counting are reported once.}
+\label{tab:multicam}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\adjustbox{max width=\linewidth}{\begin{tabular}{lcc}
+\toprule
+Measure & Zero-shot & Fine-tuned \\
+\midrule
+\multicolumn{3}{l}{\emph{Detection}} \\
+MODA (\%) & \camDetZeroShotModa & \camDetFineTunedModa \\
+MODP (\%) & \camDetZeroShotModp & \camDetFineTunedModp \\
+Precision (\%) & \camDetZeroShotPrecision & \camDetFineTunedPrecision \\
+Recall (\%) & \camDetZeroShotRecall & \camDetFineTunedRecall \\
+True positives & \camDetZeroShotTp & \camDetFineTunedTp \\
+False positives & \camDetZeroShotFp & \camDetFineTunedFp \\
+False negatives & \camDetZeroShotFn & \camDetFineTunedFn \\
+\midrule
+\multicolumn{3}{l}{\emph{Tracking}} \\
+MOTA (\%) & \multicolumn{2}{c}{\camTrackMota} \\
+IDF1 (\%) & \multicolumn{2}{c}{\camTrackIdfOne} \\
+ID switches & \multicolumn{2}{c}{\camTrackSwitches} \\
+Mostly tracked of \camTrackUniqueObjects & \multicolumn{2}{c}{\camTrackMostlyTracked} \\
+\midrule
+\multicolumn{3}{l}{\emph{Counting}} \\
+Count MAE (people) & \multicolumn{2}{c}{\camCountMae} \\
+Relative error (\%) & \multicolumn{2}{c}{\camCountRelErr} \\
+Zone one MAE & \multicolumn{2}{c}{\camCountZoneOneMae} \\
+Zone two MAE & \multicolumn{2}{c}{\camCountZoneTwoMae} \\
+Zone three MAE & \multicolumn{2}{c}{\camCountZoneThreeMae} \\
+\bottomrule
+\end{tabular}}}
+\end{table}

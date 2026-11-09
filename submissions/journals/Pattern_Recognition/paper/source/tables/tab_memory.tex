@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering
+\caption{Temporal State Memory against the same detector without memory on KAIST. A camera fails for four seconds in every eight. Failed frames are those inside a failure. Change is memory minus image. One memory training run, one detector.}
+\label{tab:memory}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{3}{c}{All frames} & \multicolumn{3}{c}{Failed frames} \\ \cmidrule(lr){2-4}\cmidrule(lr){5-7} Condition & Image & Memory & Change & Image & Memory & Change \\
+\midrule
+\multicolumn{7}{l}{\emph{Miss rate (\%), lower is better}} \\
+Clean & \memCleanImageAllMr & \memCleanMemoryAllMr & \memChangeCleanAllMr & -- & -- & -- \\
+Thermal lost & \memThermalLostImageAllMr & \memThermalLostMemoryAllMr & \memChangeThermalLostAllMr & \memThermalLostImageFailedMr & \memThermalLostMemoryFailedMr & \memChangeThermalLostFailedMr \\
+Thermal lost, flagged & \memThermalLostFlaggedImageAllMr & \memThermalLostFlaggedMemoryAllMr & \memChangeThermalLostFlaggedAllMr & \memThermalLostFlaggedImageFailedMr & \memThermalLostFlaggedMemoryFailedMr & \memChangeThermalLostFlaggedFailedMr \\
+Visible dark & \memVisibleDarkImageAllMr & \memVisibleDarkMemoryAllMr & \memChangeVisibleDarkAllMr & \memVisibleDarkImageFailedMr & \memVisibleDarkMemoryFailedMr & \memChangeVisibleDarkFailedMr \\
+Thermal noise & \memThermalNoiseImageAllMr & \memThermalNoiseMemoryAllMr & \memChangeThermalNoiseAllMr & \memThermalNoiseImageFailedMr & \memThermalNoiseMemoryFailedMr & \memChangeThermalNoiseFailedMr \\
+\midrule
+\multicolumn{7}{l}{\emph{Tracking, mean of four sequences}} \\ & \multicolumn{3}{c}{MOTA (\%)} & \multicolumn{3}{c}{IDF1 (\%)} \\ \cmidrule(lr){2-4}\cmidrule(lr){5-7} Condition & Image & Memory & Change & Image & Memory & Change \\
+Clean & \trkCleanImageMota & \trkCleanMemoryMota & \trkChangeCleanMota & \trkCleanImageIdfOne & \trkCleanMemoryIdfOne & \trkChangeCleanIdfOne \\
+Thermal lost & \trkThermalLostImageMota & \trkThermalLostMemoryMota & \trkChangeThermalLostMota & \trkThermalLostImageIdfOne & \trkThermalLostMemoryIdfOne & \trkChangeThermalLostIdfOne \\
+\bottomrule
+\end{tabular}}
+\end{table*}

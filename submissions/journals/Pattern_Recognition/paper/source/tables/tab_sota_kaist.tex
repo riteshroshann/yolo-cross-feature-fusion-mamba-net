@@ -1,0 +1,22 @@
+\begin{table*}[t]
+\centering
+\caption{KAIST log-average miss rate in percent on the reasonable subset (lower is better). Published rows use the improved test annotations and the standard evaluation code and are copied from the cited papers. Our rows use the original annotations for training and testing, every 20th test frame and our own implementation of the protocol, so they are indicative only.}
+\label{tab:sotakaist}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lllccc}
+\toprule
+Method & Detector & Train annotations & All & Day & Night \\
+\midrule
+AR-CNN~\cite{zhang2019arcnn} & VGG-16 & sanitized & 9.34 & 9.94 & 8.38 \\
+MBNet~\cite{zhou2020mbnet} & ResNet-50 & AR-CNN improved & 8.13 & 8.28 & 7.86 \\
+GAFF, original training~\cite{zhang2021gaff} & VGG-16 & original & 10.62 & 10.82 & 10.14 \\
+GAFF, sanitized training~\cite{zhang2021gaff} & VGG-16 & sanitized & 6.48 & 8.35 & 3.46 \\
+ICAFusion~\cite{shen2024icafusion} & YOLOv5, CSPDarknet53 & sanitized & 7.17 & 6.82 & 7.85 \\
+MS-DETR~\cite{xing2024msdetr} & ResNet-50 & sanitized & 6.13 & 7.78 & 3.18 \\
+TFDet~\cite{zhang2024tfdet} & VGG-16 & sanitized & 4.47 & 5.22 & 3.36 \\
+\midrule
+Concat baseline (this work) & YOLO26-n & original & \kstConcatAllMr & \kstConcatDayMr & \kstConcatNightMr \\
+CFFM-Net v2 (this work) & YOLO26-n & original & \kstCffmAllMr & \kstCffmDayMr & \kstCffmNightMr \\
+\bottomrule
+\end{tabular}}
+\end{table*}

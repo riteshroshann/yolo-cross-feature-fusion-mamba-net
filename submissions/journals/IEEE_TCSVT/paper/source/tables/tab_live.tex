@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\caption{Live runtime on replayed KAIST sequences. Soak: paired cameras at the stated rate. Link faults: 20\,fps with a scripted cable pull, freeze and stall. Drift is the late minus the early median end-to-end delay. One run per row.}
+\label{tab:live}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccc}
+\toprule
+& \multicolumn{2}{c}{Soak} & \multicolumn{2}{c}{Link faults} \\ \cmidrule(lr){2-3}\cmidrule(lr){4-5} Measure & 30 fps & 20 fps & Monitor on & Monitor off \\
+\midrule
+Run time (s) & \livSoakThirtySeconds & \livSoakTwentySeconds & \livFaultOnSeconds & \livFaultOffSeconds \\
+Throughput (frames/s) & \livSoakThirtyFps & \livSoakTwentyFps & \livFaultOnFps & \livFaultOffFps \\
+Capture drop (\%) & \livSoakThirtyDropPercent & \livSoakTwentyDropPercent & -- & -- \\
+End-to-end median (ms) & \livSoakThirtyEndToEndMedianMs & \livSoakTwentyEndToEndMedianMs & \livFaultOnEndToEndMedianMs & \livFaultOffEndToEndMedianMs \\
+End-to-end p95 (ms) & \livSoakThirtyEndToEndPNinetyFiveMs & \livSoakTwentyEndToEndPNinetyFiveMs & \livFaultOnEndToEndPNinetyFiveMs & \livFaultOffEndToEndPNinetyFiveMs \\
+Inference median (ms) & \livSoakThirtyInferMedianMs & \livSoakTwentyInferMedianMs & \livFaultOnInferMedianMs & \livFaultOffInferMedianMs \\
+Inference p95 (ms) & \livSoakThirtyInferPNinetyFiveMs & \livSoakTwentyInferPNinetyFiveMs & \livFaultOnInferPNinetyFiveMs & \livFaultOffInferPNinetyFiveMs \\
+Drift (ms) & \livSoakThirtyDriftMs & \livSoakTwentyDriftMs & \livFaultOnDriftMs & \livFaultOffDriftMs \\
+GPU memory growth (MB) & \livSoakThirtyGpuGrowthMb & \livSoakTwentyGpuGrowthMb & \livFaultOnGpuGrowthMb & \livFaultOffGpuGrowthMb \\
+Miss rate, all frames (\%) & -- & -- & \livFaultOnMr & \livFaultOffMr \\
+Camera reconnects & -- & -- & \livFaultOnReconnects & \livFaultOffReconnects \\
+\bottomrule
+\end{tabular}}
+\end{table}

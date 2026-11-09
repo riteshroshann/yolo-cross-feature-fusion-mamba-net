@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\caption{Parameters (millions), GFLOPs and latency (ms) on a \latLocalDevice{}, half precision, batch one, \cfgLatW{}$\times$\cfgLatH{} input, median and 95th percentile per image over \cfgLatIters{} timed iterations after \cfgLatWarmup{} warm-up iterations, on an otherwise idle GPU.}
+\label{tab:latency}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\adjustbox{max width=\linewidth}{\begin{tabular}{lrrrr}
+\toprule
+Model & Params & GFLOPs & Median & p95 \\
+\midrule
+YOLO26-n thermal only & \latLocalYoloThmParamsM & \latLocalYoloThmGflops & \latLocalYoloThmMedianMs & \latLocalYoloThmPNinetyFiveMs \\
+Concat, modality dropout & \latLocalConcatMdParamsM & \latLocalConcatMdGflops & \latLocalConcatMdMedianMs & \latLocalConcatMdPNinetyFiveMs \\
+Concat, fault training & \latLocalConcatFtParamsM & \latLocalConcatFtGflops & \latLocalConcatFtMedianMs & \latLocalConcatFtPNinetyFiveMs \\
+CFFM-Net v2 & \latLocalVtwoParamsM & \latLocalVtwoGflops & \latLocalVtwoMedianMs & \latLocalVtwoPNinetyFiveMs \\
+v3, no reliability branch & \latLocalVthreeNorelParamsM & \latLocalVthreeNorelGflops & \latLocalVthreeNorelMedianMs & \latLocalVthreeNorelPNinetyFiveMs \\
+CFFM-Net v3 & \latLocalVthreeParamsM & \latLocalVthreeGflops & \latLocalVthreeMedianMs & \latLocalVthreePNinetyFiveMs \\
+\midrule
+v2 over concat, ratio & \latLocalRatioParams & \latLocalRatioGflops & \latLocalRatioMedian & \latLocalRatioPNinetyFive \\
+\bottomrule
+\end{tabular}}}
+\end{table}

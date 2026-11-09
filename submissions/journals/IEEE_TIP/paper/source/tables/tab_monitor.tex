@@ -1,0 +1,15 @@
+\begin{table}[t]
+\centering
+\caption{Stream monitor timing for each scripted fault, with the monitor feeding the model (on) and only observing (off). Delays are seconds from onset or end of the fault to the first change of state.}
+\label{tab:monitor}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{2}{c}{Detect (s)} & \multicolumn{2}{c}{Recover (s)} & \multicolumn{2}{c}{False alarms (\%)} \\ \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7} Fault & On & Off & On & Off & On & Off \\
+\midrule
+Thermal unplugged, 6\,s & \livFaultOnUnpluggedDetectS & \livFaultOffUnpluggedDetectS & \livFaultOnUnpluggedRecoverS & \livFaultOffUnpluggedRecoverS & \livFaultOnUnpluggedFalseAlarmPercent & \livFaultOffUnpluggedFalseAlarmPercent \\
+Visible frozen, 6\,s & \livFaultOnFrozenDetectS & \livFaultOffFrozenDetectS & \livFaultOnFrozenRecoverS & \livFaultOffFrozenRecoverS & \livFaultOnFrozenFalseAlarmPercent & \livFaultOffFrozenFalseAlarmPercent \\
+Thermal stalled, 3\,s & \livFaultOnStalledDetectS & \livFaultOffStalledDetectS & \livFaultOnStalledRecoverS & \livFaultOffStalledRecoverS & \livFaultOnStalledFalseAlarmPercent & \livFaultOffStalledFalseAlarmPercent \\
+\bottomrule
+\end{tabular}}
+\end{table}

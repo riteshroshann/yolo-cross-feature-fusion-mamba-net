@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\caption{Round history: mAP margin of CFFM-Net over its control in percentage points.}
+\label{tab:rounds}
+{\footnotesize\setlength{\tabcolsep}{4pt}
+\begin{tabular}{p{0.6\columnwidth}cc}
+\toprule
+Comparison & LLVIP & M3FD \\
+\midrule
+Round one, v1 against concat (30 epochs) & \marLlvipVoneVsConcatPlainSeedZeroMap & \marMfdVoneVsConcatPlainSeedZeroMap \\
+Head control, v1 without P2 against concat with P2 & \marLlvipVoneNoptwoVsConcatPtwoSeedZeroMap & -- \\
+Round three, v2 against concat (seed 0) & \marLlvipVtwoVsConcatMdSeedZeroMap & \marMfdVtwoVsConcatMdSeedZeroMap \\
+Round three, v2 against concat (three-seed mean) & \marLlvipVtwoVsConcatMdMeanMap & \marMfdVtwoVsConcatMdMeanMap \\
+Round four, v3 against fault-trained concat & \marLlvipVthreeVsConcatFtSeedZeroMap & \marMfdVthreeVsConcatFtSeedZeroMap \\
+Round four, v3 against v3 without reliability branch & \marLlvipVthreeVsVthreeNorelSeedZeroMap & \marMfdVthreeVsVthreeNorelSeedZeroMap \\
+Round four, v3 against v2 & \marLlvipVthreeVsVtwoSeedZeroMap & \marMfdVthreeVsVtwoSeedZeroMap \\
+\bottomrule
+\end{tabular}}
+\end{table}
