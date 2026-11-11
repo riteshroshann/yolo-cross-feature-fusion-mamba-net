@@ -15,25 +15,25 @@
   \draw[ar] (sv) -- (bv); \draw[ar] (st) -- (bt);
   \draw[ar] (bv.north) |- ($(fu.west)+(0,-0.25)$);
   \draw[ar] (bt.north) |- ($(fu.east)+(0,-0.25)$);
-  \draw[ar] ($(bv.north)+(-0.9,0)$) -- ++(0,1.9) node[lab, above, text width=2.3cm] {to stage $\ell+1$};
-  \draw[ar] ($(bt.north)+(0.9,0)$) -- ++(0,1.9) node[lab, above, text width=2.3cm] {to stage $\ell+1$};
+  \draw[ar] ($(bv.north)+(-0.9,0)$) -- ++(0,0.95) node[lab, above, text width=2.3cm] {to stage $\ell+1$};
+  \draw[ar] ($(bt.north)+(0.9,0)$) -- ++(0,0.95) node[lab, above, text width=2.3cm] {to stage $\ell+1$};
 
   \begin{scope}[on background layer]
-    \node[box, fit=(bv)(bt)(fu), inner xsep=10pt, inner ysep=12pt] (rep) {};
+    \node[box, fit=(bv)(bt)(fu), inner xsep=12pt, inner ysep=16pt] (rep) {};
   \end{scope}
   \node[font=\small, anchor=east] at ($(rep.west)+(-0.12,0)$) {$4\times$};
   \node[lab, anchor=west, text width=2.7cm] at (8.75,3.55)
        {levels $P_2$ to $P_5$, strides 4 to 32; separate weights per stream, both COCO-initialised};
 
-  \node[neu, minimum width=6.2cm, minimum height=1.05cm] (nk) at (3.2,7.75)
+  \node[neu, minimum width=6.2cm, minimum height=1.05cm] (nk) at (3.2,8.25)
        {PAN neck with stride-4 extension\\[-1pt] \footnotesize YOLO26-P2: top-down and bottom-up over fused $P_2$--$P_5$};
-  \node[hed, minimum width=6.2cm, minimum height=1.05cm] (hd) at (3.2,9.35)
+  \node[hed, minimum width=6.2cm, minimum height=1.05cm] (hd) at (3.2,9.85)
        {Detection heads at strides 4, 8, 16, 32\\[-1pt] \footnotesize one-to-one assignment, NMS-free};
-  \node[io] (out) at (3.2,10.75) {Boxes, classes, scores};
-  \draw[ar] (fu) -- node[lab, right=2pt] {fused $P_2$--$P_5$} (nk);
+  \node[io] (out) at (3.2,11.25) {Boxes, classes, scores};
+  \draw[ar] (fu) -- node[lab, right=3pt, pos=0.68] {fused $P_2$--$P_5$} (nk);
   \draw[ar] (nk) -- (hd); \draw[ar] (hd) -- (out);
 
-  \node[lab, anchor=west, text width=2.6cm] (rho) at (8.75,5.15) {reliability maps\\ $r^{v}_\ell,\; r^{\theta}_\ell,\; \rho_\ell$};
-  \draw[dar, draw=cFuse] (fu.east) ++(0,0.35) -- (rho.west |- 0,5.5);
+  \node[lab, anchor=west, text width=2.6cm] (rho) at (8.75,5.55) {reliability maps\\ $r^{v}_\ell,\; r^{\theta}_\ell,\; \rho_\ell$};
+  \draw[dar, draw=cFuse] (fu.east) ++(0,0.75) -- (rho.west |- 0,5.9);
 \end{tikzpicture}
 \end{document}

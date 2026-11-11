@@ -2,41 +2,41 @@
 \input{style}
 \begin{document}
 \begin{tikzpicture}[
-  E/.style={blk, neu, minimum width=3.8cm, minimum height=1.8cm, text width=3.4cm, align=left, inner ysep=4pt},
+  E/.style={blk, neu, minimum width=4.1cm, minimum height=1.8cm, text width=3.6cm, align=left, inner ysep=4pt},
   pair/.style={inner sep=0pt, draw=ink!55, line width=0.4pt}]
 
-  \foreach \y/\lbl/\k in {4.8/{t-1}/a, 2.5/{t}/b} {
-    \node[pair] (v\k) at (0.5,\y) {\includegraphics[width=0.95cm]{in_visible.jpg}};
-    \node[pair] (h\k) at (1.55,\y) {\includegraphics[width=0.95cm]{in_thermal.jpg}};
+  \foreach \y/\lbl/\k in {5.4/{t-1}/a, 2.2/{t}/b} {
+    \node[pair] (v\k) at (0.6,\y) {\includegraphics[width=0.95cm]{in_visible.jpg}};
+    \node[pair] (h\k) at (1.65,\y) {\includegraphics[width=0.95cm]{in_thermal.jpg}};
     \node[fit=(v\k)(h\k), inner sep=2pt, draw=cNeutral!55, line width=0.4pt] (p\k) {};
-    \node[lab, anchor=north] at (p\k.south) {frame $\lbl$};
-    \node[fus, minimum width=2.2cm, minimum height=1.0cm] (f\k) at (4.0,\y) {Fused maps $Z$\\[-1pt] \footnotesize strides 8, 16, 32};
-    \node[scn, minimum width=2.3cm, minimum height=1.0cm] (m\k) at (7.0,\y) {Temporal\\[-1pt] State Memory};
-    \node[hed, minimum width=2.1cm, minimum height=1.0cm] (n\k) at (10.0,\y) {Neck and\\[-1pt] one-to-one head};
-    \node[dat, minimum width=1.5cm, minimum height=1.0cm] (d\k) at (12.55,\y) {Detections};
-    \node[neu, blk, minimum width=2.0cm, minimum height=1.0cm] (t\k) at (15.0,\y) {ByteTrack\\[-1pt] \footnotesize tracks};
+    \node[lab, anchor=north] at ($(p\k.south)+(0,-0.05)$) {frame $\lbl$};
+    \node[fus, minimum width=2.5cm, minimum height=1.2cm] (f\k) at (4.745,\y) {Fused maps $Z$\\[-1pt] \footnotesize strides 8, 16, 32};
+    \node[scn, minimum width=2.5cm, minimum height=1.2cm] (m\k) at (8.545,\y) {Temporal\\[-1pt] State Memory};
+    \node[hed, minimum width=2.5cm, minimum height=1.2cm] (n\k) at (12.345,\y) {Neck and\\[-1pt] one-to-one head};
+    \node[dat, minimum width=1.9cm, minimum height=1.2cm] (d\k) at (15.845,\y) {Detections};
+    \node[neu, blk, minimum width=1.9cm, minimum height=1.2cm] (t\k) at (19.045,\y) {ByteTrack\\[-1pt] \footnotesize tracks};
     \draw[ar] (p\k.east) -- (f\k.west);
-    \draw[ar] (f\k.east) -- node[above=1pt, lab, inner sep=1pt] {$Z,\rho$} (m\k.west);
+    \draw[ar] (f\k.east) -- node[above=3pt, lab, inner sep=1pt] {$Z,\rho$} (m\k.west);
     \draw[ar] (m\k.east) -- (n\k.west);
     \draw[ar] (n\k.east) -- (d\k.west);
     \draw[ar] (d\k.east) -- (t\k.west);
   }
 
   \draw[ar, draw=cTime, line width=0.8pt] (ma.south) -- (mb.north);
-  \node[lab, anchor=west, text width=5.2cm, align=left] at (7.2,3.65) {state $S_{t-1}$ warped by $H_t$;\\ step scaled by $\tau_t/\tau_0$ and $\rho_t$};
-  \draw[ar, draw=cTime, line width=0.8pt] (7.0,6.0) -- (ma.north);
-  \node[lab, anchor=east] at (6.85,5.7) {$S_{t-2}$};
-  \draw[ar, draw=cTime, line width=0.8pt] (mb.south) -- (7.0,1.2);
-  \node[lab, anchor=west] at (7.15,1.45) {$S_t$ to frame $t{+}1$; reset at a scene cut};
-  \node[lab, anchor=west, text width=5.8cm, align=left] at (0.0,3.45) {causal: frames in order, no future frame used};
+  \node[lab, anchor=west, text width=5.4cm, align=left] at (8.75,3.8) {state $S_{t-1}$ warped by $H_t$;\\ step scaled by $\tau_t/\tau_0$ and $\rho_t$};
+  \draw[ar, draw=cTime, line width=0.8pt] (8.545,7.3) -- (ma.north);
+  \node[lab, anchor=east] at (8.35,6.8) {$S_{t-2}$};
+  \draw[ar, draw=cTime, line width=0.8pt] (mb.south) -- (8.545,0.5);
+  \node[lab, anchor=west] at (8.75,1.0) {$S_t$ to frame $t{+}1$; reset at a scene cut};
+  \node[lab, anchor=west, text width=5.8cm, align=left] at (0.055,3.6) {causal: frames in order, no future frame used};
 
   \begin{scope}[on background layer]
-    \node[region=cNeutral, fit={(0.0,-2.25) (16.3,0.6)}] {};
+    \draw[region=cNeutral] (0,-3.4) rectangle (20.4,0.0);
   \end{scope}
-  \node[rtitle=cNeutral] at (0.0,0.6) {Evaluation on KAIST};
-  \node[E] at (2.1,-1.15) {\textbf{Two modes}\\[-1pt] \footnotesize same weights, memory off or on at test time};
-  \node[E] at (6.2,-1.15) {\textbf{Conditions}\\[-1pt] \footnotesize clean, thermal lost (flagged or not), visible darkened, thermal noise};
-  \node[E] at (10.3,-1.15) {\textbf{Detection}\\[-1pt] \footnotesize log-average miss rate, all frames and failed frames};
-  \node[E] at (14.4,-1.15) {\textbf{Tracking}\\[-1pt] \footnotesize MOTA, IDF1, identity switches on four test sequences};
+  \node[rtitle=cNeutral] at (0.3,-0.3) {Evaluation on KAIST};
+  \node[E] at (2.45,-2.1) {\textbf{Two modes}\\[-1pt] \footnotesize same weights, memory off or on at test time};
+  \node[E] at (7.55,-2.1) {\textbf{Conditions}\\[-1pt] \footnotesize clean, thermal lost (flagged or not), visible darkened, thermal noise};
+  \node[E] at (12.65,-2.1) {\textbf{Detection}\\[-1pt] \footnotesize log-average miss rate, all frames and failed frames};
+  \node[E] at (17.75,-2.1) {\textbf{Tracking}\\[-1pt] \footnotesize MOTA, IDF1, identity switches on four test sequences};
 \end{tikzpicture}
 \end{document}

@@ -2,70 +2,70 @@
 \input{style}
 \begin{document}
 \begin{tikzpicture}[font=\small,
-  P/.style={blk, minimum width=3.15cm, text width=2.95cm, minimum height=0.8cm, inner ysep=1.5pt, inner xsep=3pt, font=\footnotesize},
-  M/.style={blk, minimum height=1.45cm, font=\footnotesize, inner xsep=3pt},
-  chip/.style={rounded corners=5pt, font=\scriptsize\scshape, inner xsep=5pt, inner ysep=1.5pt, text=white}]
-  \draw[line width=1.0pt, draw=cNeutral!45] (0,0) -- (17.5,0);
+  P/.style={blk, minimum width=3.29cm, text width=2.8cm, minimum height=1.25cm, inner ysep=4pt, inner xsep=7pt, font=\small},
+  note/.append style={execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  chip/.style={rounded corners=5pt, font=\scriptsize\scshape, inner xsep=6pt, inner ysep=2pt, text=white}]
+  \draw[line width=1.0pt, draw=cNeutral!45] (0,0) -- (18.89,0);
   \foreach \x/\n/\t/\c/\st/\sc in {0/0/{Environment and data}/cData/done/cFuse,
-                                  3.5/1/{Still images}/cRGB/done/cFuse,
-                                  7.0/2/{Video memory}/cTime/{done, mixed result}/cHead,
-                                  10.5/3/{Live runtime}/cIR/{done, below 30 fps}/cHead,
-                                  14.0/4/{Multi-camera}/cAlert/{done, RGB only}/cHead} {
-    \fill[\c] (\x+1.75,0) circle (3.4pt);
-    \node[font=\small\scshape, text=\c!85!black] at (\x+1.75,0.5) {Phase \n};
-    \node[font=\normalsize] at (\x+1.75,1.05) {\t};
-    \node[chip, fill=\sc!80] at (\x+1.75,-0.48) {\st};
+                                  3.9/1/{Still images}/cRGB/done/cFuse,
+                                  7.8/2/{Video memory}/cTime/{done, mixed result}/cHead,
+                                  11.7/3/{Live runtime}/cIR/{done, below 30 fps}/cHead,
+                                  15.6/4/{Multi-camera}/cAlert/{done, RGB only}/cHead} {
+    \fill[\c] (\x+1.645,0) circle (3.4pt);
+    \node[font=\small\scshape, text=\c!85!black] at (\x+1.645,0.55) {Phase \n};
+    \node[font=\normalsize] at (\x+1.645,1.25) {\t};
+    \node[chip, fill=\sc!80] at (\x+1.645,-0.55) {\st};
   }
 
-  \begin{scope}[yshift=-1.2cm]
-    \node[P, dat] (a1) at (1.75,0) {Kaggle 2$\times$T4, laptop RTX 4050};
-    \node[P, dat] (a2) at (1.75,-1.4) {LLVIP, M3FD in a paired layout};
-    \node[P, dat] (a3) at (1.75,-2.8) {KAIST, WILDTRACK added later};
-    \node[note, text width=3.3cm, anchor=north] at (1.75,-3.45) {\emph{Reached:} one fixed M3FD split for every run.};
+  \begin{scope}[yshift=-1.9cm]
+    \node[dat, P] (a1) at (1.645,0) {Kaggle 2$\times$T4, laptop RTX 4050};
+    \node[dat, P] (a2) at (1.645,-1.85) {LLVIP, M3FD in a paired layout};
+    \node[dat, P] (a3) at (1.645,-3.7) {KAIST, WILDTRACK added later};
+    \node[note, text width=3.29cm, anchor=north, inner sep=0pt] at (1.645,-4.75) {\emph{Reached:} one fixed M3FD split for every run.};
 
-    \node[P, vis] (b1) at (5.25,0) {two YOLO26-n\\backbones};
-    \node[P, scn] (b2) at (5.25,-1.4) {CMFM reliability-gated scan};
-    \node[P, vis] (b3) at (5.25,-2.8) {baselines, ablations, faults};
-    \node[note, text width=3.3cm, anchor=north] at (5.25,-3.45) {\emph{Reached:} fusion beats best single camera; scan not significant over concat.};
+    \node[vis, P] (b1) at (5.545,0) {two YOLO26-n\\backbones};
+    \node[scn, P] (b2) at (5.545,-1.85) {CMFM reliability-gated scan};
+    \node[vis, P] (b3) at (5.545,-3.7) {baselines, ablations, faults};
+    \node[note, text width=3.29cm, anchor=north, inner sep=0pt] at (5.545,-4.75) {\emph{Reached:} fusion beats best single camera; scan not significant over concat.};
 
-    \node[P, scn] (c1) at (8.75,0) {Temporal State Memory};
-    \node[P, scn] (c2) at (8.75,-1.4) {trained on fault-injected clips};
-    \node[P, scn] (c3) at (8.75,-2.8) {ByteTrack on KAIST sequences};
-    \node[note, text width=3.3cm, anchor=north] at (8.75,-3.45) {\emph{Reached:} fewer misses in thermal noise (confounded); no tracking gain.};
+    \node[scn, P] (c1) at (9.445,0) {Temporal State Memory};
+    \node[scn, P] (c2) at (9.445,-1.85) {trained on fault-injected clips};
+    \node[scn, P] (c3) at (9.445,-3.7) {ByteTrack on KAIST sequences};
+    \node[note, text width=3.29cm, anchor=north, inner sep=0pt] at (9.445,-4.75) {\emph{Reached:} fewer misses in thermal noise (confounded); no tracking gain.};
 
-    \node[P, thr] (d1) at (12.25,0) {capture thread per camera};
-    \node[P, thr] (d2) at (12.25,-1.4) {stream monitor, sensor flags};
-    \node[P, thr] (d3) at (12.25,-2.8) {half-precision loop, tracker};
-    \node[note, text width=3.3cm, anchor=north] at (12.25,-3.45) {\emph{Reached:} flat delay for ten minutes; below 30 fps; flags give no gain.};
+    \node[thr, P] (d1) at (13.345,0) {capture thread per camera};
+    \node[thr, P] (d2) at (13.345,-1.85) {stream monitor, sensor flags};
+    \node[thr, P] (d3) at (13.345,-3.7) {half-precision loop, tracker};
+    \node[note, text width=3.29cm, anchor=north, inner sep=0pt] at (13.345,-4.75) {\emph{Reached:} flat delay for ten minutes; below 30 fps; flags give no gain.};
 
-    \node[P, emb] (e1) at (15.75,0) {RGB YOLO26-m,\\seven views};
-    \node[P, emb] (e2) at (15.75,-1.4) {ground-plane projection, merge};
-    \node[P, emb] (e3) at (15.75,-2.8) {ground tracks and counts};
-    \node[note, text width=3.3cm, anchor=north] at (15.75,-3.45) {\emph{Reached:} counts and tracks on RGB only; no evidence on fusion.};
+    \node[emb, P] (e1) at (17.245,0) {RGB YOLO26-m,\\seven views};
+    \node[emb, P] (e2) at (17.245,-1.85) {ground-plane projection, merge};
+    \node[emb, P] (e3) at (17.245,-3.7) {ground tracks and counts};
+    \node[note, text width=3.29cm, anchor=north, inner sep=0pt] at (17.245,-4.75) {\emph{Reached:} counts and tracks on RGB only; no evidence on fusion.};
     \foreach \p in {a,b,c,d,e} {\draw[sar] (\p1) -- (\p2); \draw[sar] (\p2) -- (\p3);}
   \end{scope}
 
-  \begin{scope}[yshift=-6.2cm]
+  \begin{scope}[yshift=-8.3cm]
     \node[font=\small\scshape, text=muted, anchor=west] at (0,0) {Model across the phases};
-    \node[note, text width=12.5cm, anchor=west] at (5.0,0) {All blocks are built and measured; multi-camera ran on its own RGB detector.};
-    \node[img] (m0) at (0.6,-1.15) {\includegraphics[width=0.95cm]{in_visible.jpg}};
-    \node[img] (m1) at (0.6,-1.98) {\includegraphics[width=0.95cm]{in_thermal.jpg}};
-    \node[blk, vis, minimum width=1.35cm, minimum height=0.7cm] (bb1) at (2.1,-1.15) {backbone};
-    \node[blk, thr, minimum width=1.35cm, minimum height=0.7cm] (bb2) at (2.1,-1.98) {backbone};
-    \node[blk, fus, minimum width=1.2cm, minimum height=1.75cm, font=\footnotesize] (fz) at (3.85,-1.565) {CMFM};
-    \node[blk, scn, minimum width=1.2cm, minimum height=1.75cm, font=\footnotesize] (mem) at (5.5,-1.565) {TSM};
-    \node[blk, hed, minimum width=1.4cm, minimum height=1.75cm, font=\footnotesize] (nk) at (7.2,-1.565) {neck,\\heads};
-    \node[blk, neu, minimum width=1.4cm, minimum height=1.75cm, font=\footnotesize] (tr) at (8.95,-1.565) {Byte-\\Track};
-    \node[blk, att, minimum width=2.2cm, minimum height=1.75cm, text width=2.0cm, font=\footnotesize] (st) at (11.15,-1.565) {live runtime\\[-1pt]\scriptsize capture, monitor, flags};
-    \node[blk, emb, minimum width=2.4cm, minimum height=1.75cm, text width=2.2cm, font=\footnotesize] (mc) at (13.75,-1.565) {multi-camera\\[-1pt]\scriptsize RGB, ground plane};
-    \node[img] (o1) at (16.4,-1.565) {\includegraphics[width=1.9cm]{out_detections.jpg}};
+    \node[note, text width=13.0cm, anchor=west] at (5.8,0) {All blocks are built and measured; multi-camera ran on its own RGB detector.};
+    \node[img] (m0) at (0.475,-1.95) {\includegraphics[width=0.95cm]{in_visible.jpg}};
+    \node[img] (m1) at (0.475,-3.45) {\includegraphics[width=0.95cm]{in_thermal.jpg}};
+    \node[blk, vis, minimum width=1.35cm, minimum height=0.7cm] (bb1) at (2.235,-1.95) {backbone};
+    \node[blk, thr, minimum width=1.35cm, minimum height=0.7cm] (bb2) at (2.235,-3.45) {backbone};
+    \node[blk, fus, minimum width=1.2cm, minimum height=2.6cm, font=\footnotesize] (fz) at (4.12,-2.7) {CMFM};
+    \node[blk, scn, minimum width=1.2cm, minimum height=2.6cm, font=\footnotesize] (mem) at (5.93,-2.7) {TSM};
+    \node[blk, hed, minimum width=1.4cm, minimum height=2.6cm, font=\footnotesize] (nk) at (7.84,-2.7) {neck,\\heads};
+    \node[blk, neu, minimum width=1.4cm, minimum height=2.6cm, font=\footnotesize] (tr) at (9.85,-2.7) {Byte-\\Track};
+    \node[blk, att, minimum width=2.2cm, minimum height=2.6cm, text width=2.0cm, font=\footnotesize] (st) at (12.26,-2.7) {live runtime\\[-1pt]\scriptsize capture, monitor, flags};
+    \node[blk, emb, minimum width=2.4cm, minimum height=2.6cm, text width=2.2cm, font=\footnotesize] (mc) at (15.17,-2.7) {multi-camera\\[-1pt]\scriptsize RGB, ground plane};
+    \node[img] (o1) at (17.93,-2.7) {\includegraphics[width=1.9cm]{out_detections.jpg}};
     \draw[ar] (m0) -- (bb1); \draw[ar] (m1) -- (bb2);
     \draw[ar] (bb1) -- (bb1 -| fz.west); \draw[ar] (bb2) -- (bb2 -| fz.west);
     \draw[ar] (fz) -- (mem); \draw[ar] (mem) -- (nk); \draw[ar] (nk) -- (tr); \draw[ar] (tr) -- (st); \draw[ar] (st) -- (mc); \draw[ar] (mc) -- (o1);
-    \draw[dar] (mem.north) -- ++(0,0.25) -- ++(0.65,0) node[right, shp] {state $S_t$ to the next frame};
+    \draw[dar] (mem.north) -- ++(0,0.4) -- ++(0.65,0) node[right, shp, inner sep=3pt] {state $S_t$ to the next frame};
     \foreach \n/\a/\b/\c in {1/bb1/fz/cRGB, 2/mem/tr/cTime, 3/st/st/cIR, 4/mc/mc/cAlert}
       \draw[decorate, decoration={brace, amplitude=4pt, mirror}, draw=\c!70, line width=0.6pt]
-        (\a.south west |- 0,-2.6) -- node[shp, below=4pt, text=\c!80!black] {Phase \n} (\b.south east |- 0,-2.6);
+        (\a.south west |- 0,-4.3) -- node[shp, below=4pt, text=\c!80!black] {Phase \n} (\b.south east |- 0,-4.3);
   \end{scope}
 \end{tikzpicture}
 \end{document}

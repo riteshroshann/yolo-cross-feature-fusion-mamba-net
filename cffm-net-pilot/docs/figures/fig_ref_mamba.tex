@@ -46,21 +46,21 @@
       \or
         \draw[cTime, line width=0.6pt, -{Stealth[length=1.4mm]}] (1.05,0.05)--(1.05,1.15)--(0.75,0.05)--(0.75,1.15)--(0.45,0.05)--(0.45,1.15)--(0.15,0.05)--(0.15,1.15);
       \fi
-      \node[shp, anchor=north] at (0.6,-0.02) {\lbl};
+      \node[shp, anchor=west] at (1.0,-0.15) {\lbl};
       \node[M, scn, minimum width=1.3cm] (s6\k) at (2.45,0.6) {S6};
       \draw[ar] (1.25,0.6) -- (s6\k);
     \end{scope}
     \draw[ar] (6.25,4.7) -- (7.35,\y+0.6);
   }
-  \node[op] (mg) at (11.6,4.7) {$+$};
+  \node[op] (mg) at (11.35,4.7) {$+$};
   \foreach \k in {1,2,3,4} \draw[ar] (s6\k.east) -- (mg);
-  \node[shp, above=3pt of mg] {cross-merge};
-  \begin{scope}[shift={(12.2,3.7)}]
+  \node[shp, align=center] at (11.95,4.1) {cross-\\merge};
+  \begin{scope}[shift={(12.55,3.7)}]
     \fill[cFuse!12] (0,0) rectangle (2.0,2.0);
     \draw[cFuse!55, line width=0.4pt] (0,0) grid[step=0.5] (2.0,2.0);
     \node[shp] at (1.0,-0.3) {output, $H\times W$};
   \end{scope}
-  \draw[ar] (mg) -- (12.15,4.7);
+  \draw[ar] (mg) -- (12.5,4.7);
   \node[note, text width=9.6cm, anchor=north west] at (4.2,1.25)
     {Flattening an image into one sequence loses its 2-D neighbourhoods. SS2D scans it four ways, runs an
      independent selective scan (S6) on each, and adds the results, so every pixel sees context from all four

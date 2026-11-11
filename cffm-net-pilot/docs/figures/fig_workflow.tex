@@ -1,54 +1,54 @@
 \documentclass[border=8pt]{standalone}
 \input{style}
 \begin{document}
-\newcommand{\nn}[7]{\node[nb, #1] (#2) at (#3,#4) {\textbf{#5}\\[-1pt] #6\\[-1pt]{\footnotesize #7}};}
-\newcommand{\nx}[6]{\node[nb, #1] (#2) at (#3,#4) {#5\\[-1pt]{\footnotesize #6}};}
-\newcommand{\hop}[2]{\draw[ar] (#1.south) -- ++(0,-0.65) -| (#2.north);}
-\begin{tikzpicture}[nb/.style={blk, minimum width=3.05cm, text width=2.85cm, minimum height=1.3cm, inner ysep=3pt, inner xsep=3pt},
-                    rt/.style={font=\small\scshape, text=muted, anchor=west}]
-  \node[rt] at (0,1.0) {Environment and data};
-  \nn{neu}{a0}{1.525}{0}{00}{setup and checks}{go, no-go, speed}
-  \nn{dat}{a1}{5.025}{0}{01}{data acquisition}{LLVIP, M3FD}
-  \nn{dat}{a2}{8.525}{0}{02}{conversion}{paired 4-channel layout}
-  \nn{neu}{a3}{12.025}{0}{03}{data audit}{sizes, alignment}
-  \nx{dat}{a4}{15.525}{0}{KAIST, WILDTRACK}{for phases 2 to 4}
+\newcommand{\nn}[7]{\node[#1, nb] (#2) at (#3,#4) {\textbf{#5}\\[-1pt] #6\\[-1pt]{\footnotesize #7}};}
+\newcommand{\nx}[6]{\node[#1, nb] (#2) at (#3,#4) {#5\\[-1pt]{\footnotesize #6}};}
+\newcommand{\hop}[2]{\draw[ar] (#1.south) -- ++(0,-0.55) -| ([xshift=-0.6cm]#2.west) -- (#2.west);}
+\begin{tikzpicture}[nb/.style={blk, minimum width=3.2cm, text width=2.99cm, minimum height=1.7cm, inner ysep=3pt, inner xsep=3pt},
+                    rt/.style={font=\small\scshape, text=muted, anchor=south west}]
+  \node[rt] at (0,1.15) {Environment and data};
+  \nn{neu}{a0}{1.6}{0}{00}{setup and checks}{go, no-go, speed}
+  \nn{dat}{a1}{5.4}{0}{01}{data acquisition}{LLVIP, M3FD}
+  \nn{dat}{a2}{9.2}{0}{02}{conversion}{paired 4-channel layout}
+  \nn{neu}{a3}{13.0}{0}{03}{data audit}{sizes, alignment}
+  \nx{dat}{a4}{16.8}{0}{KAIST, WILDTRACK}{for phases 2 to 4}
   \draw[ar] (a0) -- (a1); \draw[ar] (a1) -- (a2); \draw[ar] (a2) -- (a3);
 
-  \node[rt] at (0,-0.95) {Phase 1 · training rounds};
-  \nn{neu}{b0}{1.525}{-2.25}{04, 05}{baselines}{single, two-stream}
-  \nn{fus}{b1}{5.025}{-2.25}{06, 07}{round one}{v1, 30 epochs}
-  \nn{scn}{b2}{8.525}{-2.25}{08, 08b}{ablations}{gate, scan, P2, head}
-  \nn{fus}{b3}{12.025}{-2.25}{08c to 08f}{rounds two, three}{v2, modality dropout}
-  \nn{fus}{b4}{15.525}{-2.25}{08g to 08l}{seeds, round four}{80 epochs, v3 faults}
+  \node[rt] at (0,-2.45) {Phase 1 · training rounds};
+  \nn{neu}{b0}{1.6}{-3.6}{04, 05}{baselines}{single, two-stream}
+  \nn{fus}{b1}{5.4}{-3.6}{06, 07}{round one}{v1, 30 epochs}
+  \nn{scn}{b2}{9.2}{-3.6}{08, 08b}{ablations}{gate, scan, P2, head}
+  \nn{fus}{b3}{13.0}{-3.6}{08c to 08f}{rounds two, three}{v2, modality dropout}
+  \nn{fus}{b4}{16.8}{-3.6}{08g to 08l}{seeds, round four}{80 epochs, v3 faults}
   \hop{a3}{b0}
   \draw[ar] (b0) -- (b1); \draw[ar] (b1) -- (b2); \draw[ar] (b2) -- (b3); \draw[ar] (b3) -- (b4);
 
-  \node[rt] at (0,-3.2) {Phase 1 · evaluation};
-  \nn{hed}{c0}{1.525}{-4.5}{09}{degradation probe}{round one, LLVIP}
-  \nx{hed}{c1}{5.025}{-4.5}{three seeds}{v2 against concat}
-  \nx{hed}{c2}{8.525}{-4.5}{matched baselines}{single camera, M3FD}
-  \nx{hed}{c3}{12.025}{-4.5}{fault benchmark}{11 faults, 3 severities}
-  \nx{hed}{c4}{15.525}{-4.5}{latency}{idle RTX 4050 laptop}
-  \draw[line width=0.55pt, draw=ink!75] (b4.south) -- ++(0,-0.65) coordinate (bus) -- (bus -| c0);
-  \foreach \c in {c0,c1,c2,c3,c4} {\draw[ar] (\c.north |- bus) -- (\c.north);}
+  \node[rt] at (0,-6.05) {Phase 1 · evaluation};
+  \nn{hed}{c0}{1.6}{-7.2}{09}{degradation probe}{round one, LLVIP}
+  \nx{hed}{c1}{5.4}{-7.2}{three seeds}{v2 against concat}
+  \nx{hed}{c2}{9.2}{-7.2}{matched baselines}{single camera, M3FD}
+  \nx{hed}{c3}{13.0}{-7.2}{fault benchmark}{11 faults, 3 severities}
+  \nx{hed}{c4}{16.8}{-7.2}{latency}{idle RTX 4050 laptop}
+  \draw[line width=0.55pt, draw=ink!75] (b4.south) -- ++(0,-0.55) coordinate (bus) -- (bus -| -0.6,0) |- (c0.west);
+  \draw[ar] (c0.west -| -0.6,0) -- (c0.west);\foreach \c in {c1,c2,c3,c4} {\draw[ar] (\c.north |- bus) -- (\c.north);}
 
-  \node[rt] at (0,-5.45) {Phases 2 to 4 · video, live runtime, multi-camera};
-  \nn{fus}{d0}{1.525}{-6.75}{20}{KAIST detectors}{v2 and concat}
-  \nn{fus}{d1}{5.025}{-6.75}{20}{still-image results}{miss rate, AP$_{50}$}
-  \nn{scn}{d2}{8.525}{-6.75}{20}{memory, tracking}{failures, ByteTrack}
-  \nn{thr}{d3}{12.025}{-6.75}{30}{live runtime}{soak, link faults}
-  \nn{emb}{d4}{15.525}{-6.75}{40}{multi-camera}{WILDTRACK, RGB}
+  \node[rt] at (0,-9.65) {Phases 2 to 4 · video, live runtime, multi-camera};
+  \nn{fus}{d0}{1.6}{-10.8}{20}{KAIST detectors}{v2 and concat}
+  \nn{fus}{d1}{5.4}{-10.8}{20}{still-image results}{miss rate, AP$_{50}$}
+  \nn{scn}{d2}{9.2}{-10.8}{20}{memory, tracking}{failures, ByteTrack}
+  \nn{thr}{d3}{13.0}{-10.8}{30}{live runtime}{soak, link faults}
+  \nn{emb}{d4}{16.8}{-10.8}{40}{multi-camera}{WILDTRACK, RGB}
   \hop{c4}{d0}
   \draw[ar] (d0) -- (d1); \draw[ar] (d1) -- (d2); \draw[ar] (d2) -- (d3); \draw[ar] (d3) -- (d4);
 
-  \node[rt] at (0,-7.7) {Results, manuscript and release};
-  \nn{hed}{e0}{1.525}{-9.0}{15}{pilot results}{hypotheses, tables}
-  \nx{dat}{e1}{5.025}{-9.0}{collect numbers}{numbers.tex, tables}
-  \nx{neu}{e2}{8.525}{-9.0}{manuscript}{paper and supplement}
-  \nx{neu}{e3}{12.025}{-9.0}{venue packages}{9 venues, cover letters}
-  \nn{emb}{e4}{15.525}{-9.0}{16}{demo and website}{upload a pair or photo}
+  \node[rt] at (0,-13.25) {Results, manuscript and release};
+  \nn{hed}{e0}{1.6}{-14.4}{15}{pilot results}{hypotheses, tables}
+  \nx{dat}{e1}{5.4}{-14.4}{collect numbers}{numbers.tex, tables}
+  \nx{neu}{e2}{9.2}{-14.4}{manuscript}{paper and supplement}
+  \nx{neu}{e3}{13.0}{-14.4}{venue packages}{9 venues, cover letters}
+  \nn{emb}{e4}{16.8}{-14.4}{16}{demo and website}{upload a pair or photo}
   \hop{d4}{e0}
   \draw[ar] (e0) -- (e1); \draw[ar] (e1) -- (e2); \draw[ar] (e2) -- (e3);
-  \draw[dar] (e0.south) -- ++(0,-0.4) -| (e4.south);
+  \draw[dar] (e0.south) -- ++(0,-0.55) -| (e4.south);
 \end{tikzpicture}
 \end{document}

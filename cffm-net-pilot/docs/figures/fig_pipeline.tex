@@ -2,48 +2,48 @@
 \input{style}
 \begin{document}
 \begin{tikzpicture}[font=\small,
-  N/.style={blk, font=\footnotesize, inner xsep=3pt, inner ysep=3pt, minimum width=1.4cm, minimum height=1.05cm},
-  tx/.style={font=\footnotesize, text=muted, align=left},
-  gl/.style={font=\footnotesize\itshape, text=muted, inner sep=1.5pt, fill=white}]
+  N/.style={blk, font=\footnotesize, inner xsep=4pt, inner ysep=4pt, minimum width=1.7cm, minimum height=1.05cm},
+  R/.style={N, minimum height=1.45cm},
+  tx/.style={font=\footnotesize, execute at begin node={\hyphenpenalty=10000 \exhyphenpenalty=10000 }, text=muted, align=left, anchor=north west},
+  gl/.style={font=\footnotesize\itshape, text=muted, inner sep=1.5pt}]
 
-  \draw[region=cFuse] (1.87,-1.7) rectangle (5.29,3.0);
-  \node[rtitle=cFuse] at (1.87,3.0) {Phase 1 · fusion};
-  \draw[region=cTime] (5.61,-1.7) rectangle (10.75,3.0);
-  \node[rtitle=cTime] at (5.61,3.0) {Phase 2 · memory and tracking};
-  \draw[region=cAlert] (11.07,-1.7) rectangle (14.49,3.0);
-  \node[rtitle=cAlert] at (11.07,3.0) {Phase 4 · multi-camera};
-  \draw[region=cHead] (0,-5.35) rectangle (14.49,-2.3);
-  \node[rtitle=cHead, anchor=north east] at (14.49,-2.3) {Phase 3 · live runtime};
+  \draw[region=cFuse] (2.3,-2.5) rectangle (7.5,3.8);
+  \node[rtitle=cFuse] at (2.6,3.5) {Phase 1 · fusion};
+  \draw[region=cTime] (7.7,-2.5) rectangle (15.6,3.8);
+  \node[rtitle=cTime] at (8.0,3.5) {Phase 2 · memory and tracking};
+  \draw[region=cAlert] (15.8,-2.5) rectangle (21.0,3.8);
+  \node[rtitle=cAlert] at (16.1,3.5) {Phase 4 · multi-camera};
+  \draw[region=cHead] (-0.95,-7.9) rectangle (21.0,-3.5);
+  \node[rtitle=cHead, anchor=north east] at (20.7,-3.8) {Phase 3 · live runtime};
 
-  \node[N, vis] (cv) at (0.7,0.62) {visible\\camera};
-  \node[N, thr] (ct) at (0.7,-0.62) {thermal\\camera};
-  \node[N, vis] (bv) at (2.72,0.62) {visible\\backbone};
-  \node[N, thr] (bt) at (2.72,-0.62) {thermal\\backbone};
-  \node[N, fus, minimum height=2.3cm] (cm) at (4.44,0) {CMFM\\gated\\scan};
-  \node[N, scn, minimum height=1.35cm] (ts) at (6.46,0) {TSM\\per-pixel\\state};
-  \node[N, hed, minimum height=1.35cm] (nh) at (8.18,0) {neck,\\heads};
-  \node[N, neu, minimum height=1.35cm] (bz) at (9.9,0) {Byte-\\Track};
+  \node[N, vis] (cv) at (0.85,0.85) {visible\\camera};
+  \node[N, thr] (ct) at (0.85,-0.85) {thermal\\camera};
+  \node[N, vis] (bv) at (3.55,0.85) {visible\\backbone};
+  \node[N, thr] (bt) at (3.55,-0.85) {thermal\\backbone};
+  \node[N, fus, minimum height=2.75cm] (cm) at (6.25,0) {CMFM\\gated\\scan};
+  \node[R, scn, minimum height=1.35cm] (ts) at (8.95,0) {TSM\\per-pixel\\state};
+  \node[R, hed, minimum height=1.35cm] (nh) at (11.65,0) {neck,\\heads};
+  \node[R, neu, minimum height=1.35cm] (bz) at (14.35,0) {Byte-\\Track};
 
-  \node[tx, text width=3.2cm, anchor=north west] at (2.0,2.6)
+  \node[tx, text width=4.4cm] at (2.7,2.65)
     {Each camera gets a per-pixel reliability that scales the scan step.};
-  \node[tx, text width=4.8cm, anchor=north west] at (5.75,2.6)
+  \node[tx, text width=7.1cm] at (8.1,2.65)
     {State warped by the camera motion and reset at scene cuts. Neck and heads are stock YOLO26.};
 
-  \node[N, vis, minimum width=3.0cm] (rgb) at (12.78,1.75) {RGB YOLO26-m\\seven calibrated views};
-  \node[N, emb] (pm) at (11.92,0) {project\\and merge};
-  \node[N, emb] (gt) at (13.64,0) {ground\\tracker};
-  \node[tx, text width=3.1cm, anchor=north west] at (11.2,-0.8)
-    {Dashed: interface only. Ran on RGB.};
+  \node[N, vis, minimum width=3.8cm, minimum height=1.05cm] (rgb) at (18.4,2.125) {RGB YOLO26-m\\seven calibrated views};
+  \node[R, emb, minimum height=1.35cm] (pm) at (17.05,0) {project\\and merge};
+  \node[R, emb, minimum height=1.35cm] (gt) at (19.75,0) {ground\\tracker};
+  \node[tx, text width=4.4cm] at (16.2,-1.1) {Dashed: interface only. Ran on RGB.};
 
-  \node[N, att, minimum width=2.4cm, minimum height=1.25cm] (cap) at (1.45,-3.5) {capture threads\\newest frame only};
-  \node[N, att, minimum width=3.3cm, minimum height=1.25cm] (mon) at (5.1,-3.5) {stream monitor\\stalled, frozen,\\black, saturated};
-  \node[N, att, minimum width=3.3cm, minimum height=1.25cm] (rec) at (9.2,-3.5) {run records\\latency, health,\\track state};
-  \node[tx, text width=13.9cm, anchor=north west] at (0.2,-4.35)
+  \node[N, emb, minimum width=2.1cm, minimum height=2.9cm, text width=1.8cm] (oa) at (22.65,0) {anonymous counts, crossings, dwell, occupancy};
+  \node[rtitle=cNeutral, anchor=south] at (22.65,1.75) {Outputs};
+
+  \node[R, att, minimum width=2.8cm] (cap) at (0.85,-5.45) {capture threads\\newest frame only};
+  \node[R, att, minimum width=3.4cm] (mon) at (6.85,-5.45) {stream monitor\\stalled, frozen,\\black, saturated};
+  \node[R, att, minimum width=7.25cm] (rec) at (15.075,-5.45) {run records\\latency, health,\\track state};
+  \node[R, neu, minimum width=2.1cm] (ob) at (22.65,-5.45) {analysis\\boards};
+  \node[tx, text width=15cm] at (-0.55,-6.75)
     {The inference loop runs phases 1 and 2 under half precision. A camera that is down contributes a zero image and a zero sensor flag.};
-
-  \node[N, neu, minimum width=1.7cm, minimum height=1.25cm] (ob) at (15.8,-3.5) {analysis\\boards};
-  \node[N, emb, minimum width=1.7cm, minimum height=2.5cm, text width=1.5cm] (oa) at (15.8,0) {anonymous counts, crossings, dwell, occupancy};
-  \node[rtitle=cNeutral, anchor=south] at (15.8,3.0) {Outputs};
 
   \draw[ar] (cv) -- (bv); \draw[ar] (ct) -- (bt);
   \draw[ar] (bv.east) -- (bv.east -| cm.west); \draw[ar] (bt.east) -- (bt.east -| cm.west);
@@ -52,13 +52,14 @@
   \draw[dar] (bz) -- (pm);
 
   \draw[dar] (ts.north east) ++(-0.2,0) -- ++(0,0.35) -- ++(-1.0,0) -- ++(0,-0.35);
-  \node[gl, fill=none] at (6.46,1.3) {$S_t$};
+  \node[gl, anchor=south] at ($(ts.north east)+(-0.7,0.5)$) {$S_t$};
 
   \draw[ar] (ct.south) -- (ct.south |- cap.north);
   \draw[ar] (cap) -- (mon);
   \draw[ar] (mon) -- (rec);
   \draw[ar] (bz.south) -- (bz.south |- rec.north);
-  \draw[ar] (rec) -- (rec -| ob.west);
-  \draw[gar] (mon.north -| cm) -- node[gl, right=1pt] {sensor flags} (cm.south);
+  \draw[ar] (rec) -- (ob);
+  \draw[gar] (mon.north -| cm) -- (cm.south);
+  \node[gl, anchor=west] at ($(cm.south |- 0,-3.0)+(0.15,0)$) {sensor flags};
 \end{tikzpicture}
 \end{document}

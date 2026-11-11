@@ -4,52 +4,52 @@
 \pgfsetlayers{background,main}
 \begin{document}
 \begin{tikzpicture}[font=\footnotesize,
-  B/.style={font=\footnotesize, inner xsep=4pt, inner ysep=3pt, text width=#1},
-  S/.style={B=#1, minimum height=0.68cm, inner ysep=2pt}]
-  \foreach \yy/\lbl/\id in {7.2/View 1/a, 6.35/View 2/b, 4.65/View 7/c} {
-    \node[vis, S=1.3cm] (c\id) at (0.85,\yy) {\lbl};
-    \node[vis, S=1.9cm] (d\id) at (3.3,\yy) {Person boxes};
+  B/.style={font=\footnotesize, inner xsep=6pt, inner ysep=4pt, text width=#1},
+  S/.style={B=#1, minimum height=0.8cm, inner ysep=2pt}]
+  \foreach \yy/\lbl/\id in {1.95/View 1/a, 0.65/View 2/b, -1.95/View 7/c} {
+    \node[vis, S=1.0cm] (c\id) at (1.11,\yy) {\lbl};
+    \node[vis, S=1.75cm] (d\id) at (3.605,\yy) {Person boxes};
     \draw[ar] (c\id) -- (d\id);
   }
-  \node[font=\small, text=muted] at (0.85,5.5) {$\vdots$};
-  \node[font=\small, text=muted] at (3.3,5.5) {$\vdots$};
+  \node[font=\small, text=muted] (v1) at (1.11,-0.65) {$\vdots$};
+  \node[font=\small, text=muted] (v2) at (3.605,-0.65) {$\vdots$};
 
-  \node[fus, B=2.35cm, minimum height=3.3cm] (gp) at (6.65,5.9)
-    {Bottom centre of each box through the calibrated homography to the ground plane, in cm\par\vspace{3pt}%
+  \node[fus, B=2.3cm, minimum height=4.8cm] (gp) at (7.55,0)
+    {Bottom centre of each box through the calibrated homography to the ground plane, in cm\par\vspace{5pt}%
      Points outside the area, or behind the camera, are dropped};
-  \node[fus, B=2.6cm, minimum height=3.3cm] (as) at (9.8,5.9)
-    {Visibility-normalised voting: keep a position only if enough of the cameras that can see it detect a person near it\par\vspace{3pt}%
+  \node[fus, B=2.5cm, minimum height=4.8cm] (as) at (11.02,0)
+    {Visibility-normalised voting: keep a position only if enough of the cameras that can see it detect a person near it\par\vspace{5pt}%
      Minimum separation, most confident kept};
-  \node[scn, B=2.0cm, minimum height=3.3cm] (tr) at (12.65,5.9)
-    {Constant-velocity tracker, Hungarian association, 75\,cm gate\par\vspace{3pt}%
+  \node[scn, B=2.0cm, minimum height=4.8cm] (tr) at (14.34,0)
+    {Constant-velocity tracker, Hungarian association, 75\,cm gate\par\vspace{5pt}%
      Anonymous, ephemeral identifiers};
 
-  \foreach \yy/\lbl/\id in {7.4/{Counts per zone and total}/a, 6.5/{Line crossings, each direction}/b, 5.6/{Dwell time per zone}/c, 4.7/{Occupancy heat map, 25\,cm cells}/d} {
-    \node[hed, B=2.5cm, minimum height=0.7cm, inner ysep=2pt] (n\id) at (15.9,\yy) {\lbl};
+  \foreach \yy/\lbl/\id in {1.95/{Counts per zone and total}/a, 0.65/{Line crossings, each direction}/b, -0.65/{Dwell time per zone}/c, -1.95/{Occupancy heat map, 25\,cm cells}/d} {
+    \node[hed, B=2.1cm, minimum height=0.9cm, inner ysep=2pt] (n\id) at (18.31,\yy) {\lbl};
   }
 
   \begin{pgfonlayer}{background}
-    \node[region=cRGB, fit=(ca)(da)(cc)(dc), inner sep=0.2cm] (rg) {};
-    \node[region=cNeutral, fit=(gp)(as)(tr), inner sep=0.2cm] (gr) {};
-    \node[region=cHead, fit=(na)(nd), inner sep=0.2cm] (an) {};
+    \node[region=cRGB, fit=(ca)(da)(cc)(dc)(v1), inner sep=0.4cm, minimum height=5.6cm] (rg) {};
+    \node[region=cNeutral, fit=(gp)(as)(tr), inner sep=0.4cm, minimum height=5.6cm] (gr) {};
+    \node[region=cHead, fit=(na)(nd), inner sep=0.4cm, minimum height=5.6cm] (an) {};
   \end{pgfonlayer}
-  \node[rtitle=cRGB, anchor=south west] at (rg.north west) {Seven RGB views};
-  \node[rtitle=cNeutral, anchor=south west] at (gr.north west) {Shared ground plane};
-  \node[rtitle=cHead, anchor=south west] at (an.north west) {Analytics};
+  \node[rtitle=cRGB, anchor=south west, inner sep=2pt] at ($(rg.north west)+(0.2,0.15)$) {Seven RGB views};
+  \node[rtitle=cNeutral, anchor=south west, inner sep=2pt] at ($(gr.north west)+(0.2,0.15)$) {Shared ground plane};
+  \node[rtitle=cHead, anchor=south west, inner sep=2pt] at ($(an.north west)+(0.2,0.15)$) {Analytics};
 
   \foreach \id in {a,b,c} { \draw[ar] (d\id.east) -- (d\id.east -| gp.west); }
   \draw[ar] (gp) -- (as);
   \draw[ar] (as) -- (tr);
   \draw[ar] (tr) -- (tr.east -| an.west);
 
-  \node[emb, B=4.3cm, minimum height=0.9cm] (pv) at (2.1,2.7)
+  \node[emb, B=4.67cm, minimum height=1.7cm] (pv) at (2.545,-4.45)
     {Privacy: the head region of every box is blurred before any image is stored or displayed};
   \draw[dar, cAlert!80!black] (rg.south |- pv.north) -- (rg.south |- rg.south);
 
-  \node[neu, B=12.0cm, minimum height=0.9cm] (rgb) at (11.5,2.7)
+  \node[neu, B=13.76cm, minimum height=1.7cm] (rgb) at (12.88,-4.45)
     {\textbf{RGB only.} The layer uses a plain RGB YOLO26-m, not CFFM-Net, on seven synchronised, calibrated visible cameras with no thermal channel, so it shows boxes to analytics and gives no evidence about fusion.};
 
-  \node[dat, B=16.8cm, minimum height=1.0cm] (ev) at (8.5,0.8)
+  \node[dat, B=19.55cm, minimum height=1.5cm] (ev) at (9.985,-6.85)
     {\textbf{WILDTRACK}, detector zero-shot and fine-tuned. Detection: precision, recall, MODA, MODP. Tracking: MOTA, IDF1, identity switches, mostly tracked. Counting: mean absolute error, total and per zone; line crossings and dwell per zone};
 \end{tikzpicture}
 \end{document}
