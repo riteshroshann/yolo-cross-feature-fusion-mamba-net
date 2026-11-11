@@ -6,7 +6,7 @@
 <title>CFFM-Net: visible and thermal detection that knows which camera to trust</title>
 <meta name="author" content="Ritesh Roshan">
 <meta name="description" content="CFFM-Net fuses a visible and a thermal camera with a reliability-gated state-space scan. Architecture, four phases, every result with its graph, the paper and a demo.">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#ffffff">
 <link rel="canonical" href="https://yolo-cross-feature-fusion-mamba-net.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="CFFM-Net: the machine's view">
@@ -17,8 +17,8 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script>try{var t=localStorage.getItem("cffm-theme");if(t==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>try{if(localStorage.getItem("cffm-theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,7 +26,7 @@
 <nav aria-label="Sections">
   <a class="mark" href="#top">CFFM-Net</a>
   <div class="links"><a href="#demo">Demo</a><a href="#findings">Findings</a><a href="#architecture">Architecture</a><a href="#phases">Phases</a><a href="#results">Results</a><a href="#workflow">Workflow</a><a href="#paper">Paper</a><a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">Code</a></div>
-  <button class="theme" id="theme" type="button">Light</button>
+  <button class="theme" id="theme" type="button" aria-label="Switch to the dark theme"><svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg><svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg></button>
 </nav>
 
 <main>
@@ -47,7 +47,7 @@
 </header>
 
 <section id="demo">
-  <div class="head"><h2>Try it</h2><p>Pick a sample to see the model&rsquo;s recorded result at once. Your own images go to the live model when it is online. Ordinary photos use the general YOLO26-n with 80 COCO classes.</p></div>
+  <div class="head"><h2>Try it</h2><p>Pick a sample to see the model&rsquo;s recorded result at once, or add your own images. Uploads run the trained model inside your browser, so nothing leaves your device. Ordinary photos use the general YOLO26-n with 80 COCO classes.</p></div>
   <div class="tabs" role="tablist">
     <button class="tab on" data-mode="pair" role="tab" aria-selected="true">Visible and thermal pair</button>
     <button class="tab" data-mode="photo" role="tab" aria-selected="false">Any photo</button>
@@ -58,7 +58,7 @@
       <label class="drop pair-only" id="dropIr"><input type="file" accept="image/*" aria-label="Thermal camera image"><img alt=""><span>Thermal camera<small>drop an image or click</small></span></label>
       <div class="controls">
         <label class="pair-only">Model
-          <select id="model"><option>Night pedestrians · LLVIP</option><option>City traffic · M3FD</option></select>
+          <select id="model"><option value="llvip_cffm">Night pedestrians · LLVIP</option><option value="m3fd_cffm">City traffic · M3FD</option></select>
         </label>
         <label>Confidence <output id="confOut">0.30</output>
           <input id="conf" type="range" min="0.05" max="0.9" step="0.05" value="0.3">
@@ -70,10 +70,6 @@
     <div class="samples" id="samples"></div>
     <figure class="result" id="result" hidden><img id="board" alt="Analysis board with every detected subject bracketed and numbered"><figcaption id="caption"></figcaption></figure>
     <div class="log" id="log"></div>
-    <details class="backend"><summary>Live model address</summary>
-      <p>Uploads are sent to a Gradio app (<code>demo/app.py</code>) running the trained weights. Paste its address here if you run it yourself. The samples above do not need it.</p>
-      <input id="backend" spellcheck="false" aria-label="Live model address" placeholder="https://">
-    </details>
   </div>
 </section>
 
