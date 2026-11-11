@@ -163,8 +163,8 @@ def fig_main() -> None:
         for model, dash in (("visible", (0, (4, 2))), ("thermal", (0, (1, 1.5)))):
             v = run_metric(ds, model, 0)
             ax.axhline(v, color=STYLE[model]["color"], lw=0.9, ls=dash, zorder=1)
-            ax.text(-0.46, v, f"{STYLE[model]['label']} {v:.1f}", ha="left", va="bottom",
-                    fontsize=6.5, color=STYLE[model]["color"])
+            ax.annotate(f"{STYLE[model]['label']} {v:.1f}", xy=(-0.46, v), xytext=(0, 3), textcoords="offset points",
+                        ha="left", va="bottom", fontsize=6.5, color=STYLE[model]["color"])
         ax.set_xlim(-0.5, 1.9)
         ax.set_ylim(*ranges[ds])
         ax.set_xticks([0, 1], [STYLE["v2"]["label"], "Concat\n(modality dropout)"])
@@ -266,7 +266,7 @@ def fig_tradeoff() -> None:
             ax.errorbar(x, mean, yerr=std if std else None, color=st["color"], lw=0.8, capsize=2, zorder=2)
             ax.scatter(x, mean, s=size * 26, color=st["color"], marker=st["marker"], zorder=3,
                        edgecolor="white", linewidth=0.5)
-        low = {"llvip": 62, "m3fd": 46}[ds]
+        low = {"llvip": 61, "m3fd": 46}[ds]
         ax.set_ylim(low, {"llvip": 68, "m3fd": 56}[ds])
         ax.set_xlim(22, 56)
         ax.set_xlabel("Median latency, RTX 4050 (ms)")
@@ -275,7 +275,7 @@ def fig_tradeoff() -> None:
         ax.grid(lw=0.3, color="#D5D9DD")
     handles = [Line2D([], [], color=STYLE[m]["color"], marker=STYLE[m]["marker"], ls="", markersize=5,
                       label=STYLE[m]["label"]) for m in ("thermal", "md", "ft", "v2", "v3")]
-    axes[0].legend(handles=handles, loc="lower right", frameon=False, fontsize=6.3, ncols=1)
+    axes[0].legend(handles=handles, loc="lower left", frameon=False, fontsize=6.3, ncols=1)
     axes[1].text(0.98, 0.03, "marker area proportional to parameters (2.5 to 6.0 M)", transform=axes[1].transAxes,
                  ha="right", va="bottom", fontsize=6, color=MUTED)
     save(fig, "tradeoff")
@@ -294,7 +294,7 @@ def fig_scale() -> None:
                 ax.errorbar(b + offset, mean, yerr=std, color=INK, capsize=2, lw=0.7, zorder=4)
                 ax.scatter(np.full(len(vals), b + offset), vals, s=5, color="white", edgecolor=INK,
                            linewidth=0.4, zorder=5)
-                ax.text(b + offset, mean + std + 1.2, f"{mean:.1f}", ha="center", va="bottom", fontsize=6)
+                ax.text(b + offset, mean + std + 1.8, f"{mean:.1f}", ha="center", va="bottom", fontsize=6)
         ax.set_xticks(range(3), [b for b, _ in bands])
         ax.set_xlabel("Object size band")
         ax.set_ylabel("AP (%)")
@@ -309,11 +309,12 @@ def tracking_means(tracking: dict, cond: str, key: str) -> tuple[float, list[flo
     return statistics.fmean(vals), vals
 
 
-def paired_bars(ax, groups: list[tuple[str, float, float]], width: float = 0.34, fmt: str = "{:.1f}", gap: float = 0.5) -> None:
+def paired_bars(ax, groups: list[tuple[str, float, float]], width: float = 0.34, fmt: str = "{:.1f}", gap: float = 0.5,
+                sep: float = 0.46) -> None:
     for i, (_, off, on) in enumerate(groups):
-        ax.bar(i - width / 2 - 0.01, off, width, color=OFF_COLOR, zorder=2)
-        ax.bar(i + width / 2 + 0.01, on, width, color=ON_COLOR, zorder=2)
-        for x, v in ((i - width / 2, off), (i + width / 2, on)):
+        ax.bar(i - sep / 2, off, width, color=OFF_COLOR, zorder=2)
+        ax.bar(i + sep / 2, on, width, color=ON_COLOR, zorder=2)
+        for x, v in ((i - sep / 2, off), (i + sep / 2, on)):
             ax.text(x, v + gap, fmt.format(v), ha="center", va="bottom", fontsize=5.8)
     ax.set_xticks(range(len(groups)), [g[0] for g in groups])
 
@@ -338,11 +339,12 @@ def fig_memory() -> None:
             ("IDF1\nclean", "clean", "idf1"), ("IDF1\nthermal lost", "thermal lost", "idf1")]
     width = 0.34
     for i, (lab, cond, key) in enumerate(spec):
-        for off_x, mode, color in ((-width / 2 - 0.01, "image", OFF_COLOR), (width / 2 + 0.01, "memory", ON_COLOR)):
+        for off_x, mode, color in ((-0.23, "image", OFF_COLOR), (0.23, "memory", ON_COLOR)):
             mean, vals = tracking_means(trk, f"{cond} | {mode}", key)
             ax.bar(i + off_x, mean, width, color=color, zorder=2)
             ax.scatter(np.full(len(vals), i + off_x), vals, s=6, color="white", edgecolor=INK, linewidth=0.4, zorder=4)
-            ax.text(i + off_x, 95, f"{mean:.1f}", ha="center", va="bottom", fontsize=5.8)
+            ax.text(i + off_x, 2.5, f"{mean:.1f}", ha="center", va="bottom", fontsize=5.8,
+                    color=INK if mode == "image" else "white")
     ax.set_xticks(range(4), [s[0] for s in spec])
     ax.set_ylim(0, 105)
     ax.set_ylabel("Score (%), higher is better")
@@ -353,7 +355,7 @@ def fig_memory() -> None:
 def fig_live() -> None:
     soak = read_json(RES / "phase3" / "soak.json")
     faults = read_json(RES / "phase3" / "faults.json")
-    fig, axes = plt.subplots(1, 4, figsize=(WIDTH, 2.7), layout="constrained", width_ratios=[1.7, 0.9, 1, 1])
+    fig, axes = plt.subplots(1, 4, figsize=(WIDTH, 2.7), layout="constrained", width_ratios=[1.6, 0.8, 1.05, 1.05])
     rate_color = {"30 fps": "#8A929B", "20 fps": "#4A5563"}
     ax = axes[0]
     keys = [("Inference\nmedian", "infer_p50"), ("Inference\np95", "infer_p95"),
@@ -374,10 +376,10 @@ def fig_live() -> None:
         ax.bar(i, fps, 0.55, color=rate_color[rate], zorder=2)
         ax.hlines(int(rate.split()[0]), i - 0.34, i + 0.34, color=INK, lw=0.9, ls=(0, (3, 1.5)), zorder=3)
         ax.text(i, fps / 2, f"{fps:.1f}", ha="center", va="center", fontsize=6, color="white")
-        ax.text(i, int(rate.split()[0]) + 0.8, f"{100 * soak[rate]['capture_drop_rate']:.0f}% dropped",
+        ax.text(i, int(rate.split()[0]) + 1.2, f"{100 * soak[rate]['capture_drop_rate']:.0f}% dropped",
                 ha="center", va="bottom", fontsize=5.8)
     ax.set_xticks(range(2), [f"{r}\n({soak[r]['seconds']:.0f} s)" for r in ("30 fps", "20 fps")])
-    ax.set_ylim(0, 36)
+    ax.set_ylim(0, 40)
     ax.set_ylabel("Achieved frame rate (fps)")
     ax.set_title("(b) Throughput", loc="left")
     names = ["thermal unplugged", "visible frozen", "thermal stalled"]
@@ -480,8 +482,8 @@ def fig_training() -> None:
             line.set_visible(False)
     handles = [Line2D([], [], color=STYLE[m]["color"], lw=1.0, label=STYLE[m]["label"]) for m in ("v2", "md")]
     axes[0].legend(handles=handles, frameon=False, loc="lower left", bbox_to_anchor=(0.02, 0.1), fontsize=6.3)
-    axes[0].text(0.03, 0.03, "seed 0 only", transform=axes[0].transAxes, fontsize=6, color=MUTED)
-    axes[1].text(0.03, 0.03, "seeds 0, 1, 2", transform=axes[1].transAxes, fontsize=6, color=MUTED)
+    axes[0].text(0.06, 0.03, "seed 0 only", transform=axes[0].transAxes, fontsize=6, color=MUTED)
+    axes[1].text(0.06, 0.03, "seeds 0, 1, 2", transform=axes[1].transAxes, fontsize=6, color=MUTED)
     save(fig, "training")
 
 

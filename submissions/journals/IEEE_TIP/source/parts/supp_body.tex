@@ -137,35 +137,35 @@ Figure~\ref{fig:pipeline} shows the complete system, and Figures~\ref{fig:phaseo
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/fig_pipeline.pdf}
+\includegraphics[width=0.82\textwidth]{figures/fig_pipeline.pdf}
 \caption{The complete system. Paired visible and thermal cameras pass through the reliability-gated fusion detector, the Temporal State Memory and ByteTrack, inside a live runtime whose stream monitor raises sensor flags. The multi-camera ground-plane layer was run on an RGB-only detector, so its link from the tracker is the interface only.}
 \label{fig:pipeline}
 \end{figure*}
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/fig_phase1.pdf}
+\includegraphics[width=0.82\textwidth]{figures/fig_phase1.pdf}
 \caption{The fusion detector on still image pairs. Two YOLO26-n backbones feed a fusion block at strides 8, 16 and 32, in which a reliability head scales the step of a four-direction selective scan. The strip below lists the evaluation of the main paper.}
 \label{fig:phaseone}
 \end{figure*}
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/fig_phase2.pdf}
+\includegraphics[width=0.82\textwidth]{figures/fig_phase2.pdf}
 \caption{Video, the Temporal State Memory and tracking. The fused features of each frame update a per-pixel state carried from frame $t-1$ to frame $t$, warped by the homography and gated by elapsed time and reliability. Detections feed ByteTrack, and KAIST is scored with the memory off and on.}
 \label{fig:phasetwo}
 \end{figure*}
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/fig_phase3.pdf}
+\includegraphics[width=0.82\textwidth]{figures/fig_phase3.pdf}
 \caption{The live runtime. Two threaded captures with one-slot queues feed a newest-frame pairing step, then the detector with its memory and ByteTrack. A stream monitor watches each camera and feeds sensor flags back to the detector.}
 \label{fig:phasethree}
 \end{figure*}
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/fig_phase4.pdf}
+\includegraphics[width=0.82\textwidth]{figures/fig_phase4.pdf}
 \caption{The multi-camera layer. Person boxes from each RGB view are projected to a shared ground plane, merged across cameras and tracked anonymously, giving counts, line crossings, dwell time and an occupancy map on WILDTRACK. The layer is RGB-only and gives no evidence about fusion.}
 \label{fig:phasefour}
 \end{figure*}
