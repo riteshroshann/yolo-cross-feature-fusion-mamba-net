@@ -141,5 +141,18 @@ async function analyze() {
   }
 }
 
+function paintTheme() {
+  const light = document.documentElement.dataset.theme === "light";
+  $("theme").textContent = light ? "Dark" : "Light";
+  $("theme").setAttribute("aria-label", light ? "Switch to the dark theme" : "Switch to the light theme");
+}
+$("theme").addEventListener("click", () => {
+  const light = document.documentElement.dataset.theme === "light";
+  if (light) delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = "light";
+  store.set("cffm-theme", light ? "dark" : "light");
+  paintTheme();
+});
+paintTheme();
+
 $("go").addEventListener("click", analyze);
 renderSamples();

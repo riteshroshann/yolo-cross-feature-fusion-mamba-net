@@ -6,7 +6,7 @@
 <title>CFFM-Net: visible and thermal detection that knows which camera to trust</title>
 <meta name="author" content="Ritesh Roshan">
 <meta name="description" content="CFFM-Net fuses a visible and a thermal camera with a reliability-gated state-space scan. Architecture, four phases, every result with its graph, the paper and a demo.">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="canonical" href="https://yolo-cross-feature-fusion-mamba-net.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:title" content="CFFM-Net: the machine's view">
@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem("cffm-theme");if(t==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -25,6 +26,7 @@
 <nav aria-label="Sections">
   <a class="mark" href="#top">CFFM-Net</a>
   <div class="links"><a href="#demo">Demo</a><a href="#findings">Findings</a><a href="#architecture">Architecture</a><a href="#phases">Phases</a><a href="#results">Results</a><a href="#workflow">Workflow</a><a href="#paper">Paper</a><a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">Code</a></div>
+  <button class="theme" id="theme" type="button">Light</button>
 </nav>
 
 <main>

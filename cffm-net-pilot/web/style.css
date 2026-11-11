@@ -1,9 +1,18 @@
 :root {
-  --bg: #ffffff; --surface: #f5f5f5; --ink: #0a0a0a; --muted: #6b6b6b; --line: #e6e6e6; --err: #a4161a;
+  color-scheme: dark;
+  --bg: #0a0a0a; --surface: #161616; --ink: #f4f4f2; --muted: #9a9a96; --line: #262626; --err: #ff8a80;
+  --soft: #c9c9c5; --glass: rgba(14, 14, 14, .72); --glass-line: rgba(255, 255, 255, .1); --veil: rgba(10, 10, 10, .78);
+  --plate: #ffffff; --plate-pad: clamp(12px, 2vw, 32px);
   --serif: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --gutter: clamp(20px, 4vw, 64px);
   --section: clamp(96px, 12vw, 176px);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff; --surface: #f5f5f5; --ink: #0a0a0a; --muted: #6b6b6b; --line: #e6e6e6; --err: #a4161a;
+  --soft: #3a3a3a; --glass: rgba(255, 255, 255, .72); --glass-line: rgba(10, 10, 10, .08); --veil: rgba(255, 255, 255, .86);
+  --plate: transparent; --plate-pad: 0px;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 88px; -webkit-text-size-adjust: 100%; }
@@ -16,14 +25,17 @@ a { color: inherit; }
 .skip:focus { left: 8px; }
 
 nav { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center;
-  gap: clamp(16px, 3vw, 40px); padding: 12px 24px; max-width: calc(100vw - 32px); border: 1px solid rgba(10, 10, 10, .08);
-  border-radius: 999px; background: rgba(255, 255, 255, .72); backdrop-filter: blur(18px) saturate(1.4);
+  gap: clamp(16px, 3vw, 40px); padding: 12px 24px; max-width: calc(100vw - 32px); border: 1px solid var(--glass-line);
+  border-radius: 999px; background: var(--glass); backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4); }
 .mark { font: 600 18px/1 var(--serif); letter-spacing: .02em; text-decoration: none; white-space: nowrap; }
 .links { display: flex; gap: clamp(12px, 2vw, 28px); overflow-x: auto; scrollbar-width: none; }
 .links::-webkit-scrollbar { display: none; }
 .links a { font-size: 13px; color: var(--muted); text-decoration: none; white-space: nowrap; transition: color .15s; }
 .links a:hover, .links a:focus-visible { color: var(--ink); }
+.theme { flex: 0 0 auto; background: none; border: 0; padding: 0; font: 400 13px var(--sans); color: var(--muted); cursor: pointer;
+  white-space: nowrap; transition: color .15s; }
+.theme:hover { color: var(--ink); }
 
 header, section, footer { max-width: 1520px; margin: 0 auto; padding-left: var(--gutter); padding-right: var(--gutter); }
 header { padding-top: clamp(120px, 16vw, 220px); }
@@ -69,6 +81,7 @@ figure { margin: 0; }
 figure + figure, .trio + figure, figure + .trio { margin-top: clamp(40px, 5vw, 72px); }
 figure a { display: block; cursor: zoom-in; }
 figure img { width: 100%; }
+figure a img { background: var(--plate); padding: var(--plate-pad); }
 figcaption { margin-top: 16px; font-size: 14px; line-height: 1.55; color: var(--muted); max-width: 78ch; }
 figcaption b { color: var(--ink); font-weight: 500; }
 .narrow { max-width: 1040px; margin-left: auto; margin-right: auto; }
@@ -82,7 +95,7 @@ figcaption b { color: var(--ink); font-weight: 500; }
 .findings { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 clamp(32px, 5vw, 96px); counter-reset: none; }
 .finding { padding: 32px 0; border-top: 1px solid var(--line); }
 .finding h3 { font-size: clamp(24px, 2.4vw, 34px); }
-.finding p { margin-top: 12px; color: #3a3a3a; max-width: 52ch; }
+.finding p { margin-top: 12px; color: var(--soft); max-width: 52ch; }
 .finding b { font-weight: 600; color: var(--ink); }
 
 .prose { max-width: 68ch; font-size: 18px; }
@@ -113,7 +126,7 @@ tr.ours td { font-weight: 600; }
 .drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
 .drop.has img { opacity: 1; }
 .drop span { position: relative; text-align: center; font: 400 22px/1.2 var(--serif); padding: 8px 16px; pointer-events: none; }
-.drop.has span { background: rgba(255, 255, 255, .86); }
+.drop.has span { background: var(--veil); }
 .drop small { display: block; margin-top: 4px; font: 400 13px var(--sans); color: var(--muted); }
 .controls { display: flex; flex-direction: column; gap: 24px; font-size: 14px; color: var(--muted); }
 .controls label { display: flex; flex-direction: column; gap: 8px; }
