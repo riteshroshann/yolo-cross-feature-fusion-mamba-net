@@ -26,3 +26,4 @@ cffm-net-pilot/runs_dl/
 *.aux
 *.log
 *.out
+.claude/

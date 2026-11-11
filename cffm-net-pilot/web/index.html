@@ -3,171 +3,169 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CFFM-Net · The Machine's View</title>
+<title>CFFM-Net: visible and thermal detection that knows which camera to trust</title>
 <meta name="author" content="Ritesh Roshan">
-<meta name="description" content="Visible + thermal object detection with a reliability-gated selective scan. Upload a pair or any photo.">
+<meta name="description" content="CFFM-Net fuses a visible and a thermal camera with a reliability-gated state-space scan. Architecture, four phases, every result with its graph, the paper and a demo.">
+<meta name="theme-color" content="#ffffff">
+<link rel="canonical" href="https://yolo-cross-feature-fusion-mamba-net.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CFFM-Net: the machine's view">
+<meta property="og:description" content="Visible and thermal object detection with a reliability-gated state-space scan, measured across four phases.">
+<meta property="og:url" content="https://yolo-cross-feature-fusion-mamba-net.vercel.app/">
+<meta property="og:image" content="https://yolo-cross-feature-fusion-mamba-net.vercel.app/assets/hero_llvip.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..600;1,6..96,400..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<nav>
-  <a class="logo" href="#top"><span class="bar"></span>CFFM-NET</a>
-  <div class="links"><a href="#demo">Demo</a><a href="#tracking">Tracking</a><a href="#findings">Findings</a><a href="#results">Results</a><a href="#lineage">Lineage</a><a href="#method">Method</a><a href="#phases">Phases</a><a href="#paper">Paper</a><a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">Code</a></div>
+<a class="skip" href="#demo">Skip to the demo</a>
+<nav aria-label="Sections">
+  <a class="mark" href="#top">CFFM-Net</a>
+  <div class="links"><a href="#demo">Demo</a><a href="#findings">Findings</a><a href="#architecture">Architecture</a><a href="#phases">Phases</a><a href="#results">Results</a><a href="#workflow">Workflow</a><a href="#paper">Paper</a><a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">Code</a></div>
 </nav>
 
+<main>
 <header id="top">
-  <p class="kicker">// MULTISPECTRAL SCENE ANALYSIS</p>
-  <h1>The Machine's view</h1>
-  <p class="lede">Two cameras, one picture. CFFM-Net fuses a visible and a thermal camera with a selective
-    state-space scan, and decides, at every location, which camera to trust. Every subject is bracketed,
-    numbered and logged.</p>
-  <p class="byline"><span>Engineered by</span> <a href="https://www.linkedin.com/in/ritesh-roshan-sahoo/" target="_blank" rel="noopener">Ritesh Roshan</a></p>
-  <div class="hero"><img src="assets/hero_llvip.jpg" alt="Night street crossing: eleven people detected in the visible and thermal views, with the fusion trust map"><div class="scan"></div></div>
-  <div class="chips">
-    <div><b>11</b><span>people, one night frame</span></div>
-    <div><b>66.2</b><span>mAP on LLVIP, three seeds</span></div>
-    <div><b>45 ms</b><span>per pair, laptop GPU</span></div>
-    <div><b>4</b><span>phases built and measured</span></div>
+  <h1>The machine&rsquo;s <em>view</em></h1>
+  <div class="standfirst">
+    <p class="lede">Two cameras, one picture. CFFM-Net fuses a visible and a thermal camera with a selective state-space scan and decides, at every location, which camera to trust.</p>
+    <p class="byline">Engineered by <a href="https://www.linkedin.com/in/ritesh-roshan-sahoo/" target="_blank" rel="noopener">Ritesh Roshan</a><br>Four phases, built and measured<br>October to November 2026</p>
+  </div>
+  <figure class="plate"><img src="assets/hero_llvip.jpg" alt="Night street crossing: eleven people detected in the visible and thermal views, with the fusion trust map" fetchpriority="high">
+    <figcaption>One night frame from LLVIP. Eleven people, found in the visible and thermal views together, with the map of which camera the model trusted.</figcaption></figure>
+  <div class="figures">
+    <div><b>66.2</b><span>mAP on LLVIP, the mean of three seeds</span></div>
+    <div><b>+4.0</b><span>mAP over the best single camera on M3FD</span></div>
+    <div><b>45 ms</b><span>per image pair on a laptop GPU</span></div>
+    <div><b>360</b><span>fault evaluations across eleven sensor faults</span></div>
   </div>
 </header>
 
 <section id="demo">
-  <h2><span>01</span> Try it</h2>
-  <p class="sub">Drop a visible and a thermal image of the same scene, or click a sample. Ordinary photos go to the general YOLO26-n (80 COCO classes), drawn the same way.</p>
+  <div class="head"><h2>Try it</h2><p>Pick a sample to see the model&rsquo;s recorded result at once. Your own images go to the live model when it is online. Ordinary photos use the general YOLO26-n with 80 COCO classes.</p></div>
   <div class="tabs" role="tablist">
-    <button class="tab on" data-mode="pair">Visible + thermal · CFFM-Net</button>
-    <button class="tab" data-mode="photo">Any photo · YOLO26-n</button>
+    <button class="tab on" data-mode="pair" role="tab" aria-selected="true">Visible and thermal pair</button>
+    <button class="tab" data-mode="photo" role="tab" aria-selected="false">Any photo</button>
   </div>
   <div class="panel">
     <div class="drops">
-      <label class="drop" id="dropVis"><input type="file" accept="image/*"><img alt=""><span>visible camera<small>drop or click</small></span></label>
-      <label class="drop pair-only" id="dropIr"><input type="file" accept="image/*"><img alt=""><span>thermal camera<small>drop or click</small></span></label>
+      <label class="drop" id="dropVis"><input type="file" accept="image/*" aria-label="Visible camera image"><img alt=""><span>Visible camera<small>drop an image or click</small></span></label>
+      <label class="drop pair-only" id="dropIr"><input type="file" accept="image/*" aria-label="Thermal camera image"><img alt=""><span>Thermal camera<small>drop an image or click</small></span></label>
       <div class="controls">
-        <label class="pair-only">model
+        <label class="pair-only">Model
           <select id="model"><option>Night pedestrians · LLVIP</option><option>City traffic · M3FD</option></select>
         </label>
-        <label>confidence <output id="confOut">0.30</output>
+        <label>Confidence <output id="confOut">0.30</output>
           <input id="conf" type="range" min="0.05" max="0.9" step="0.05" value="0.3">
         </label>
-        <button id="go" class="primary">Analyze</button>
-        <p id="status" class="status">ready</p>
+        <button id="go" class="primary" type="button">Analyze the images</button>
+        <p id="status" class="status" role="status">Pick a sample below, or add your own images.</p>
       </div>
     </div>
     <div class="samples" id="samples"></div>
-    <figure class="result" id="result" hidden><img id="board" alt="analysis board"><figcaption id="caption"></figcaption></figure>
+    <figure class="result" id="result" hidden><img id="board" alt="Analysis board with every detected subject bracketed and numbered"><figcaption id="caption"></figcaption></figure>
     <div class="log" id="log"></div>
-    <details class="backend"><summary>backend</summary>
-      <p>The page calls a Gradio app (<code>demo/app.py</code>). Run it locally or point this at a Hugging Face Space.</p>
-      <input id="backend" spellcheck="false">
+    <details class="backend"><summary>Live model address</summary>
+      <p>Uploads are sent to a Gradio app (<code>demo/app.py</code>) running the trained weights. Paste its address here if you run it yourself. The samples above do not need it.</p>
+      <input id="backend" spellcheck="false" aria-label="Live model address" placeholder="https://">
     </details>
   </div>
 </section>
 
 <section id="tracking">
-  <h2><span>02</span> Tracking a crowd</h2>
-  <p class="sub">MOT17-04, a pedestrian street at night filmed at 30 fps, with ByteTrack. Each subject keeps its number, a trail of where it walked and an arrow for where it is heading. Visible footage, so the general YOLO26-n runs here.</p>
-  <img class="wide" src="assets/tracking_mot17.gif" alt="Crowd tracking with IDs, trails and heading arrows">
+  <div class="head"><h2>Tracking a crowd</h2><p>MOT17-04, a pedestrian street at night at 30 frames per second, with ByteTrack. Each person keeps a number, a trail and a heading. The footage is visible-only, so the general YOLO26-n runs here.</p></div>
+  <figure><img src="assets/tracking_mot17.gif" alt="Crowd tracking with identity numbers, trails and heading arrows" loading="lazy"></figure>
 </section>
 
 <section id="findings">
-  <h2><span>03</span> What we found</h2>
-  <div class="grid2">
-    <figure><img src="assets/sensor_failures.jpg" alt="The same scene under four sensor conditions, CFFM-Net left and concat baseline right">
-      <figcaption>The same night scene with each camera failing, from the round-one pilot. Both fusion models kept
-        working on thermal alone, and both went blind when the thermal camera was lost. Every later round trains
-        with modality dropout for that reason.</figcaption></figure>
-    <div class="facts">
-      <div class="fact"><b>Two cameras beat one</b><p>On M3FD, fusion beats the best single camera by
-        <b>+4.0 mAP</b>. A plain concatenation baseline already captures <b>+3.4</b> of that.</p></div>
-      <div class="fact"><b>The gated scan adds a small margin</b><p>Over three seeds CFFM-Net leads the matched
-        baseline by <b>+0.6 ± 0.4 mAP</b> on M3FD (p = 0.11) and <b>+0.8 ± 1.1</b> on LLVIP (p = 0.37). Neither is
-        significant, and the paper says so.</p></div>
-      <div class="fact"><b>Ahead when the thermal camera fails</b><p>Across eleven injected faults on M3FD, the model
-        leads by <b>+3.6 points</b> on thermal-side faults and trails by <b>0.9</b> on visible-side ones.</p></div>
-      <div class="fact warn"><b>Fault training beats architecture</b><p>A concatenation baseline trained with fault
-        augmentation is more robust than the model: <b>5.1 points</b> ahead on M3FD and <b>11.9</b> on LLVIP,
-        averaged over the eleven faults. Training the scan the same way is the next experiment.</p></div>
-      <img src="assets/trust_vs_brightness.jpg" alt="Thermal share of the fusion weight against scene brightness" class="plot">
-    </div>
+  <div class="head"><h2>What we found</h2><p>Every result is reported as it came out, including the ones that went against the model.</p></div>
+  <div class="findings">
+    <div class="finding"><h3>Two cameras beat one</h3><p>On M3FD, fusion beats the best single camera by <b>4.0 mAP</b>. A plain concatenation baseline already captures <b>3.4</b> of that.</p></div>
+    <div class="finding"><h3>The gated scan adds a small margin</h3><p>Over three seeds CFFM-Net leads the matched baseline by <b>0.6 &plusmn; 0.4 mAP</b> on M3FD (p = 0.11) and <b>0.8 &plusmn; 1.1</b> on LLVIP (p = 0.37). Neither is statistically significant, and the paper says so.</p></div>
+    <div class="finding"><h3>Ahead when the thermal camera fails</h3><p>Across eleven injected faults on M3FD the model leads by <b>3.6 points</b> on thermal-side faults and trails by <b>0.9</b> on visible-side ones.</p></div>
+    <div class="finding"><h3>Fault training beats architecture</h3><p>A concatenation baseline trained with fault augmentation is more robust than the model: <b>5.1 points</b> ahead on M3FD and <b>11.9</b> on LLVIP, averaged over the eleven faults. Training the scan the same way is the next experiment.</p></div>
+  </div>
+  <div class="duo" style="margin-top:clamp(40px,5vw,72px)">
+    <figure class="frame"><img src="assets/sensor_failures.jpg" alt="The same night scene under four sensor conditions, CFFM-Net beside the concatenation baseline" loading="lazy"><figcaption>The same night scene with each camera failing, from the first round. Both fusion models kept working on thermal alone and both went blind when the thermal camera was lost, which is why every later round trains with modality dropout.</figcaption></figure>
+    <figure class="frame"><img src="assets/trust_vs_brightness.jpg" alt="Thermal share of the fusion weight against scene brightness" loading="lazy"><figcaption>The thermal share of the fusion weight against how bright the visible image is. The model leans on thermal in dark scenes without being told to.</figcaption></figure>
   </div>
 </section>
 
-<section id="results">
-  <h2><span>04</span> Results</h2>
-  <p class="sub">COCO mAP50-95 on the full test sets, YOLO26-n backbones. Fusion rows are means over three seeds at
-    80 epochs. Single-camera rows are one seed, 80 epochs on M3FD and 30 on LLVIP. Latency is the median on an idle
-    RTX 4050 laptop GPU.</p>
-  <table>
-    <thead><tr><th>model</th><th>LLVIP</th><th>M3FD</th><th>params</th><th>latency</th></tr></thead>
-    <tbody>
-      <tr><td>visible camera only</td><td>52.0</td><td>49.9</td><td>2.50 M</td><td>–</td></tr>
-      <tr><td>thermal camera only</td><td>64.1</td><td>47.6</td><td>2.50 M</td><td>25.8 ms</td></tr>
-      <tr><td>two-stream concat, modality dropout</td><td>65.5</td><td>53.3</td><td>4.07 M</td><td>33.1 ms</td></tr>
-      <tr class="ours"><td>CFFM-Net v2</td><td>66.2</td><td>53.9</td><td>6.02 M</td><td>45.0 ms</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<section id="lineage">
-  <h2><span>05</span> Where it comes from</h2>
-  <p class="sub">The two families CFFM-Net is built from, redrawn from the original papers in one visual language.
-    Blue is the visible camera, orange the thermal camera, purple the selective scan, gold the detection heads.</p>
-  <h3>YOLO, from one grid to YOLO26</h3>
-  <figure class="diagram"><img src="assets/fig_ref_yolov1.png" alt="YOLOv1 network and grid prediction" loading="lazy"><figcaption>YOLOv1, after Redmon et al. (2016): one network, one pass, an S×S grid that predicts boxes and classes.</figcaption></figure>
-  <figure class="diagram"><img src="assets/fig_ref_yolo_lineage.png" alt="YOLO lineage from v1 to YOLO26" loading="lazy"><figcaption>Ten years of YOLO: backbone, neck and head, and the one change that defines each generation, ending at the NMS-free, DFL-free YOLO26.</figcaption></figure>
-  <figure class="diagram"><img src="assets/fig_ref_yolo26.png" alt="YOLO26-n architecture with measured shapes" loading="lazy"><figcaption>YOLO26-n as used here, with every layer index and measured shape at 640 px. Training uses two heads: one-to-many and one-to-one. Inference uses only the one-to-one head, so there is no NMS.</figcaption></figure>
-  <figure class="diagram narrow"><img src="assets/fig_ref_yolo26_blocks.png" alt="Conv, C3k2, SPPF and C2PSA blocks" loading="lazy"><figcaption>The four repeated blocks: Conv, C3k2, SPPF and C2PSA.</figcaption></figure>
-  <h3>State-space models and Mamba</h3>
-  <figure class="diagram"><img src="assets/fig_ref_ssm.png" alt="From continuous state-space model to selective scan" loading="lazy"><figcaption>From a continuous state-space model to a selective scan, after S4 and Mamba. Making the step Δ depend on the input lets the model choose what to keep.</figcaption></figure>
-  <figure class="diagram"><img src="assets/fig_ref_mamba.png" alt="Mamba block, SS2D cross-scan and VSS block" loading="lazy"><figcaption>The Mamba block, VMamba's four-way cross-scan (SS2D) and the VSS block that wraps it.</figcaption></figure>
-</section>
-
-<section id="method">
-  <h2><span>06</span> How it works</h2>
-  <p class="sub">CFFM-Net as trained, drawn with the real activations of one LLVIP test pair. The two backbones never mix;
-    they meet only in the fusion blocks, where each token's scan step is scaled by how reliable its camera is there.</p>
-  <figure class="diagram"><img src="assets/fig_cffm_overall.png" alt="CFFM-Net overall architecture with real feature maps" loading="lazy"><figcaption>Two YOLO26-n backbones, a reliability-weighted sum at P2, the cross-modal fusion Mamba block at P3 to P5, the YOLO26 neck and heads. The small maps are the thermal reliability at each level. This is the round-one model; the final v2 drops the stride-4 level and runs at 6.02 M parameters and 16.5 GFLOPs.</figcaption></figure>
-  <div class="grid3">
-    <figure><img src="assets/fig_architecture.png" alt="CFFM-Net in compact form" loading="lazy"><figcaption>The same network in compact form: one stage per stream, fused at each level.</figcaption></figure>
-    <figure><img src="assets/fig_cmfm.png" alt="CMFM block" loading="lazy"><figcaption>The fusion block: reliability head, alignment, interleaved tokens, gated scan, zero-initialised output.</figcaption></figure>
-    <figure><img src="assets/fig_gated_scan.png" alt="Gated selective scan" loading="lazy"><figcaption>Reliability scales each token's step. A camera with zero reliability cannot write into the state.</figcaption></figure>
-  </div>
-  <figure class="diagram"><img src="assets/fig_training.png" alt="Training and evaluation pipeline" loading="lazy"><figcaption>From raw archives to verdicts: paired conversion, shared augmentation, modality dropout, two YOLO26 losses, FP32 scan under AMP, then COCO AP, the sensor-fault probe, latency and the pre-registered decisions.</figcaption></figure>
-  <figure class="diagram narrow"><img src="assets/fig_workflow.png" alt="Research workflow from data to venue packages" loading="lazy"><figcaption>The research workflow end to end: data, training rounds, the evaluations of each phase, the numbers file that feeds every table, the manuscript and its venue packages.</figcaption></figure>
+<section id="architecture">
+  <div class="head"><h2>Architecture</h2><p>The network as trained, drawn with the real activations of one LLVIP test pair. The two backbones never mix. They meet only in the fusion blocks, where each token&rsquo;s scan step is scaled by how reliable its camera is there.</p></div>
+  <figure><a href="assets/4k/fig_cffm_overall.png" aria-label="Open the full 4K image: CFFM-Net overall architecture with real feature maps"><img src="assets/fig/fig_cffm_overall.webp" alt="CFFM-Net overall architecture with real feature maps" width="2000" height="1045" loading="lazy" decoding="async"></a><figcaption><b>The full network.</b> Two YOLO26-n backbones, a reliability-weighted sum at the finest level, the cross-modal fusion Mamba block at the three coarser levels, then the YOLO26 neck and heads. The small maps are the thermal reliability at each level. This is the first-round model; the final v2 drops the stride-4 level and runs at 6.02 M parameters and 16.5 GFLOPs.</figcaption></figure>
+  <div class="trio"><figure><a href="assets/4k/fig_architecture.png" aria-label="Open the full 4K image: CFFM-Net in compact form"><img src="assets/fig/fig_architecture.webp" alt="CFFM-Net in compact form" width="2000" height="1610" loading="lazy" decoding="async"></a><figcaption><b>Compact form.</b> One stage per stream, fused at each level.</figcaption></figure><figure><a href="assets/4k/fig_cmfm.png" aria-label="Open the full 4K image: The CMFM fusion block"><img src="assets/fig/fig_cmfm.webp" alt="The CMFM fusion block" width="2000" height="2332" loading="lazy" decoding="async"></a><figcaption><b>The fusion block.</b> Reliability head, alignment, interleaved tokens, gated scan and a zero-initialised output.</figcaption></figure><figure><a href="assets/4k/fig_gated_scan.png" aria-label="Open the full 4K image: The gated selective scan"><img src="assets/fig/fig_gated_scan.webp" alt="The gated selective scan" width="2000" height="1493" loading="lazy" decoding="async"></a><figcaption><b>The gated scan.</b> Reliability scales each token&rsquo;s step, so a camera with zero reliability cannot write into the state.</figcaption></figure></div>
+  <figure class="narrow"><a href="assets/4k/fig_tsm.png" aria-label="Open the full 4K image: The Temporal State Memory"><img src="assets/fig/fig_tsm.webp" alt="The Temporal State Memory" width="2000" height="1120" loading="lazy" decoding="async"></a><figcaption><b>Temporal State Memory.</b> A per-pixel state carried between frames. The step is scaled by the real time gap and by reliability, and the state is warped with the camera and reset at scene cuts.</figcaption></figure>
 </section>
 
 <section id="phases">
-  <h2><span>07</span> Four phases, built and measured</h2>
-  <p class="sub">Still images are Phase 1. Phase 2 adds memory across frames and tracking. Phase 3 runs on live
-    cameras, and Phase 4 combines several cameras into anonymous counts. All four are built, and every number below
-    comes from the result files in the repository.</p>
-  <figure class="diagram"><img src="assets/fig_pipeline.png" alt="The complete CFFM-Net system across four phases" loading="lazy"><figcaption>The whole system in one picture: two cameras, the fusion detector, temporal memory and tracking, the live runtime with its stream monitor, and the multi-camera ground-plane layer.</figcaption></figure>
-  <h3>Phase 1 · fusion detector</h3>
-  <figure class="diagram"><img src="assets/fig_phase1.png" alt="Phase 1: reliability-gated fusion detector" loading="lazy"><figcaption>Two YOLO26-n backbones meet in fusion blocks, where the reliability of each camera scales the step of a four-direction selective scan. Evaluated over three seeds against a matched baseline, on eleven sensor faults and for latency: 66.2 mAP on LLVIP and 53.9 on M3FD.</figcaption></figure>
-  <h3>Phase 2 · video memory and tracking</h3>
-  <figure class="diagram"><img src="assets/fig_phase2.png" alt="Phase 2: Temporal State Memory and tracking" loading="lazy"><figcaption>A per-pixel state carried from frame to frame. On KAIST it cuts the miss rate under thermal noise from 51.6 to 34.1 percent, with a confound the paper states. It barely helps when the thermal camera is lost (−0.3) and does not improve tracking (MOTA 44.5 without it, 42.5 with).</figcaption></figure>
-  <figure class="diagram narrow"><img src="assets/fig_tsm.png" alt="Temporal State Memory" loading="lazy"><figcaption>Inside the Temporal State Memory: the step is scaled by the real time gap and by reliability, and the state is warped with the camera and reset at scene cuts.</figcaption></figure>
-  <h3>Phase 3 · live runtime</h3>
-  <figure class="diagram"><img src="assets/fig_phase3.png" alt="Phase 3: live runtime with stream monitor" loading="lazy"><figcaption>The live path from two cameras to the screen, with a monitor that flags a stalled or lost camera. Delay and GPU memory stay bounded over a ten-minute run at 12.4 frames per second on a nominal 30, and a cable pull is flagged in 0.29 s.</figcaption></figure>
-  <h3>Phase 4 · multi-camera analytics</h3>
-  <figure class="diagram"><img src="assets/fig_phase4.png" alt="Phase 4: multi-camera ground-plane analytics" loading="lazy"><figcaption>Detections from the WILDTRACK cameras projected to a shared ground plane, associated and tracked, then reduced to anonymous counts, crossings and dwell times. This layer is RGB-only: 77.4 percent MODA, 79.4 MOTA, 84.9 IDF1 and a count error of 6.0 percent.</figcaption></figure>
-  <figure class="diagram"><img src="assets/fig_scope.png" alt="Project scope across the phases" loading="lazy"><figcaption>Every phase with what it delivers and what it reached, and how the model grows from one phase to the next.</figcaption></figure>
-  <p class="sub">Every diagram, with the reasoning behind it, is collected in the <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/docs/atlas/CFFM-Net_Architecture_Atlas.pdf">Architecture Atlas</a> (PDF). The code, tests and notebooks are on <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">GitHub</a>.</p>
+  <div class="head"><h2>Four phases</h2><p>Still images first, then memory across frames and tracking, then live cameras, then several cameras combined into anonymous counts. All four are built, and every number comes from the result files in the repository.</p></div>
+  <figure><a href="assets/4k/fig_pipeline.png" aria-label="Open the full 4K image: The complete CFFM-Net system across four phases"><img src="assets/fig/fig_pipeline.webp" alt="The complete CFFM-Net system across four phases" width="2000" height="1078" loading="lazy" decoding="async"></a><figcaption><b>The whole system.</b> Two cameras, the fusion detector, temporal memory and tracking, the live runtime with its stream monitor, and the multi-camera ground-plane layer.</figcaption></figure>
+  <div class="split"><div class="side"><h3>Phase 1<br>Fusion detector</h3><p>Two backbones meet in fusion blocks where reliability scales the scan. Trained for 80 epochs and compared with a matched baseline over three seeds.</p><dl><div><dt>LLVIP mAP</dt><dd>66.2 &plusmn; 0.8</dd></div><div><dt>M3FD mAP</dt><dd>53.9 &plusmn; 0.1</dd></div><div><dt>Margin over baseline</dt><dd>+0.8 / +0.6</dd></div><div><dt>Latency, RTX 4050</dt><dd>45.0 ms</dd></div><div><dt>Parameters</dt><dd>6.02 M</dd></div></dl></div><div class="main"><figure><a href="assets/4k/fig_phase1.png" aria-label="Open the full 4K image: Phase 1: the reliability-gated fusion detector"><img src="assets/fig/fig_phase1.webp" alt="Phase 1: the reliability-gated fusion detector" width="2000" height="949" loading="lazy" decoding="async"></a><figcaption>The detector on still image pairs, with the evaluation applied to it.</figcaption></figure><figure><a href="assets/4k/res_main.png" aria-label="Open the full 4K image: Per-seed mAP of CFFM-Net v2 and the baseline on LLVIP and M3FD"><img src="assets/fig/res_main.webp" alt="Per-seed mAP of CFFM-Net v2 and the baseline on LLVIP and M3FD" width="2000" height="754" loading="lazy" decoding="async"></a><figcaption>Each dot is one seed and the bars are the mean and standard deviation. The lines are the single-camera models, trained for 30 epochs on LLVIP and 80 on M3FD. The axes do not start at zero.</figcaption></figure></div></div>
+  <div class="split"><div class="side"><h3>Phase 2<br>Memory and tracking</h3><p>A per-pixel state carried from frame to frame, then ByteTrack. Scored on KAIST with the memory off and on.</p><dl><div><dt>Miss rate, clean</dt><dd>20.3 to 19.8</dd></div><div><dt>Miss rate, thermal noise</dt><dd>51.6 to 34.1</dd></div><div><dt>Miss rate, thermal lost</dt><dd>26.2 to 25.9</dd></div><div><dt>Tracking MOTA</dt><dd>44.5 to 42.5</dd></div></dl></div><div class="main"><figure><a href="assets/4k/fig_phase2.png" aria-label="Open the full 4K image: Phase 2: Temporal State Memory and tracking"><img src="assets/fig/fig_phase2.webp" alt="Phase 2: Temporal State Memory and tracking" width="2000" height="1046" loading="lazy" decoding="async"></a><figcaption>Video, the memory and tracking.</figcaption></figure><figure><a href="assets/4k/res_memory.png" aria-label="Open the full 4K image: KAIST miss rate and tracking with the memory off and on"><img src="assets/fig/res_memory.webp" alt="KAIST miss rate and tracking with the memory off and on" width="2000" height="782" loading="lazy" decoding="async"></a><figcaption>The memory helps most under thermal noise, with a confound the paper states. It barely helps when the thermal camera is lost and it does not improve tracking.</figcaption></figure></div></div>
+  <div class="split"><div class="side"><h3>Phase 3<br>Live runtime</h3><p>Two capture threads, newest-frame pairing, the detector with its memory, and a monitor that flags a stalled or lost camera.</p><dl><div><dt>Frame rate at 30 offered</dt><dd>12.4 fps</dd></div><div><dt>End-to-end delay, median</dt><dd>94 ms</dd></div><div><dt>End-to-end delay, p95</dt><dd>118 ms</dd></div><div><dt>Cable pull flagged in</dt><dd>0.29 s</dd></div></dl></div><div class="main"><figure><a href="assets/4k/fig_phase3.png" aria-label="Open the full 4K image: Phase 3: the live runtime with its stream monitor"><img src="assets/fig/fig_phase3.webp" alt="Phase 3: the live runtime with its stream monitor" width="2000" height="969" loading="lazy" decoding="async"></a><figcaption>The live path from two cameras to the screen.</figcaption></figure><figure><a href="assets/4k/res_live.png" aria-label="Open the full 4K image: Live runtime delay, throughput and link-fault timing"><img src="assets/fig/res_live.webp" alt="Live runtime delay, throughput and link-fault timing" width="2000" height="754" loading="lazy" decoding="async"></a><figcaption>Delay stays bounded over a ten-minute run, though the laptop keeps up with only 12.4 of 30 offered frames per second. Link faults are detected and recovered within a second, one run each.</figcaption></figure></div></div>
+  <div class="split"><div class="side"><h3>Phase 4<br>Multi-camera analytics</h3><p>Detections from seven WILDTRACK cameras projected to a shared ground plane, tracked, and reduced to anonymous counts. This layer is RGB-only and says nothing about fusion.</p><dl><div><dt>Detection MODA</dt><dd>77.4</dd></div><div><dt>Tracking MOTA</dt><dd>79.4</dd></div><div><dt>Tracking IDF1</dt><dd>84.9</dd></div><div><dt>Count error</dt><dd>6.0%</dd></div></dl></div><div class="main"><figure><a href="assets/4k/fig_phase4.png" aria-label="Open the full 4K image: Phase 4: multi-camera ground-plane analytics"><img src="assets/fig/fig_phase4.webp" alt="Phase 4: multi-camera ground-plane analytics" width="2000" height="942" loading="lazy" decoding="async"></a><figcaption>The multi-camera layer.</figcaption></figure><figure><a href="assets/4k/res_multicam.png" aria-label="Open the full 4K image: WILDTRACK detection, tracking and counting results"><img src="assets/fig/res_multicam.webp" alt="WILDTRACK detection, tracking and counting results" width="2000" height="726" loading="lazy" decoding="async"></a><figcaption>Fine-tuning lifts ground-plane detection from 42.5 to 77.4 MODA. The count is off by 1.43 people on average, with 23.8 present.</figcaption></figure></div></div>
+</section>
+
+<section id="results">
+  <div class="head"><h2>Results</h2><p>COCO mAP50-95 on the full test sets with YOLO26-n backbones. Fusion rows are means over three seeds at 80 epochs. Single-camera rows are one seed, 80 epochs on M3FD and 30 on LLVIP. Latency is the median on an idle RTX 4050 laptop GPU.</p></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Model</th><th>LLVIP</th><th>M3FD</th><th>Parameters</th><th>Latency</th></tr></thead>
+    <tbody>
+      <tr><td>Visible camera only</td><td>52.0</td><td>49.9</td><td>2.50 M</td><td>not timed</td></tr>
+      <tr><td>Thermal camera only</td><td>64.1</td><td>47.6</td><td>2.50 M</td><td>25.8 ms</td></tr>
+      <tr><td>Two-stream concatenation, modality dropout</td><td>65.5</td><td>53.3</td><td>4.07 M</td><td>33.1 ms</td></tr>
+      <tr class="ours"><td>CFFM-Net v2</td><td>66.2</td><td>53.9</td><td>6.02 M</td><td>45.0 ms</td></tr>
+    </tbody>
+  </table></div>
+  <div class="split"><div class="side"><h3>Sensor faults</h3><p>Eleven faults at three severities, injected at test time on M3FD and LLVIP. Blue cells favour CFFM-Net and red cells favour the baseline.</p></div>
+    <div class="main">
+      <figure><a href="assets/4k/res_fault_heatmap.png" aria-label="Open the full 4K image: Heat maps of M3FD mAP under eleven faults at three severities for three models"><img src="assets/fig/res_fault_heatmap.webp" alt="Heat maps of M3FD mAP under eleven faults at three severities for three models" width="2000" height="1033" loading="lazy" decoding="async"></a><figcaption><b>Accuracy under each fault, M3FD.</b> CFFM-Net v2 and the modality-dropout baseline are three-seed means. The fault-trained baseline is one seed.</figcaption></figure>
+      <figure><a href="assets/4k/res_fault_margin.png" aria-label="Open the full 4K image: Heat maps of the margin of CFFM-Net v2 over two baselines"><img src="assets/fig/res_fault_margin.webp" alt="Heat maps of the margin of CFFM-Net v2 over two baselines" width="2000" height="1061" loading="lazy" decoding="async"></a><figcaption><b>Margin over the baselines.</b> Against the modality-dropout baseline the model gains on thermal-side faults. Against the fault-trained baseline it loses almost everywhere. The colour scale is clipped at 15 points and every cell prints its value.</figcaption></figure>
+      <figure><a href="assets/4k/res_severity_curves.png" aria-label="Open the full 4K image: mAP against fault severity for each of eleven faults"><img src="assets/fig/res_severity_curves.webp" alt="mAP against fault severity for each of eleven faults" width="2000" height="1452" loading="lazy" decoding="async"></a><figcaption><b>How each fault bites.</b> Three-seed means with a band of one standard deviation. The fault-trained baseline is one seed.</figcaption></figure>
+    </div></div>
+  <div class="split"><div class="side"><h3>Cost, scale and training</h3><p>What the gated scan costs in time, where it helps by object size, and how the runs converged.</p></div>
+    <div class="main">
+      <figure><a href="assets/4k/res_tradeoff.png" aria-label="Open the full 4K image: Accuracy against latency for five models on two datasets"><img src="assets/fig/res_tradeoff.webp" alt="Accuracy against latency for five models on two datasets" width="2000" height="810" loading="lazy" decoding="async"></a><figcaption><b>Accuracy against latency.</b> Marker area follows the parameter count. CFFM-Net v2 is 1.36 times slower than the baseline for a margin inside the seed spread. The axes do not start at zero.</figcaption></figure>
+      <div class="duo"><figure><a href="assets/4k/res_scale.png" aria-label="Open the full 4K image: AP by object size band"><img src="assets/fig/res_scale.webp" alt="AP by object size band" width="2000" height="754" loading="lazy" decoding="async"></a><figcaption><b>By object size.</b> Three-seed means with the seeds as dots.</figcaption></figure><figure><a href="assets/4k/res_training.png" aria-label="Open the full 4K image: Validation mAP against epoch"><img src="assets/fig/res_training.webp" alt="Validation mAP against epoch" width="2000" height="782" loading="lazy" decoding="async"></a><figcaption><b>Training curves.</b> LLVIP shows seed 0, the only seed whose log was kept. M3FD shows three seeds.</figcaption></figure></div>
+    </div></div>
+</section>
+
+<section id="workflow">
+  <div class="head"><h2>Workflow</h2><p>How the work was done, from raw archives to the manuscript. Each numbered box is a notebook that runs on its own.</p></div>
+  <figure><a href="assets/4k/fig_workflow.png" aria-label="Open the full 4K image: Research workflow from data to venue packages"><img src="assets/fig/fig_workflow.webp" alt="Research workflow from data to venue packages" width="2000" height="1308" loading="lazy" decoding="async"></a><figcaption><b>End to end.</b> Data, the training rounds, the evaluations of each phase, the numbers file that feeds every table, the manuscript and its venue packages.</figcaption></figure>
+  <figure><a href="assets/4k/fig_training.png" aria-label="Open the full 4K image: Training and evaluation pipeline"><img src="assets/fig/fig_training.webp" alt="Training and evaluation pipeline" width="2000" height="959" loading="lazy" decoding="async"></a><figcaption><b>Training and evaluation.</b> Paired conversion, shared augmentation, modality dropout, two YOLO26 losses and a full-precision scan under mixed precision, then COCO AP, the sensor-fault probe, latency and the decisions fixed in advance.</figcaption></figure>
+  <figure><a href="assets/4k/fig_scope.png" aria-label="Open the full 4K image: Project scope across the phases"><img src="assets/fig/fig_scope.webp" alt="Project scope across the phases" width="2000" height="1215" loading="lazy" decoding="async"></a><figcaption><b>Scope.</b> Every phase with what it delivers and what it reached, and how the model grows from one phase to the next.</figcaption></figure>
+</section>
+
+<section id="background">
+  <div class="head"><h2>Background</h2><p>The two lines of work this builds on: ten years of YOLO detectors, and state-space models from S4 to Mamba.</p></div>
+  <figure><a href="assets/4k/fig_ref_yolo_lineage.png" aria-label="Open the full 4K image: YOLO lineage from v1 to YOLO26"><img src="assets/fig/fig_ref_yolo_lineage.webp" alt="YOLO lineage from v1 to YOLO26" width="2000" height="514" loading="lazy" decoding="async"></a><figcaption><b>YOLO, 2016 to 2026.</b> Backbone, neck and head, and the one change that defines each generation, ending at the NMS-free YOLO26.</figcaption></figure>
+  <figure><a href="assets/4k/fig_ref_yolo26.png" aria-label="Open the full 4K image: YOLO26-n architecture with measured shapes"><img src="assets/fig/fig_ref_yolo26.webp" alt="YOLO26-n architecture with measured shapes" width="2000" height="1204" loading="lazy" decoding="async"></a><figcaption><b>YOLO26-n as used here.</b> Every layer index and measured shape at 640 pixels. Inference uses only the one-to-one head, so there is no NMS.</figcaption></figure>
+  <div class="duo"><figure><a href="assets/4k/fig_ref_yolo26_blocks.png" aria-label="Open the full 4K image: Conv, C3k2, SPPF and C2PSA blocks"><img src="assets/fig/fig_ref_yolo26_blocks.webp" alt="Conv, C3k2, SPPF and C2PSA blocks" width="2000" height="862" loading="lazy" decoding="async"></a><figcaption><b>The repeated blocks.</b> Conv, C3k2, SPPF and C2PSA.</figcaption></figure><figure><a href="assets/4k/fig_ref_yolov1.png" aria-label="Open the full 4K image: The original YOLO detector"><img src="assets/fig/fig_ref_yolov1.webp" alt="The original YOLO detector" width="2000" height="1552" loading="lazy" decoding="async"></a><figcaption><b>Where it started.</b> The first YOLO, one grid and one pass.</figcaption></figure></div>
+  <figure><a href="assets/4k/fig_ref_ssm.png" aria-label="Open the full 4K image: From a continuous state-space model to a selective scan"><img src="assets/fig/fig_ref_ssm.webp" alt="From a continuous state-space model to a selective scan" width="2000" height="953" loading="lazy" decoding="async"></a><figcaption><b>State-space models.</b> From a continuous model to a selective scan, after S4 and Mamba. Making the step depend on the input lets the model choose what to keep.</figcaption></figure>
+  <figure><a href="assets/4k/fig_ref_mamba.png" aria-label="Open the full 4K image: The Mamba block, the four-way cross-scan and the VSS block"><img src="assets/fig/fig_ref_mamba.webp" alt="The Mamba block, the four-way cross-scan and the VSS block" width="2000" height="962" loading="lazy" decoding="async"></a><figcaption><b>Mamba in vision.</b> The Mamba block, VMamba&rsquo;s four-way cross-scan and the VSS block that wraps it.</figcaption></figure>
 </section>
 
 <section id="paper">
-  <h2><span>08</span> The paper</h2>
-  <p class="sub"><b>CFFM-Net: Reliability-Gated Mamba Fusion of Visible and Thermal Images for Detection, Tracking and
-    Multi-Camera Analytics</b>, by Ritesh Roshan. A controlled study that reports each result as it came out,
-    including the ones that went against the model.</p>
-  <p class="sub"><a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/papers/CFFM-Net_IEEE_Journal.pdf">Manuscript</a> (PDF) ·
-    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/papers/CFFM-Net_IEEE_Journal_Supplementary.pdf">Supplementary material</a> ·
-    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/tree/main/submissions">Venue packages</a> for four journals, four conferences and arXiv ·
-    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/tree/main/papers/source">LaTeX source</a></p>
+  <div class="head"><h2>The paper</h2><p><b>CFFM-Net: Reliability-Gated Mamba Fusion of Visible and Thermal Images for Detection, Tracking and Multi-Camera Analytics</b>, by Ritesh Roshan. A controlled study that states where each claim stops.</p></div>
+  <div class="papers">
+    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/papers/CFFM-Net_IEEE_Journal.pdf"><b>Manuscript</b><span>IEEE journal format, 13 pages</span></a>
+    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/papers/CFFM-Net_IEEE_Journal_Supplementary.pdf"><b>Supplementary material</b><span>Per-seed tables, system diagrams and every result figure, 10 pages</span></a>
+    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/tree/main/submissions"><b>Venue packages</b><span>Four journals, four conferences and arXiv, each with its cover letter</span></a>
+    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net/blob/main/cffm-net-pilot/docs/atlas/CFFM-Net_Architecture_Atlas.pdf"><b>Architecture atlas</b><span>Every diagram with the reasoning behind it</span></a>
+    <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net"><b>Code</b><span>Model, training, evaluation, notebooks and tests</span></a>
+  </div>
 </section>
+</main>
 
-<footer>CFFM-Net · <a href="https://www.linkedin.com/in/ritesh-roshan-sahoo/" target="_blank" rel="noopener">Ritesh Roshan</a> · data: LLVIP, M3FD, KAIST, WILDTRACK (research use) · built with YOLO26 and a reliability-gated selective scan · <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">source</a></footer>
+<footer>
+  <p>Engineered by <a href="https://www.linkedin.com/in/ritesh-roshan-sahoo/" target="_blank" rel="noopener">Ritesh Roshan</a>. Built with YOLO26 and a reliability-gated selective scan.</p>
+  <p>Data: LLVIP, M3FD, KAIST and WILDTRACK, for research use. <a href="https://github.com/riteshroshann/yolo-cross-feature-fusion-mamba-net">Source on GitHub</a>.</p>
+</footer>
 <script type="module" src="app.js"></script>
 </body>
 </html>

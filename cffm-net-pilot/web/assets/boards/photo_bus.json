@@ -1,0 +1,1 @@
+{"msg": "5 subjects \u00b7 16 ms on NVIDIA GeForce RTX 4050 Laptop GPU", "log": {"headers": ["subject", "class", "conf", "box px"], "data": [["01", "BUS", 0.881, "803x520"], ["02", "PERSON", 0.872, "191x504"], ["03", "PERSON", 0.861, "122x456"], ["04", "PERSON", 0.846, "140x484"], ["05", "PERSON", 0.657, "59x318"]]}}

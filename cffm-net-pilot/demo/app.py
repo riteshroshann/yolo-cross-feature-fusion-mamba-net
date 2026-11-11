@@ -118,4 +118,4 @@ with gr.Blocks(title="CFFM-Net · The Machine's view") as app:
 
 if __name__ == "__main__":
     app.queue().launch(theme=THEME, css=CSS, share="--share" in sys.argv,
-                       server_name="0.0.0.0" if "--public" in sys.argv else "127.0.0.1")
+                       server_name="0.0.0.0" if "--public" in sys.argv else None)

@@ -148,6 +148,18 @@ numbers in this section come from `papers/source/numbers.tex`, which a script ge
 
 <p align="center"><img src="cffm-net-pilot/docs/figures/fig_phase1.png" width="92%" alt="Phase 1: still-image detection, comparison and fault benchmark"></p>
 
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_main.png" width="92%" alt="Per-seed mAP of CFFM-Net v2 and the concatenation baseline on LLVIP and M3FD"></p>
+
+Each dot is one seed. The bars are the mean and standard deviation, the lines are the single-camera models, and the axes do not start at zero.
+
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_fault_margin.png" width="92%" alt="Margin of CFFM-Net v2 over two baselines for eleven faults at three severities"></p>
+
+Margin of CFFM-Net v2 over the two concatenation baselines, per fault and severity. Blue favours the model and red favours the baseline.
+
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_fault_heatmap.png" width="92%" alt="M3FD mAP under eleven faults at three severities for three models"></p>
+
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_tradeoff.png" width="92%" alt="Accuracy against latency on an RTX 4050 laptop GPU"></p>
+
 **Clean accuracy.** The fusion rows are means over three seeds at 80 epochs. The LLVIP single-camera rows are one seed
 at 30 epochs and are not matched to the fusion rows, so they support no conclusion about the gain from fusion there.
 The M3FD single-camera rows are one seed at 80 epochs, matched in schedule but trained at twice the fusion batch size.
@@ -273,6 +285,8 @@ reported as a negative result and left out of the recommended recipe.
 
 <p align="center"><img src="cffm-net-pilot/docs/figures/fig_phase2.png" width="92%" alt="Phase 2: KAIST stills, Temporal State Memory and tracking"></p>
 
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_memory.png" width="92%" alt="KAIST miss rate and tracking with the Temporal State Memory off and on"></p>
+
 KAIST is scored by log-average miss rate (lower is better) on the reasonable subset, using the original annotations and
 our own implementation of the Caltech protocol, so the figures are not comparable with published ones. Each of the
 runs here is a single run and carries no spread.
@@ -309,6 +323,8 @@ darkness and thermal noise.
 
 <p align="center"><img src="cffm-net-pilot/docs/figures/fig_phase3.png" width="92%" alt="Phase 3: live runtime with capture threads, stream monitor and delay accounting"></p>
 
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_live.png" width="92%" alt="Live runtime delay, throughput and link-fault timing"></p>
+
 Recorded KAIST sequences are replayed at real speed as the two cameras, so every run is repeatable and the faults are
 exact. The runtime runs CFFM-Net v2 with the memory and ByteTrack on the same RTX 4050 laptop GPU. A frame the model
 cannot take is dropped at capture and never queued.
@@ -331,6 +347,8 @@ detects and clears link faults quickly, and the manuscript does not claim that i
 
 <p align="center"><img src="cffm-net-pilot/docs/figures/fig_phase4.png" width="92%" alt="Phase 4: calibrated cameras to ground-plane tracks and aggregate counts"></p>
 
+<p align="center"><img src="cffm-net-pilot/docs/figures/res_multicam.png" width="92%" alt="WILDTRACK detection, tracking and counting results"></p>
+
 The multi-camera layer maps person boxes from several calibrated cameras onto a ground plane, merges them by
 visibility-normalised voting, tracks them with a constant-velocity tracker and reports aggregate analytics: counts per
 zone, line crossings, dwell time and an occupancy map. Identifiers are ephemeral and anonymous, and the head region of
@@ -348,6 +366,8 @@ about whether visible-thermal fusion improves analytics, which would need paired
 On the ground-plane tracks the system reaches MOTA 79.4 % and IDF1 84.9 % with 18 identity switches, and tracks 25 of 41
 people for most of their presence. The total count has a mean absolute error of 1.43 people on a mean of 23.8 per frame, a
 relative error of 6.0 %.
+
+Every diagram is exported at 4K (3840 px on the long edge) by `cffm-net-pilot/docs/figures/build_figures.py`, and every result graph is drawn from the result files by `cffm-net-pilot/docs/figures/build_results.py`. The remaining graphs (`res_severity_curves`, `res_scale`, `res_training`) are in the same folder and in the supplement.
 
 ## Engineering
 

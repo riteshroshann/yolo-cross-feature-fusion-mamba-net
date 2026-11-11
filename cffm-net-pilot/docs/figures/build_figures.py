@@ -1,4 +1,4 @@
-"""Compile fig_*.tex here (or the names given) to PDF with Tectonic and render a 300-dpi PNG next to each.
+"""Compile fig_*.tex here (or the names given) to PDF with Tectonic and render a 4K PNG (3840 px on the long edge) next to each.
 
     TECTONIC=/path/to/tectonic python build_figures.py [fig_name ...]
 """
@@ -20,5 +20,7 @@ for tex in sorted(HERE.glob("fig_*.tex")):
         print(tex.name, "FAILED\n", "\n".join(l for l in r.stderr.splitlines() if "error" in l.lower())[:2000])
         continue
     doc = pymupdf.open(HERE / tex.with_suffix(".pdf").name)
-    doc[0].get_pixmap(dpi=300).save(str(HERE / tex.with_suffix(".png").name))
+    page = doc[0]
+    zoom = 3840 / max(page.rect.width, page.rect.height)
+    page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom)).save(str(HERE / tex.with_suffix(".png").name))
     print("built", tex.stem, f"{doc[0].rect.width / 72 * 2.54:.1f} x {doc[0].rect.height / 72 * 2.54:.1f} cm")
