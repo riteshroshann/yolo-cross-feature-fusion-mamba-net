@@ -1,0 +1,53 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[
+  E/.style={blk, neu, minimum width=3.15cm, minimum height=1.6cm, text width=2.7cm, align=left, inner ysep=4pt},
+  vl/.style={ar, draw=cRGB!85!black},
+  tl/.style={ar, draw=cIR!90!black}]
+
+  \node[vis, minimum width=1.5cm, minimum height=1.0cm] (iv) at (0.75,2.35) {Visible\\[-1pt] \footnotesize BGR};
+  \node[thr, minimum width=1.5cm, minimum height=1.0cm] (it) at (0.75,0.3) {Thermal\\[-1pt] \footnotesize grey};
+  \node[vis, minimum width=2.1cm, minimum height=1.0cm] (bv) at (3.2,2.35) {Backbone\\[-1pt] \footnotesize YOLO26-n};
+  \node[thr, minimum width=2.1cm, minimum height=1.0cm] (bt) at (3.2,0.3) {Backbone\\[-1pt] \footnotesize YOLO26-n};
+  \draw[vl] (iv) -- (bv);
+  \draw[tl] (it) -- (bt);
+  \node[lab, anchor=north] at (3.2,-0.45) {separate weights,\\ COCO init};
+
+  \begin{scope}[on background layer]
+    \node[region=cFuse, fit={(4.75,-0.8) (12.15,3.55)}] (fr) {};
+  \end{scope}
+  \node[rtitle=cFuse] at (4.75,3.55) {Fusion at strides 8, 16, 32};
+
+  \node[fus, minimum width=1.9cm, minimum height=1.15cm] (rel) at (5.95,1.325) {Reliability\\[-1pt] \footnotesize head};
+  \node[scn, minimum width=2.7cm, minimum height=1.5cm] (sc) at (8.85,1.325) {Four-direction\\[-1pt] selective scan\\[-1pt] \footnotesize step scaled by $r$};
+  \node[fus, minimum width=1.7cm, minimum height=1.15cm] (z) at (11.2,1.325) {Fused\\[-1pt] map $Z$};
+
+  \draw[vl] (bv.east) -- (8.85,2.35) -- (sc.north);
+  \draw[tl] (bt.east) -- (8.85,0.3) -- (sc.south);
+  \draw[vl] (5.95,2.35) -- (rel.north);
+  \draw[tl] (5.95,0.3) -- (rel.south);
+  \fill[cRGB!85!black] (5.95,2.35) circle (1.1pt);
+  \fill[cIR!90!black] (5.95,0.3) circle (1.1pt);
+  \node[lab, anchor=south] at (7.3,2.38) {$F^{v}$};
+  \node[lab, anchor=north] at (7.3,0.22) {$F^{\theta}$};
+  \draw[ar, draw=cData] (rel.east) -- node[above, tag] {$r^{v},r^{\theta}$} (sc.west);
+  \draw[ar] (sc.east) -- (z.west);
+  \node[lab, text width=2.4cm, anchor=north] at (11.2,0.55) {weighted average plus scan residual};
+
+  \node[hed, minimum width=2.2cm, minimum height=1.15cm] (nh) at (13.95,1.325) {Neck and\\[-1pt] one-to-one head};
+  \node[dat, minimum width=1.5cm, minimum height=1.0cm] (dt) at (16.35,1.325) {Detections};
+  \draw[ar] (z.east) -- (nh.west);
+  \draw[ar] (nh) -- (dt);
+
+  \begin{scope}[on background layer]
+    \node[region=cNeutral, fit={(0.0,-4.15) (17.1,-1.3)}] (er) {};
+  \end{scope}
+  \node[rtitle=cNeutral] at (0.0,-1.3) {Evaluation};
+  \node[E] (e1) at (1.8,-2.95) {\textbf{Datasets}\\[-1pt] \footnotesize LLVIP and M3FD, paired visible--thermal};
+  \node[E] (e2) at (5.15,-2.95) {\textbf{Matched baseline}\\[-1pt] \footnotesize concat and $1{\times}1$ conv, same backbones, neck, head};
+  \node[E] (e3) at (8.5,-2.95) {\textbf{Seeds}\\[-1pt] \footnotesize three seeds for v2 and the baseline};
+  \node[E] (e4) at (11.85,-2.95) {\textbf{Fault benchmark}\\[-1pt] \footnotesize 11 faults on one camera, 3 severities};
+  \node[E] (e5) at (15.2,-2.95) {\textbf{Latency}\\[-1pt] \footnotesize batch one, half precision, $512{\times}640$};
+\end{tikzpicture}
+\end{document}

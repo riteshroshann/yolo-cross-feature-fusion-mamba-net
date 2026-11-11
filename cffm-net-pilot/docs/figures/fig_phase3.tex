@@ -1,0 +1,67 @@
+\documentclass[border=8pt]{standalone}
+\input{style}
+\begin{document}
+\begin{tikzpicture}[font=\footnotesize,
+  B/.style={font=\footnotesize, inner xsep=4pt, inner ysep=3pt, text width=#1},
+  H/.style={font=\small\scshape, text=muted, anchor=south}]
+  \node[H] at (3.45,7.5) {Capture};
+  \node[H] at (6.9,7.5) {Pairing};
+  \node[H] at (10.7,7.5) {Detector};
+  \node[H] at (13.9,7.5) {Tracker};
+  \node[H] at (16.45,7.5) {Output};
+
+  \node[vis, B=1.3cm, minimum height=0.9cm] (cv) at (0.85,6.2) {Visible camera};
+  \node[thr, B=1.3cm, minimum height=0.9cm] (ct) at (0.85,4.4) {Thermal camera};
+
+  \node[vis, B=2.1cm, minimum height=1.3cm] (kv) at (3.45,6.2) {Capture thread, one-slot queue: a new frame replaces the waiting one};
+  \node[thr, B=2.1cm, minimum height=1.3cm] (kt) at (3.45,4.4) {Capture thread, one-slot queue: a new frame replaces the waiting one};
+
+  \node[neu, B=2.8cm, minimum height=3.0cm] (pr) at (6.9,5.3)
+    {Visible: newest frame, waits at most one frame interval\par\vspace{3pt}%
+     Thermal: newest frame, no wait\par\vspace{3pt}%
+     A camera with nothing new reuses its last frame\par\vspace{3pt}%
+     A camera that is down gives a zero image and a zero flag};
+
+  \node[scn, B=3.0cm, minimum height=1.2cm] (tsm) at (10.7,6.0)
+    {Temporal State Memory\par step scaled by the timestamp gap $\tau_t$};
+  \node[fus, B=3.0cm, minimum height=1.2cm] (cf) at (10.7,4.4)
+    {CFFM-Net, half precision\par reliability forced to zero by a flag};
+
+  \node[hed, B=1.6cm, minimum height=1.2cm] (bt) at (13.9,6.0) {ByteTrack};
+  \node[neu, B=1.7cm, minimum height=1.2cm] (out) at (16.45,6.0) {Tracks and per-step record};
+
+  \node[note, text width=4.6cm, anchor=north west] at (12.6,5.15)
+    {Each step records inference and end-to-end time, the time gap, the camera offset, each camera's health and GPU memory. A gap beyond 2\,s resets the memory.};
+
+  \node[emb, B=7.8cm, minimum height=1.1cm] (mon) at (6.1,2.15)
+    {\textbf{Stream monitor}, per camera, from arrival times and pixels\par%
+     stalled: no frame for 4 intervals; frozen: 6 near-identical frames\par%
+     down: stalled, frozen, black \quad degraded: saturated \quad ok: otherwise};
+
+  \draw[ar] (cv) -- (kv);
+  \draw[ar] (ct) -- (kt);
+  \draw[ar] (kv.east) -- (kv.east -| pr.west);
+  \draw[ar] (kt.east) -- (kt.east -| pr.west);
+  \draw[ar] (pr.east |- cf.west) -- (cf.west);
+  \draw[ar] (cf) -- (tsm);
+  \draw[ar] (tsm) -- (bt);
+  \draw[ar] (bt) -- (out);
+  \draw[ar] ($(tsm.north)+(-0.7,0)$) to[out=90,in=90,looseness=1.4]
+    node[above, font=\scriptsize, text=muted, inner sep=1pt] {$S_{t-1} \to S_t$} ($(tsm.north)+(0.7,0)$);
+
+  \coordinate (bus) at (5.0,6.2);
+  \coordinate (bust) at (5.0,4.4);
+  \draw[dar, cAlert!80!black, -] (bus) -- (bust);
+  \draw[dar, cAlert!80!black] (bust) -- (mon.north -| bust);
+  \fill[cAlert!80!black] (bus) circle (1.3pt);
+  \fill[cAlert!80!black] (bust) circle (1.3pt);
+
+  \draw[ar, cAlert!85!black, line width=0.8pt] (mon.east) -- (mon.east -| cf.south) -- (cf.south);
+  \node[font=\footnotesize\itshape, text=cAlert!85!black, anchor=south west] at (10.9,2.25) {sensor flags and status};
+
+  \node[dat, B=8.0cm, minimum height=1.0cm] (soak) at (4.15,0.3)
+    {\textbf{Soak test}: 30 and 20 frames per second, frames dropped at capture; delay drift, GPU memory growth, throughput};
+  \node[dat, B=8.5cm, minimum height=1.0cm] (lnk) at (13.0,0.3)
+    {\textbf{Link-fault run}: cable pull, frozen visible, stalled thermal; monitor on (flags fed to the model) against off};
+\end{tikzpicture}
+\end{document}

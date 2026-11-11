@@ -1,49 +1,54 @@
 \documentclass[border=8pt]{standalone}
 \input{style}
 \begin{document}
-\begin{tikzpicture}[nb/.style={blk, minimum width=2.75cm, minimum height=1.25cm, font=\small}]
-  \node[font=\small\scshape, text=muted, anchor=west] at (-1.5,1.35) {Phase 0 · environment and data};
-  \node[nb, neu] (n00) at (0,0)   {\textbf{00}\\[-1pt] setup and checks\\[-1pt]\footnotesize tests, memory, DDP};
-  \node[nb, dat] (n01) at (3.5,0) {\textbf{01}\\[-1pt] data acquisition\\[-1pt]\footnotesize LLVIP, M3FD};
-  \node[nb, dat] (n02) at (7.0,0) {\textbf{02}\\[-1pt] conversion\\[-1pt]\footnotesize paired layout};
-  \node[nb, neu] (n03) at (10.5,0){\textbf{03}\\[-1pt] data audit\\[-1pt]\footnotesize sizes, alignment};
-  \node[nb, neu] (n06) at (14.0,0){\textbf{06}\\[-1pt] inside CMFM\\[-1pt]\footnotesize checks, no training};
-  \draw[ar] (n00) -- (n01); \draw[ar] (n01) -- (n02); \draw[ar] (n02) -- (n03);
+\newcommand{\nn}[7]{\node[nb, #1] (#2) at (#3,#4) {\textbf{#5}\\[-1pt] #6\\[-1pt]{\footnotesize #7}};}
+\newcommand{\nx}[6]{\node[nb, #1] (#2) at (#3,#4) {#5\\[-1pt]{\footnotesize #6}};}
+\newcommand{\hop}[2]{\draw[ar] (#1.south) -- ++(0,-0.65) -| (#2.north);}
+\begin{tikzpicture}[nb/.style={blk, minimum width=3.05cm, text width=2.85cm, minimum height=1.3cm, inner ysep=3pt, inner xsep=3pt},
+                    rt/.style={font=\small\scshape, text=muted, anchor=west}]
+  \node[rt] at (0,1.0) {Environment and data};
+  \nn{neu}{a0}{1.525}{0}{00}{setup and checks}{go, no-go, speed}
+  \nn{dat}{a1}{5.025}{0}{01}{data acquisition}{LLVIP, M3FD}
+  \nn{dat}{a2}{8.525}{0}{02}{conversion}{paired 4-channel layout}
+  \nn{neu}{a3}{12.025}{0}{03}{data audit}{sizes, alignment}
+  \nx{dat}{a4}{15.525}{0}{KAIST, WILDTRACK}{for phases 2 to 4}
+  \draw[ar] (a0) -- (a1); \draw[ar] (a1) -- (a2); \draw[ar] (a2) -- (a3);
 
-  \node[font=\small\scshape, text=muted, anchor=west] at (-1.5,-1.75) {Phase 1 · pilot, 30 epochs};
-  \node[nb, vis] (n04) at (0,-3.1)   {\textbf{04}\\[-1pt] single sensor\\[-1pt]\footnotesize visible, thermal};
-  \node[nb, neu] (n05) at (3.5,-3.1) {\textbf{05}\\[-1pt] two-stream\\[-1pt]\footnotesize concat baseline};
-  \node[nb, fus] (n07) at (7.0,-3.1) {\textbf{07}\\[-1pt] CFFM-Net\\[-1pt]\footnotesize LLVIP, M3FD};
-  \node[nb, scn] (n08) at (10.5,-3.1){\textbf{08}\\[-1pt] ablations\\[-1pt]\footnotesize no gate, gated conv};
-  \node[nb, scn] (n08b) at (14.0,-3.1){\textbf{08b}\\[-1pt] head control\\[-1pt]\footnotesize stride-4 head swapped};
-  \draw[ar] (n02.south) -- ++(0,-0.75) -| (n04.north);
-  \draw[ar] (n02.south) ++(0,-0.75) -| (n05.north);
-  \draw[ar] (n02.south) -- (n07.north);
-  \draw[ar] (n02.south) ++(0,-0.75) -| (n08.north);
-  \draw[ar] (n02.south) ++(0,-0.75) -| (n08b.north);
+  \node[rt] at (0,-0.95) {Phase 1 · training rounds};
+  \nn{neu}{b0}{1.525}{-2.25}{04, 05}{baselines}{single, two-stream}
+  \nn{fus}{b1}{5.025}{-2.25}{06, 07}{round one}{v1, 30 epochs}
+  \nn{scn}{b2}{8.525}{-2.25}{08, 08b}{ablations}{gate, scan, P2, head}
+  \nn{fus}{b3}{12.025}{-2.25}{08c to 08f}{rounds two, three}{v2, modality dropout}
+  \nn{fus}{b4}{15.525}{-2.25}{08g to 08l}{seeds, round four}{80 epochs, v3 faults}
+  \hop{a3}{b0}
+  \draw[ar] (b0) -- (b1); \draw[ar] (b1) -- (b2); \draw[ar] (b2) -- (b3); \draw[ar] (b3) -- (b4);
 
-  \node[font=\small\scshape, text=muted, anchor=east] at (15.4,-4.85) {Phase 1 · rounds 2 and 3, standard head and modality dropout};
-  \node[nb, fus] (n08c) at (0,-6.2)   {\textbf{08c, 08d}\\[-1pt] round 2\\[-1pt]\footnotesize LLVIP, M3FD, 30 epochs};
-  \node[nb, fus] (n08e) at (3.5,-6.2) {\textbf{08e, 08f}\\[-1pt] round 3\\[-1pt]\footnotesize LLVIP, M3FD, 80 epochs};
-  \node[nb, hed] (n09) at (7.0,-6.2) {\textbf{09}\\[-1pt] probe and latency\\[-1pt]\footnotesize 7 faults, one T4};
-  \node[nb, fus] (n15) at (10.5,-6.2) {\textbf{15}\\[-1pt] results\\[-1pt]\footnotesize tables, verdicts};
-  \node[nb, vis] (n16) at (14.0,-6.2) {\textbf{16}\\[-1pt] showcase\\[-1pt]\footnotesize boards, tracking};
-  \draw[ar] (n08b.south) -- ++(0,-0.5) -| (n08c.north);
-  \draw[ar] (n08c) -- (n08e); \draw[ar] (n08e) -- (n09); \draw[ar] (n09) -- (n15); \draw[ar] (n15) -- (n16);
-  \draw[dar] (n05.south) -- ++(0,-0.5) -| (n09.north);
-  \draw[dar] (n07.south) -- (n09.north);
-  \draw[dar] (n08.south) -- ++(0,-0.5) -| (n09.north);
+  \node[rt] at (0,-3.2) {Phase 1 · evaluation};
+  \nn{hed}{c0}{1.525}{-4.5}{09}{degradation probe}{round one, LLVIP}
+  \nx{hed}{c1}{5.025}{-4.5}{three seeds}{v2 against concat}
+  \nx{hed}{c2}{8.525}{-4.5}{matched baselines}{single camera, M3FD}
+  \nx{hed}{c3}{12.025}{-4.5}{fault benchmark}{11 faults, 3 severities}
+  \nx{hed}{c4}{15.525}{-4.5}{latency}{idle RTX 4050 laptop}
+  \draw[line width=0.55pt, draw=ink!75] (b4.south) -- ++(0,-0.65) coordinate (bus) -- (bus -| c0);
+  \foreach \c in {c0,c1,c2,c3,c4} {\draw[ar] (\c.north |- bus) -- (\c.north);}
 
-  \node[nb, emb, minimum width=4.0cm] (dem) at (14.0,-9.0) {demo app and website\\[-1pt]\footnotesize upload a pair or a photo};
-  \node[nb, neu, minimum width=4.0cm] (doc) at (8.8,-9.0) {dossier, atlas, study guide\\[-1pt]\footnotesize PDFs and figures};
-  \draw[ar] (n16) -- (dem);
-  \draw[ar] (n15.south) -- (n15.south |- doc.north);
+  \node[rt] at (0,-5.45) {Phases 2 to 4 · video, live runtime, multi-camera};
+  \nn{fus}{d0}{1.525}{-6.75}{20}{KAIST detectors}{v2 and concat}
+  \nn{fus}{d1}{5.025}{-6.75}{20}{still-image results}{miss rate, AP$_{50}$}
+  \nn{scn}{d2}{8.525}{-6.75}{20}{memory, tracking}{failures, ByteTrack}
+  \nn{thr}{d3}{12.025}{-6.75}{30}{live runtime}{soak, link faults}
+  \nn{emb}{d4}{15.525}{-6.75}{40}{multi-camera}{WILDTRACK, RGB}
+  \hop{c4}{d0}
+  \draw[ar] (d0) -- (d1); \draw[ar] (d1) -- (d2); \draw[ar] (d2) -- (d3); \draw[ar] (d3) -- (d4);
 
-  \node[note, anchor=north west, text width=17.5cm] (hyp) at (-1.5,-10.3)
-    {\textbf{Hypotheses decided in 15:}\enspace
-     PH1 fusion beats thermal alone\enspace·\enspace PH2 gating adds value\enspace·\enspace
-     PH3 small objects on M3FD\enspace·\enspace PH4 the scan is needed\enspace·\enspace
-     PH5 latency at most twice the baseline. Solid arrows carry data and checkpoints; dashed arrows carry
-     checkpoints read by the probe.};
+  \node[rt] at (0,-7.7) {Results, manuscript and release};
+  \nn{hed}{e0}{1.525}{-9.0}{15}{pilot results}{hypotheses, tables}
+  \nx{dat}{e1}{5.025}{-9.0}{collect numbers}{numbers.tex, tables}
+  \nx{neu}{e2}{8.525}{-9.0}{manuscript}{paper and supplement}
+  \nx{neu}{e3}{12.025}{-9.0}{venue packages}{9 venues, cover letters}
+  \nn{emb}{e4}{15.525}{-9.0}{16}{demo and website}{upload a pair or photo}
+  \hop{d4}{e0}
+  \draw[ar] (e0) -- (e1); \draw[ar] (e1) -- (e2); \draw[ar] (e2) -- (e3);
+  \draw[dar] (e0.south) -- ++(0,-0.4) -| (e4.south);
 \end{tikzpicture}
 \end{document}

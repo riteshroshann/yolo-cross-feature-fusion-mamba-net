@@ -1,0 +1,58 @@
+\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,mathtools}
+\usepackage{newtxtext,newtxmath}
+\usepackage{graphicx,booktabs,cite}
+\usepackage{xurl,needspace}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={CFFM-Net: Reliability-Gated Mamba Fusion of Visible and Thermal Images for Detection, Tracking and Multi-Camera Analytics},pdfauthor={Ritesh Roshan}}
+\raggedbottom
+\setcounter{dbltopnumber}{2}
+\renewcommand{\dbltopfraction}{0.85}
+\renewcommand{\dblfloatpagefraction}{0.75}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\IEEEQED}{}
+
+\DeclareMathOperator{\softplus}{softplus}
+\newcommand{\Fv}{F^{v}}
+\newcommand{\Ft}{F^{\theta}}
+\newcommand{\rv}{r^{v}}
+\newcommand{\rt}{r^{\theta}}
+\input{numbers}
+\input{parts/config}
+
+\begin{document}
+\title{CFFM-Net: Reliability-Gated Mamba Fusion of Visible and Thermal Images for Detection, Tracking and Multi-Camera Analytics}
+\author{Ritesh~Roshan%
+\thanks{R.~Roshan is an Independent Researcher. E-mail: riteshroshansahoo01@gmail.com.}}
+\markboth{IEEE Transactions on Circuits and Systems for Video Technology}{Roshan: CFFM-Net}
+\maketitle
+
+\begin{abstract}
+Visible-thermal detectors usually fuse their two cameras as if both were always healthy, yet in service one camera is often dark, glared, misaligned or gone. CFFM-Net is a dual-stream YOLO26 detector whose fusion block estimates a per-pixel reliability for each camera and uses it to scale the discretisation step of a four-direction selective state-space scan. At nano scale and over \resLlvipCffmVtwoSeedCount{} seeds, it beats a matched concatenation baseline on M3FD by \marMfdVtwoVsConcatMdMeanMap{}\,$\pm$\,\marMfdVtwoVsConcatMdStdMap{} mAP (paired $p=\sigMfdP{}$, not significant) and is level on LLVIP (\marLlvipVtwoVsConcatMdMeanMap{}\,$\pm$\,\marLlvipVtwoVsConcatMdStdMap{}, $p=\sigLlvipP{}$) and KAIST. Fusion beats the best single camera on M3FD by \gainMfdCffmVtwoOverBestMeanMap{}\,mAP, of which the baseline captures \gainMfdConcatMdOverBestMeanMap{}. On an eleven-fault benchmark the model leads on thermal-side faults on M3FD (\fltMfdMarginMeanThermalAvgSevThreeMap{}\,pp) and trails on visible-side ones (\fltMfdMarginMeanVisibleAvgSevThreeMap{}\,pp), but a baseline trained with fault augmentation is more robust than the model. It costs \latLocalRatioMedian{} times the baseline latency. A Temporal State Memory lowers the KAIST miss rate under thermal noise from \memThermalNoiseImageAllMr{} to \memThermalNoiseMemoryAllMr{}\,\%, with a confound we state, but not when the thermal camera is lost or in tracking. A live runtime keeps delay and memory bounded over ten minutes, at \livSoakThirtyFps{} frames per second on a nominal 30. An RGB-only multi-camera layer on WILDTRACK reaches \camDetFineTunedModa\,\% MODA.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Multispectral object detection, visible-thermal fusion, state space models, Mamba, sensor faults, multi-object tracking.
+\end{IEEEkeywords}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_cffm_overall.pdf}
+\caption{CFFM-Net v1 on a LLVIP pair. Two YOLO26-n backbones with separate weights are fused at each pyramid level; the neck and head are stock YOLO26. The thermal reliability $\rt$ is shown at each level. Versions v2 and v3 drop the stride-4 level and its detection head.}
+\label{fig:overall}
+\end{figure*}
+
+\input{parts/intro}
+\input{parts/related}
+\input{parts/method}
+\input{parts/experiments}
+\input{parts/exp_video}
+\input{parts/exp_live}
+\input{parts/system}
+\input{parts/discussion}
+\input{parts/conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}

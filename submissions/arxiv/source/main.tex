@@ -1,0 +1,61 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs,adjustbox}
+\usepackage{amsmath,mathtools}
+\usepackage{xurl,needspace}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\hypersetup{pdftitle={CFFM-Net: Reliability-Gated Mamba Fusion of Visible and Thermal Images for Detection, Tracking and Multi-Camera Analytics},pdfauthor={Ritesh Roshan}}
+\raggedbottom
+
+\DeclareMathOperator{\softplus}{softplus}
+\newcommand{\Fv}{F^{v}}
+\newcommand{\Ft}{F^{\theta}}
+\newcommand{\rv}{r^{v}}
+\newcommand{\rt}{r^{\theta}}
+\newcommand{\IEEEPARstart}[2]{#1#2}
+\newcommand{\appendices}{\appendix}
+\input{numbers}
+\input{parts/config}
+
+\title{CFFM-Net: Reliability-Gated Mamba Fusion of Visible and Thermal Images for Detection, Tracking and Multi-Camera Analytics}
+\author{Ritesh Roshan\
+Independent Researcher\
+\texttt{riteshroshansahoo01@gmail.com}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
+\noindent\textbf{Keywords:} multispectral object detection, visible-thermal fusion, state space models, Mamba, sensor faults, multi-object tracking.
+
+\begin{figure}[!b]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_cffm_overall.pdf}
+\caption{CFFM-Net v1 on a LLVIP pair. Two YOLO26-n backbones with separate weights are fused at each pyramid level; the neck and head are stock YOLO26. The thermal reliability $\rt$ is shown at each level. Versions v2 and v3 drop the stride-4 level and its detection head.}
+\label{fig:overall}
+\end{figure}
+
+\input{parts/intro}
+\input{parts/related}
+\input{parts/method}
+\input{parts/experiments}
+\input{parts/exp_video}
+\input{parts/exp_live}
+\input{parts/system}
+\input{parts/discussion}
+\input{parts/conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\input{parts/appendix}
+\end{document}
